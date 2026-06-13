@@ -1,0 +1,411 @@
+:root {
+    --primary: #a855f7; 
+    --primary-light: #c084fc;
+    --bg: #111827; 
+    --card-bg: #1f2937; 
+    --text: #f9fafb; 
+    --text-light: #9ca3af; 
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --border: #374151; 
+    --shadow: rgba(168, 85, 247, 0.1); 
+    --success: #10b981;
+}
+
+body { 
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+    margin: 0; 
+    padding: 20px; 
+    background: var(--bg); 
+    color: var(--text);
+    min-height: 100vh;
+}
+
+.header-tienda { 
+    text-align: center; 
+    margin-bottom: 35px; 
+    padding: 45px 20px; 
+    background: rgba(31, 41, 55, 0.7);
+    backdrop-filter: blur(12px);
+    border-radius: 20px; 
+    box-shadow: 0 10px 25px -5px var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.header-tienda h1 { 
+    margin: 0; 
+    color: var(--primary-light); 
+    font-size: 42px; 
+    font-weight: 900; 
+    letter-spacing: -1px; 
+    text-shadow: 0 0 15px rgba(168, 85, 247, 0.4); 
+}
+
+.header-tienda p { 
+    margin: 10px 0 0 0; 
+    color: var(--text-light); 
+    font-size: 16px; 
+    letter-spacing: 0.3px; 
+}
+
+.container { 
+    max-width: 1240px; 
+    margin: auto; 
+    display: flex; 
+    gap: 30px; 
+    flex-wrap: wrap; 
+}
+
+.productos-seccion { 
+    flex: 2; 
+    min-width: 320px; 
+}
+
+.productos { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); 
+    gap: 20px; 
+}
+
+.producto-card { 
+    background: var(--card-bg); 
+    padding: 20px; 
+    border-radius: 18px; 
+    box-shadow: 0 4px 10px -2px rgba(0,0,0,0.3);
+    text-align: center; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: space-between; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+}
+
+.producto-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 30px -5px rgba(168, 85, 247, 0.2);
+    border-color: var(--primary-light);
+}
+
+.img-wrapper { 
+    width: 100%; 
+    height: 160px; 
+    border-radius: 12px; 
+    overflow: hidden; 
+    background-color: var(--card-bg); 
+    margin-bottom: 5px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.producto-card img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: contain; 
+    transition: transform 0.4s ease; 
+}
+
+.producto-card:hover img { 
+    transform: scale(1.08); 
+}
+
+.producto-card h3 { 
+    margin: 14px 0 6px 0; 
+    font-size: 18px; 
+    font-weight: 600; 
+    line-height: 1.4; 
+    color: var(--text); 
+}
+
+.producto-codigo { 
+    font-size: 11px; 
+    color: var(--primary-light); 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+    margin-bottom: 6px; 
+}
+
+.producto-stock { 
+    font-size: 13px; 
+    font-weight: 600; 
+    color: var(--success); 
+    margin-bottom: 8px; 
+}
+
+.producto-stock.agotado { 
+    color: var(--danger); 
+}
+
+.btn { 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    padding: 12px 15px; 
+    border-radius: 12px; 
+    cursor: pointer; 
+    font-weight: 700; 
+    width: 100%; 
+    margin-top: 12px; 
+    transition: all 0.2s ease; 
+    font-size: 14px; 
+    letter-spacing: 0.2px; 
+}
+
+.btn:hover { 
+    background: var(--primary-light); 
+    box-shadow: 0 0 15px rgba(192, 132, 252, 0.4); 
+}
+
+.btn:disabled { 
+    background: #4b5563; 
+    color: #9ca3af; 
+    cursor: not-allowed; 
+    box-shadow: none; 
+}
+
+.btn:active:not(:disabled) { 
+    transform: scale(0.97); 
+}
+
+.btn-danger { 
+    background: var(--danger); 
+    font-size: 12px; 
+    padding: 6px 14px; 
+    width: auto; 
+    margin: 0; 
+    border-radius: 8px; 
+    border: none; 
+    color: white; 
+    cursor: pointer; 
+    font-weight: bold; 
+    transition: background 0.2s; 
+}
+
+.btn-danger:hover { 
+    background: var(--danger-hover); 
+}
+
+.carrito { 
+    flex: 1; 
+    background: var(--card-bg); 
+    padding: 25px; 
+    border-radius: 20px; 
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); 
+    height: fit-content; 
+    min-width: 320px; 
+    border: 1px solid var(--border); 
+    border-top: 5px solid var(--primary-light); 
+}
+
+.carrito-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px; 
+}
+
+.carrito-header h2 { 
+    margin: 0; 
+    font-size: 24px; 
+    font-weight: 800; 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
+
+.cart-badge { 
+    background: var(--primary); 
+    color: white; 
+    font-size: 12px; 
+    padding: 3px 8px; 
+    border-radius: 20px; 
+    font-weight: 800; 
+}
+
+.input-group { 
+    margin-bottom: 20px; 
+}
+
+.input-group label { 
+    display: block; 
+    margin-bottom: 8px; 
+    font-weight: 600; 
+    font-size: 14px; 
+    color: var(--text-light); 
+}
+
+.input-group input, .input-group select { 
+    width: 100%; 
+    padding: 14px; 
+    border: 1px solid var(--border); 
+    border-radius: 10px; 
+    font-family: inherit; 
+    box-sizing: border-box; 
+    font-size: 14px; 
+    background: #111827; 
+    color: var(--text); 
+    transition: all 0.2s ease; 
+}
+
+.input-group input:focus, .input-group select:focus { 
+    border-color: var(--primary-light); 
+    outline: none; 
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.2); 
+}
+
+.item-linea { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 14px; 
+    border-bottom: 1px dashed var(--border); 
+    padding-bottom: 14px; 
+}
+
+.item-info { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 4px; 
+}
+
+.item-nombre { 
+    font-weight: 600; 
+    font-size: 15px; 
+    text-align: left; 
+    color: var(--text); 
+}
+
+.item-precio { 
+    color: var(--text-light); 
+    font-size: 13px; 
+    text-align: left; 
+}
+
+.item-controles { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
+
+.btn-qty { 
+    background: #374151; 
+    border: none; 
+    width: 28px; 
+    height: 28px; 
+    border-radius: 8px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    color: var(--text); 
+    transition: all 0.2s; 
+}
+
+.btn-qty:hover:not(:disabled) { 
+    background: var(--primary); 
+    color: white; 
+}
+
+.btn-qty:disabled { 
+    opacity: 0.3; 
+    cursor: not-allowed; 
+}
+
+.item-cant { 
+    font-weight: 700; 
+    font-size: 15px; 
+    min-width: 18px; 
+    text-align: center; 
+}
+
+.buscador-contenedor { 
+    margin-bottom: 22px; 
+}
+
+.buscador-contenedor input { 
+    width: 100%; 
+    padding: 16px; 
+    border: 1px solid var(--border); 
+    border-radius: 12px; 
+    font-size: 15px; 
+    box-sizing: border-box; 
+    background: var(--card-bg); 
+    color: var(--text); 
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); 
+    transition: all 0.2s; 
+}
+
+.buscador-contenedor input:focus { 
+    border-color: var(--primary-light); 
+    outline: none; 
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.3); 
+}
+
+.categorias-barra { 
+    display: flex; 
+    gap: 10px; 
+    flex-wrap: wrap; 
+    margin-bottom: 30px; 
+}
+
+.btn-categoria { 
+    background: var(--card-bg); 
+    color: var(--text-light); 
+    border: 1px solid var(--border); 
+    padding: 11px 20px; 
+    border-radius: 25px; 
+    cursor: pointer; 
+    font-weight: 600; 
+    font-size: 13px; 
+    transition: all 0.2s ease; 
+    text-transform: uppercase; 
+    letter-spacing: 0.3px; 
+}
+
+.btn-categoria:hover { 
+    border-color: var(--primary-light); 
+    color: var(--text); 
+    background: rgba(168, 85, 247, 0.05); 
+}
+
+.btn-categoria.activo { 
+    background: var(--primary); 
+    color: white; 
+    border-color: var(--primary); 
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3); 
+}
+
+.sin-resultados { 
+    text-align: center; 
+    color: var(--text-light); 
+    font-style: italic; 
+    grid-column: 1 / -1; 
+    padding: 50px 20px; 
+    background: var(--card-bg); 
+    border-radius: 16px; 
+    border: 1px solid var(--border); 
+}
+
+hr { 
+    border: 0; 
+    border-top: 1px solid var(--border); 
+    margin: 25px 0; 
+}
+
+.alerta-exito { 
+    display: none; 
+    background: rgba(46, 16, 101, 0.4); 
+    border: 1px solid #581c87; 
+    color: #f3e8ff; 
+    padding: 18px; 
+    border-radius: 12px; 
+    margin-top: 20px; 
+    font-size: 14px; 
+    font-weight: 600; 
+    text-align: center; 
+    line-height: 1.5; 
+}
