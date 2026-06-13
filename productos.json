@@ -3,7 +3,7 @@
         "codigo": "b1",
         "articulo": "carro rojo",
         "precio": 30.0,
-        "stock": 3,
+        "stock": 1,
         "categoria": "Jugueteria",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\img_b1.png"
     },
@@ -11,7 +11,7 @@
         "codigo": "b2",
         "articulo": "Loteria",
         "precio": 30.0,
-        "stock": 3,
+        "stock": 1,
         "categoria": "Jugueteria",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\img_b2.png"
     },
@@ -19,7 +19,7 @@
         "codigo": "a1",
         "articulo": "sacapunta",
         "precio": 5.0,
-        "stock": 3,
+        "stock": 2,
         "categoria": "Papeleria",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\img_a1.png"
     },
@@ -27,7 +27,7 @@
         "codigo": "a2",
         "articulo": "borrador",
         "precio": 10.0,
-        "stock": 3,
+        "stock": 4,
         "categoria": "Papeleria",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\img_a2.png"
     },
@@ -35,7 +35,7 @@
         "codigo": "c1",
         "articulo": "audifonos",
         "precio": 100.0,
-        "stock": 3,
+        "stock": 1,
         "categoria": "Electronica",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\img_c1.png"
     },
@@ -43,7 +43,7 @@
         "codigo": "c2",
         "articulo": "bocina alexa",
         "precio": 150.0,
-        "stock": 3,
+        "stock": 1,
         "categoria": "Electronica",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\img_c2.png"
     },
@@ -51,7 +51,7 @@
         "codigo": "d1",
         "articulo": "tenis negro",
         "precio": 350.0,
-        "stock": 3,
+        "stock": 2,
         "categoria": "Calzado",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\img_d1.png"
     },
@@ -59,7 +59,7 @@
         "codigo": "d2",
         "articulo": "chancla rosa",
         "precio": 90.0,
-        "stock": 3,
+        "stock": 1,
         "categoria": "Calzado",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\img_d2.png"
     },
@@ -67,7 +67,7 @@
         "codigo": "d3",
         "articulo": "falda gris",
         "precio": 150.0,
-        "stock": 3,
+        "stock": 1,
         "categoria": "Ropa",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\img_d3.png"
     },
@@ -75,7 +75,7 @@
         "codigo": "g1",
         "articulo": "Flores eternas",
         "precio": 350.0,
-        "stock": 3,
+        "stock": 1,
         "categoria": "manualidades",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_g1_1781241732.jpeg"
     },
@@ -83,16 +83,8 @@
         "codigo": "c3",
         "articulo": "audifonos blanco",
         "precio": 120.0,
-        "stock": 3,
+        "stock": 1,
         "categoria": "Electronica",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_c3_1781309704.png"
-    },
-    {
-        "codigo": "b3",
-        "articulo": "pelota",
-        "precio": 25.0,
-        "stock": 3,
-        "categoria": "Jugueteria",
-        "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_b3_1781376245.png"
     }
 ]
