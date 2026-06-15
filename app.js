@@ -71,20 +71,14 @@ function recuperarCarritoDeLocalStorage() {
 }
 
 function cargarProductos() {
-    // Intentar leer el inventario temporal guardado en el navegador
     let inventarioLocal = JSON.parse(localStorage.getItem('inventario_tienda')) || [];
 
     fetch('productos.json')
         .then(response => response.json())
         .then(productosJson => {
-            // Sincronizar de forma inteligente el JSON de Python con la sesión del navegador
             INVENTARIO_GLOBAL = productosJson.map(prodJson => {
-                // Buscamos si el cliente tiene este producto actualmente en su carrito
                 const itemEnCarrito = carrito.find(c => c.codigo === prodJson.codigo);
                 const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
-
-                // 🌟 SOLUCIÓN: El stock base SIEMPRE será el que pusiste en Python. 
-                // Solo le restamos lo que el usuario tenga metido en su carrito en este instante.
                 let stockActualizado = prodJson.stock - cantidadEnCarrito;
 
                 return {
@@ -93,18 +87,16 @@ function cargarProductos() {
                 };
             });
 
-            // Guardamos el estado limpio en el almacenamiento local
             localStorage.setItem('inventario_tienda', JSON.stringify(INVENTARIO_GLOBAL));
-            
-            // Renderizar el catálogo con los datos frescos
             filtrarCatalogo();
+            actualizarCarritoVisual();
         })
         .catch(error => {
-            console.error('Error al cargar el inventario desde productos.json:', error);
-            // Si falla el archivo, usar el respaldo local
+            console.error('Error al cargar el inventario:', error);
             if (inventarioLocal.length > 0) {
                 INVENTARIO_GLOBAL = inventarioLocal;
                 filtrarCatalogo();
+                actualizarCarritoVisual();
             }
         });
 }
@@ -129,9 +121,12 @@ function renderizarTarjetasHTML(productosAMostrar) {
         const claseStock = esAgotado ? 'producto-stock agotado' : 'producto-stock';
         
         let rutaImagen = prod.imagen;
+        // Normalizamos la ruta relativa asumiendo que las imágenes se suben en 'imagenes_productos'
         if (rutaImagen && (rutaImagen.includes('/') || rutaImagen.includes('\\'))) {
             rutaImagen = "imagenes_productos/" + rutaImagen.split(/[/\\\\]/).pop();
-        } else if (!rutaImagen) {
+        } else if (rutaImagen) {
+            rutaImagen = "imagenes_productos/" + rutaImagen;
+        } else {
             rutaImagen = "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=300&auto=format&fit=crop";
         }
 
@@ -262,6 +257,7 @@ function actualizarCarritoVisual() {
         
         const subtotal = prod.precio * item.cantidad;
         totalGeneral += subtotal;
+        // Calculamos stock disponible real
         const sinStockMas = prod.stock <= item.cantidad;
         
         contenedor.innerHTML += `
@@ -290,7 +286,28 @@ function actualizarCarritoVisual() {
     if (txtMonto) txtMonto.innerText = formatearDinero(totalGeneral);
 }
 
-function enviarPedidoFinal() {
+// RESTA DEL SERVIDOR LOCAL DE PYTHON VIA API (Evita doble contabilidad y actualiza el POS)
+async function notificarPOSLocal() {
+    for (let item of carrito) {
+        try {
+            await fetch("http://127.0.0.1:5000/registrar_venta", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer MiClaveSuperSegura_Dayh_2026"
+                },
+                body: JSON.stringify({
+                    codigo: item.codigo,
+                    cantidad: item.cantidad
+                })
+            });
+        } catch (error) {
+            console.log("El servidor local POS está apagado o inaccesible (modo 100% web activado).");
+        }
+    }
+}
+
+async function enviarPedidoFinal() {
     if (carrito.length === 0) { alert("Tu carrito está vacío"); return; }
     const fecha = document.getElementById('fecha').value;
     const hora = document.getElementById('hora').value;
@@ -308,7 +325,7 @@ function enviarPedidoFinal() {
         const subtotal = prod.precio * item.cantidad;
         total += subtotal;
         mensaje += "*" + item.cantidad + "x* [" + prod.codigo + "] " + prod.articulo + " ➔ " + formatearDinero(subtotal) + "\n";
-        prod.stock -= item.cantidad;
+        prod.stock -= item.cantidad; // Deducción inmediata local web
     });
     
     mensaje += "\n━━━━━━━━━━━━━━━━━━━━━\n*TOTAL:* " + formatearDinero(total) + "\n";
@@ -316,6 +333,9 @@ function enviarPedidoFinal() {
     
     urlGlobalWhatsApp = "https://wa.me/" + TELEFONO_WHATSAPP + "?text=" + window.encodeURIComponent(mensaje);
     
+    // Notificamos a la API de Flask/Python (E2E Integration)
+    await notificarPOSLocal();
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(mensaje).then(() => {
             document.getElementById('alerta-copiado').style.display = 'block';
@@ -347,20 +367,3 @@ function ejecutarCopiadoAlternativo(texto) {
 }
 
 function abrirChatManual() { if (urlGlobalWhatsApp) window.open(urlGlobalWhatsApp, '_blank'); }
-
-// Dentro de la función donde cargas el HTML de cada producto
-let nombreImagen = producto.imagen.split(/[/\\\\]/).pop(); // Por si acaso queda alguna ruta vieja
-let rutaFinalImagen = nombreImagen ? `imagenes_productos/${nombreImagen}` : 'ruta/a/imagen_por_defecto.png';
-
-// Ejemplo de cómo tendrías que enviar la petición desde tu frontend web
-fetch("http://127.0.0.1:5000/registrar_venta", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer MiClaveSuperSegura_Dayh_2026" // <-- ¡Aquí va el token!
-    },
-    body: JSON.stringify({
-        codigo: "12345678",
-        cantidad: 1
-    })
-})

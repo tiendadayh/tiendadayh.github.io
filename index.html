@@ -12,21 +12,24 @@
         <h1>TIENDA DAYH</h1>
         <p>Tu catálogo de confianza — Elige tus productos y agenda tu pedido</p>
     </div>
+    
     <div class="container">
         <div class="productos-seccion">
             <div class="buscador-contenedor">
-                <input type="text" id="buscador" placeholder=" 🔍 ¿Qué estás buscando hoy? Escribe aquí por nombre o código...">
+                <input type="text" id="buscador" placeholder=" 🔍 ¿Qué estás buscando hoy? Escribe nombre o código...">
             </div>
+            
             <div class="categorias-barra" id="barra-categorias">
                 <button class="btn-categoria activo" data-cat="todas">Todas</button>
                 <button class="btn-categoria" data-cat="papeleria">✏️ Papelería</button>
-                <button class="btn-categoria" data-cat="jugueteria">Juguetería</button>
-                <button class="btn-categoria" data-cat="electronica">Electrónica</button>
-                <button class="btn-categoria" data-cat="ropa">Ropa</button>
-                <button class="btn-categoria" data-cat="calzado">Calzado</button>
-                <button class="btn-categoria" data-cat="accesorios">Accesorios</button>
-                <button class="btn-categoria" data-cat="manualidades">Manualidades</button>
+                <button class="btn-categoria" data-cat="jugueteria">🧸 Juguetería</button>
+                <button class="btn-categoria" data-cat="electronica">🔌 Electrónica</button>
+                <button class="btn-categoria" data-cat="ropa">👕 Ropa</button>
+                <button class="btn-categoria" data-cat="calzado">👟 Calzado</button>
+                <button class="btn-categoria" data-cat="accesorios">💍 Accesorios</button>
+                <button class="btn-categoria" data-cat="manualidades">🎨 Manualidades</button>
             </div>
+            
             <div class="productos" id="lista-productos">
                 </div>
         </div>
@@ -54,6 +57,7 @@
                 <label for="fecha">Fecha de entrega / Recogida:</label>
                 <input type="date" id="fecha">
             </div>
+            
             <div class="input-group">
                 <label for="hora">Hora aproximada:</label>
                 <select id="hora">
@@ -68,15 +72,17 @@
                     <option value="05:00 PM">05:00 p. m.</option>
                 </select>
             </div>
+            
             <div class="input-group">
                 <label for="cliente">Nombre del cliente:</label>
-                <input type="text" id="cliente" placeholder="Escribe tu nombre...">
+                <input type="text" id="cliente" placeholder="Escribe tu nombre completo...">
             </div>
+            
             <button id="btn-enviar-pedido" class="btn">Enviar Pedido por WhatsApp</button>
             
             <div id="alerta-copiado" class="alerta-exito" style="display: none;">
                 ¡Pedido copiado al portapapeles!<br><br>
-                Si no se abrió WhatsApp, haz clic abajo, mantén presionado el chat y selecciona <strong>Pegar (Ctrl+V)</strong>.
+                Si no se abrió WhatsApp automáticamente, haz clic abajo, mantén presionado el chat de WhatsApp y selecciona <strong>Pegar</strong>.
                 <br><br>
                 <button id="btn-chat-manual" class="btn" style="background:var(--primary); margin:0; width:100%;">Abrir Chat Directo</button>
             </div>
