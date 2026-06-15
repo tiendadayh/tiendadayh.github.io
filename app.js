@@ -71,20 +71,15 @@ function recuperarCarritoDeLocalStorage() {
 }
 
 function cargarProductos() {
-    // Intentar leer el inventario temporal guardado en el navegador
     let inventarioLocal = JSON.parse(localStorage.getItem('inventario_tienda')) || [];
 
     fetch('productos.json')
         .then(response => response.json())
         .then(productosJson => {
-            // Sincronizar de forma inteligente el JSON de Python con la sesión del navegador
             INVENTARIO_GLOBAL = productosJson.map(prodJson => {
-                // Buscamos si el cliente tiene este producto actualmente en su carrito
                 const itemEnCarrito = carrito.find(c => c.codigo === prodJson.codigo);
                 const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
 
-                // 🌟 SOLUCIÓN: El stock base SIEMPRE será el que pusiste en Python. 
-                // Solo le restamos lo que el usuario tenga metido en su carrito en este instante.
                 let stockActualizado = prodJson.stock - cantidadEnCarrito;
 
                 return {
@@ -93,15 +88,11 @@ function cargarProductos() {
                 };
             });
 
-            // Guardamos el estado limpio en el almacenamiento local
             localStorage.setItem('inventario_tienda', JSON.stringify(INVENTARIO_GLOBAL));
-            
-            // Renderizar el catálogo con los datos frescos
             filtrarCatalogo();
         })
         .catch(error => {
             console.error('Error al cargar el inventario desde productos.json:', error);
-            // Si falla el archivo, usar el respaldo local
             if (inventarioLocal.length > 0) {
                 INVENTARIO_GLOBAL = inventarioLocal;
                 filtrarCatalogo();
@@ -128,7 +119,6 @@ function renderizarTarjetasHTML(productosAMostrar) {
         const textoStock = esAgotado ? 'Agotado' : `Disponibles: ${stockDisponibleReal}`;
         const claseStock = esAgotado ? 'producto-stock agotado' : 'producto-stock';
         
-        // 🌟 INTEGRACIÓN DE SUGERENCIA: Extracción y asignación limpia de la ruta de la imagen
         let nombreImagen = prod.imagen ? prod.imagen.split(/[/\\\\]/).pop() : ''; 
         let rutaImagen = nombreImagen ? `imagenes_productos/${nombreImagen}` : 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=300&auto=format&fit=crop';
 
@@ -307,7 +297,6 @@ function enviarPedidoFinal() {
         mensaje += "*" + item.cantidad + "x* [" + prod.codigo + "] " + prod.articulo + " ➔ " + formatearDinero(subtotal) + "\n";
         prod.stock -= item.cantidad;
 
-        // 🌟 INTEGRACIÓN DE SUGERENCIA: Registra dinámicamente cada producto del carrito en el backend de Python
         fetch("http://127.0.0.1:5000/registrar_venta", {
             method: "POST",
             headers: {
@@ -356,4 +345,6 @@ function ejecutarCopiadoAlternativo(texto) {
     finalizarProcesoPedido();
 }
 
-function abrirChatManual() { if (urlGlobalWhatsApp) window.open(urlGlobalWhatsApp, '_blank'); }
+function abrirChatManual() { 
+    if (urlGlobalWhatsApp) window.open(urlGlobalWhatsApp, '_blank'); 
+}
