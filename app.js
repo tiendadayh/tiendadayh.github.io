@@ -229,8 +229,13 @@ function actualizarCarritoVisual() {
     const btnVaciar = document.getElementById('btn-vaciar');
     const badgeContador = document.getElementById('badge-contador');
     
+    // 🌟 1. Conectamos el nuevo globo rojo flotante
+    const badgeFlotante = document.getElementById('badge-flotante');
+    
+    // 🌟 2. Calculamos el total de piezas y se lo asignamos a ambos globos
     const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
     if (badgeContador) badgeContador.innerText = totalItems;
+    if (badgeFlotante) badgeFlotante.innerText = totalItems;
     
     if (carrito.length === 0) {
         contenedor.innerHTML = '<p style="color: var(--text-light); text-align: center; margin: 20px 0;">El carrito está vacío.</p>';

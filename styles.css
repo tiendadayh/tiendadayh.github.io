@@ -475,3 +475,57 @@ hr {
         font-size: 20px;
     }
 }
+
+/* =======================================================
+   BOTÓN DE CARRITO FLOTANTE (Para PC y Celulares)
+   ======================================================= */
+.carrito-flotante {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--primary);
+    color: white;
+    font-size: 28px;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    display: flex; /* 🌟 Ahora está activo siempre por defecto */
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.6);
+    cursor: pointer;
+    z-index: 9999;
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 🌟 EFECTO EN PC: Se agranda un poco y brilla más al pasar el mouse */
+@media (min-width: 769px) {
+    .carrito-flotante:hover {
+        transform: scale(1.1) translateY(-3px);
+        background: var(--primary-light);
+        box-shadow: 0 12px 30px rgba(192, 132, 252, 0.7);
+    }
+}
+
+/* EFECTO EN CELULAR: Se encoge ligeramente al presionarlo con el dedo */
+.carrito-flotante:active {
+    transform: scale(0.95);
+}
+
+.badge-flotante {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: var(--danger);
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--bg);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+}
