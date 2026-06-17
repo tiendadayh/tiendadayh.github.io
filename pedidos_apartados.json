@@ -1,1 +1,10 @@
-[]
+[
+    {
+        "cliente": "alex",
+        "codigo": "a1",
+        "articulo": "sacapunta",
+        "cantidad": 1,
+        "fecha_registro": "2026-06-16 01:22:23",
+        "estatus": "Entregado"
+    }
+]
