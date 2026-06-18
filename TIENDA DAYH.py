@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 import sqlite3
-import json
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+import http.server  
+import json         
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 import base64
 import requests
 import os
@@ -11,6 +12,7 @@ import hashlib
 import threading
 from datetime import datetime
 from PIL import Image, ImageTk
+import winsound
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import cm
@@ -29,6 +31,9 @@ CARPETA_IMAGENES = os.path.join(BASE_DIR, "imagenes_productos")
 os.makedirs(CARPETA_TICKETS, exist_ok=True)
 os.makedirs(CARPETA_CORTES, exist_ok=True)
 os.makedirs(CARPETA_IMAGENES, exist_ok=True)
+
+# 🌟 Variable global para conectar el servidor web con la interfaz de Tkinter
+INSTANCIA_APP = None
 
 # =========================================================
 # INICIALIZACIÓN DE LA BASE DE DATOS (SQLITE)
@@ -108,18 +113,17 @@ def inicializar_bd():
             )
         """)
 
-        # 🌟 NUEVA TABLA PARA LOS APARTADOS DESDE LA WEB
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS const_apartados_web (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cliente TEXT,
-                codigo TEXT,
-                articulo TEXT,
-                cantidad INTEGER,
-                fecha_registro TEXT,
-                estatus TEXT DEFAULT 'Pendiente'
-            )
-        """)
+        cursor.execute('''CREATE TABLE IF NOT EXISTS apartados_web (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cliente TEXT,
+            telefono TEXT,
+            fecha_entrega TEXT,
+            hora_entrega TEXT,
+            total REAL,
+            detalles TEXT,
+            estado TEXT,
+            fecha_registro TEXT
+        )''')
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS config (
@@ -161,6 +165,9 @@ def inicializar_bd():
 # =========================================================
 class POSApp:
     def __init__(self, root, usuario, rol):
+        global INSTANCIA_APP
+        INSTANCIA_APP = self
+        
         self.root = root
         self.usuario = usuario
         self.rol = rol
@@ -177,6 +184,9 @@ class POSApp:
         self.id_turno = 1
         self.imagen_actual_tk = None
         self.cache_miniaturas = {}
+        
+        self.ventana_web_abierta = None
+        self.tabla_pedidos_web = None
 
         self.cargar_configuracion()
         self.crear_interfaz()
@@ -209,20 +219,22 @@ class POSApp:
             print(f"Error al actualizar catálogo web dinámico: {e}")
             
     def sincronizar_github(self):
+        threading.Thread(target=self._hilo_sincronizar_github, daemon=True).start()
+
+    def _hilo_sincronizar_github(self):
         try:
             ruta_token = os.path.join(BASE_DIR, "TOKE.txt")
             with open(ruta_token, "r", encoding="utf-8") as f:
                 GITHUB_TOKEN = f.read().strip()
         except Exception as e:
-            messagebox.showerror("ERROR DE CONFIGURACIÓN", "No se encontró el archivo TOKE.txt o no se pudo leer el token.")
+            self.root.after(0, lambda: messagebox.showerror("ERROR DE CONFIGURACIÓN", "No se encontró el archivo TOKE.txt o no se pudo leer el token."))
             return
 
         GITHUB_REPO = "chanecarlos83/chanecarlos83.github.io"
         GITHUB_PATH = "productos.json"
         
-        self.entry_codigo.delete(0, tk.END)
-        self.entry_codigo.insert(0, "Subiendo...")
-        self.root.update()
+        self.root.after(0, lambda: self.entry_codigo.delete(0, tk.END))
+        self.root.after(0, lambda: self.entry_codigo.insert(0, "Subiendo..."))
 
         try:
             ruta_productos = os.path.join(BASE_DIR, "productos.json")
@@ -251,14 +263,14 @@ class POSApp:
             respuesta_put = requests.put(url_api, headers=headers, json=datos_put)
 
             if respuesta_put.status_code in [200, 201]:
-                messagebox.showinfo("ÉXITO", "Inventario sincronizado con la tienda en línea correctamente.")
+                self.root.after(0, lambda: messagebox.showinfo("ÉXITO", "Inventario sincronizado con la tienda en línea correctamente."))
             else:
-                messagebox.showerror("ERROR GITHUB", f"Error al subir: {respuesta_put.status_code}\n{respuesta_put.text}")
+                self.root.after(0, lambda: messagebox.showerror("ERROR GITHUB", f"Error al subir: {respuesta_put.status_code}\n{respuesta_put.text}"))
 
         except Exception as e:
-            messagebox.showerror("ERROR DE CONEXIÓN", f"No se pudo sincronizar: {str(e)}")
+            self.root.after(0, lambda: messagebox.showerror("ERROR DE CONEXIÓN", f"No se pudo sincronizar: {str(e)}"))
         finally:
-            self.entry_codigo.delete(0, tk.END)
+            self.root.after(0, lambda: self.entry_codigo.delete(0, tk.END))
 
     def poner_fullscreen(self, ventana):
         ventana.update_idletasks()
@@ -266,12 +278,6 @@ class POSApp:
             ventana.state("zoomed")
         except tk.TclError:
             ventana.attributes("-fullscreen", True)
-
-    def centrar_ventana(self, ventana, ancho=700, alto=500):
-        ventana.update_idletasks()
-        x = (ventana.winfo_screenwidth() // 2) - (ancho // 2)
-        y = (ventana.winfo_screenheight() // 2) - (alto // 2)
-        ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
 
     def actualizar_reloj(self):
         if not hasattr(self, 'fecha_hora') or not self.fecha_hora.winfo_exists():
@@ -291,6 +297,36 @@ class POSApp:
                     self.id_turno = int(res[1])
         except Exception as e:
             messagebox.showerror("ERROR", f"No se pudo cargar la configuración:\n{e}")
+
+    def restablecer_historial_ventas(self):
+        if messagebox.askyesno("⚠️ ADVERTENCIA CRÍTICA", "ALERTA: Vas a RESTAURAR a cero todos los tickets, historial de ventas, cortes de caja y ganancias históricas.\n\nEl inventario de productos NO se borrará.\n\n¿Estás completamente seguro de continuar?"):
+            if messagebox.askyesno("CONFIRMACIÓN FINAL", "Esta acción es IRREVERSIBLE.\n\n¿Deseas borrar las ventas y reiniciar los folios y ganancias a CERO?"):
+                try:
+                    with sqlite3.connect(DB_PATH) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("DELETE FROM ventas")
+                        cursor.execute("DELETE FROM detalle_ventas")
+                        cursor.execute("DELETE FROM sqlite_sequence WHERE name='ventas'")
+                        cursor.execute("DELETE FROM sqlite_sequence WHERE name='detalle_ventas'")
+                        cursor.execute("UPDATE config SET folio = 1, id_turno = 1 WHERE id = 1")
+                        conn.commit()
+
+                    self.folio = 1
+                    self.id_turno = 1
+                    
+                    for carpeta in [CARPETA_TICKETS, CARPETA_CORTES]:
+                        for archivo in os.listdir(carpeta):
+                            ruta_archivo = os.path.join(carpeta, archivo)
+                            try:
+                                if os.path.isfile(ruta_archivo):
+                                    os.remove(ruta_archivo)
+                            except Exception:
+                                pass
+                                
+                    messagebox.showinfo("ÉXITO", "El sistema de caja ha sido restaurado.\nLos tickets y ganancias se han reiniciado a cero exitosamente.")
+                    self.root.destroy() 
+                except Exception as e:
+                    messagebox.showerror("ERROR", f"No se pudo restaurar el historial: {e}")
 
     def crear_interfaz(self):
         self.main_frame = tk.Frame(self.root, bg="#121212")
@@ -312,41 +348,54 @@ class POSApp:
         top = tk.Frame(self.main_frame, bg="#121212")
         top.pack(fill="x", padx=10, pady=10)
 
-        self.entry_codigo = tk.Entry(top, font=("Arial", 16), width=10, justify="center", bg="#1e1e1e", fg="white", insertbackground="white", relief="flat")
+        self.entry_codigo = tk.Entry(top, font=("Arial", 16), width=8, justify="center", bg="#1e1e1e", fg="white", insertbackground="white", relief="flat")
         self.entry_codigo.pack(side="left", padx=3, ipady=10)
         self.entry_codigo.focus()
         self.entry_codigo.bind("<Return>", lambda e: self.agregar_producto())
 
         btn_buscar_p = tk.Button(
             top, text="🔍 BUSCAR PROD.", bg="#424242", fg="white", font=("Arial", 9, "bold"),
-            width=13, height=2, relief="flat", cursor="hand2", command=self.abrir_buscador_ventas
+            width=12, height=2, relief="flat", cursor="hand2", command=self.abrir_buscador_ventas
         )
         btn_buscar_p.pack(side="left", padx=3)
 
-        # 🌟 Botones actualizados
+        # Añadido el nuevo botón "📅GANANCIAS DÍA" a la lista
         botones = [
             ("📦NUEVO", "#2e7d32", self.nuevo_producto, "admin"),
             ("📋INVENTARIO", "#2e7d32", self.ver_inventario, "todos"),
             ("📊VALORIZACIÓN", "#2e7d32", self.ver_valorizacion_mercancia, "admin"), 
             ("📈ESTADÍSTICAS", "#2e7d32", self.ver_estadisticas, "admin"), 
+            ("📅GANANCIAS DÍA", "#2e7d32", self.ver_ganancias_dia, "admin"), 
             ("✏EDITAR", "#0288d1", self.editar_producto, "admin"),
             ("📥STOCK", "#0288d1", self.surtir_stock, "admin"),
             ("🖨IMPR. CÓDIGO", "#0288d1", self.abrir_buscador_codigos, "todos"),
-            ("💰CORTE DE CAJA", "#0288d1", self.corte_caja, "todos"),
-            ("🌐SUBIR A WEB", "#6a1b9a", self.sincronizar_github, "admin"),
+            ("💰CORTE CAJA", "#0288d1", self.corte_caja, "todos"),
+            ("🌐SUBIR WEB", "#6a1b9a", self.sincronizar_github, "admin"),
             ("🌐PEDIDOS WEB", "#e65100", self.ver_pedidos_web, "todos"),
-            ("🗓APARTADOS LOCAL", "#f57c00", self.ver_apartados, "todos"),
+            ("🗓APARTADOS", "#f57c00", self.ver_apartados, "todos"),
             ("❌ELIMINAR", "#c62828", self.eliminar_producto, "admin"),
+            ("⚠️RESETEAR", "#d50000", self.restablecer_historial_ventas, "admin"), 
             ("🔒SALIR", "#c62828", self.cerrar_sesion, "todos")
         ]
 
+        frame_botones_menu = tk.Frame(top, bg="#121212")
+        frame_botones_menu.pack(side="left", padx=10)
+
+        columna_actual = 0
+        fila_actual = 0
         for texto, color, comando, permission in botones:
             if permission == "todos" or self.rol == "admin":
                 btn = tk.Button(
-                    top, text=texto, bg=color, fg="white", font=("Arial", 8, "bold"),
+                    frame_botones_menu, text=texto, bg=color, fg="white", font=("Arial", 8, "bold"),
                     width=12, height=2, relief="flat", cursor="hand2", command=comando
                 )
-                btn.pack(side="left", padx=2)
+                btn.grid(row=fila_actual, column=columna_actual, padx=2, pady=2)
+                
+                columna_actual += 1
+                # Ahora cambiamos a 8 botones por fila para que quepan los 15 perfectamente
+                if columna_actual >= 8:
+                    columna_actual = 0
+                    fila_actual += 1
 
         contenedor_central = tk.Frame(self.main_frame, bg="#121212")
         contenedor_central.pack(fill="both", expand=True, padx=20, pady=5)
@@ -397,69 +446,150 @@ class POSApp:
         self.lbl_total = tk.Label(footer, text="TOTAL: $0.00", font=("Arial", 42, "bold"), bg="#121212", fg="#ff3d00")
         self.lbl_total.pack(side="right", padx=40, pady=20)
 
-    # 🌟 GESTIÓN DE APARTADOS WEB (NUEVO)
-    def ver_pedidos_web(self):
-        ventana_web = tk.Toplevel(self.root)
-        ventana_web.title("📦 GESTIÓN DE APARTADOS WEB")
-        ventana_web.configure(bg="#1a1a1a")
-        self.centrar_ventana(ventana_web, 900, 500)
+    # =========================================================
+    # NUEVA FUNCIÓN: GANANCIAS POR DÍA Y CATEGORÍA
+    # =========================================================
+    def ver_ganancias_dia(self):
+        ventana_ganancias = tk.Toplevel(self.root)
+        ventana_ganancias.title("📅 REPORTE DE GANANCIAS: DÍA Y CATEGORÍA")
+        ventana_ganancias.configure(bg="#121212")
+        self.poner_fullscreen(ventana_ganancias)
         
-        ventana_web.lift()
-        ventana_web.focus_force()
-        ventana_web.grab_set()
+        ventana_ganancias.lift()
+        ventana_ganancias.focus_force()
+        ventana_ganancias.grab_set()
+        ventana_ganancias.bind("<Escape>", lambda e: ventana_ganancias.destroy())
 
-        lbl_titulo = tk.Label(ventana_web, text="📋 REGISTRO DE PEDIDOS DESDE LA WEB", font=("Segoe UI", 16, "bold"), bg="#1a1a1a", fg="#a855f7")
+        tk.Label(ventana_ganancias, text="📅 REPORTE DE GANANCIAS POR DÍA Y CATEGORÍA", font=("Arial", 22, "bold"), bg="#121212", fg="white").pack(pady=20)
+
+        frame_tabla = tk.Frame(ventana_ganancias, bg="#1e1e1e")
+        frame_tabla.pack(fill="both", expand=True, padx=40, pady=10)
+
+        style_gan = ttk.Style()
+        style_gan.configure("Gan.Treeview", background="#1e1e1e", foreground="white", fieldbackground="#1e1e1e", rowheight=35, font=("Arial", 12))
+        style_gan.configure("Gan.Treeview.Heading", background="#2d2d2d", foreground="white", font=("Arial", 12, "bold"))
+
+        columnas = ("Fecha (Día)", "Categoría", "Total Piezas Vendidas", "Ganancia Neta Obtenida")
+        tabla_ganancias = ttk.Treeview(frame_tabla, columns=columnas, show="headings", style="Gan.Treeview")
+        
+        scroll_y = ttk.Scrollbar(frame_tabla, orient="vertical", command=tabla_ganancias.yview)
+        tabla_ganancias.configure(yscrollcommand=scroll_y.set)
+        scroll_y.pack(side="right", fill="y")
+        tabla_ganancias.pack(side="left", fill="both", expand=True)
+
+        anchos = [150, 300, 200, 250]
+        for col, ancho in zip(columnas, anchos):
+            tabla_ganancias.heading(col, text=col)
+            tabla_ganancias.column(col, anchor="center", width=ancho)
+
+        # Consulta SQL adaptada al formato exacto de tu DB (FECHA formato dd/mm/yyyy hh:mm:ss)
+        query = """
+            SELECT 
+                SUBSTR(v.fecha, 1, 10) AS dia,
+                COALESCE(p.categoria, 'General') AS categoria,
+                SUM(dv.cantidad) AS total_piezas,
+                SUM((dv.precio_venta - dv.costo_unitario) * dv.cantidad) AS ganancia_total
+            FROM detalle_ventas dv
+            JOIN ventas v ON v.folio = dv.folio_venta AND v.id_turno = dv.id_turno
+            JOIN productos p ON p.codigo = dv.codigo_producto
+            GROUP BY dia, categoria
+            ORDER BY 
+                SUBSTR(v.fecha, 7, 4) DESC, 
+                SUBSTR(v.fecha, 4, 2) DESC, 
+                SUBSTR(v.fecha, 1, 2) DESC, 
+                ganancia_total DESC
+        """
+
+        try:
+            with sqlite3.connect(DB_PATH) as conexion:
+                cursor = conexion.cursor()
+                cursor.execute(query)
+                registros = cursor.fetchall()
+
+            for registro in registros:
+                dia = registro[0]
+                categoria = registro[1]
+                piezas = registro[2]
+                ganancia = f"${registro[3]:.2f}" if registro[3] is not None else "$0.00"
+                
+                tabla_ganancias.insert("", "end", values=(dia, categoria, piezas, ganancia))
+                
+        except Exception as e:
+            messagebox.showerror("ERROR", f"No se pudo generar el reporte:\n{e}", parent=ventana_ganancias)
+
+        btn_salir = tk.Button(ventana_ganancias, text="❌ CERRAR REPORTE (ESC)", font=("Arial", 12, "bold"), bg="#333333", fg="white", relief="flat", height=2, command=ventana_ganancias.destroy)
+        btn_salir.pack(fill="x", padx=40, pady=20)
+
+    def refrescar_desde_web(self):
+        print("[WEB] ¡Sincronizando nuevo pedido recibido!")
+        
+        self.actualizar_web_json()
+        
+        if self.ventana_web_abierta and self.ventana_web_abierta.winfo_exists() and self.tabla_pedidos_web:
+            self.refrescar_datos_apartados()
+            
+        try:
+            winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | winsound.SND_ASYNC)
+        except:
+            pass
+            
+        self.root.after(0, lambda: messagebox.showinfo(
+            "🛒 ¡Nuevo Pedido Web!", 
+            "¡Acabas de recibir un nuevo apartado desde la página web!\n\nEl inventario y las tablas se han actualizado automáticamente."
+        ))
+
+    def ver_pedidos_web(self):
+        if self.ventana_web_abierta and self.ventana_web_abierta.winfo_exists():
+            self.ventana_web_abierta.lift()
+            return
+            
+        self.ventana_web_abierta = tk.Toplevel(self.root)
+        self.ventana_web_abierta.title("📦 GESTIÓN DE APARTADOS WEB")
+        self.ventana_web_abierta.configure(bg="#1a1a1a")
+        self.poner_fullscreen(self.ventana_web_abierta)
+        self.ventana_web_abierta.bind("<Escape>", lambda e: self.ventana_web_abierta.destroy())
+        
+        self.ventana_web_abierta.lift()
+        self.ventana_web_abierta.focus_force()
+        self.ventana_web_abierta.grab_set()
+
+        lbl_titulo = tk.Label(self.ventana_web_abierta, text="📋 REGISTRO DE PEDIDOS DESDE LA WEB", font=("Segoe UI", 16, "bold"), bg="#1a1a1a", fg="#a855f7")
         lbl_titulo.pack(pady=15)
         
-        frame_tabla = tk.Frame(ventana_web, bg="#1e1e1e")
+        frame_tabla = tk.Frame(self.ventana_web_abierta, bg="#1e1e1e")
         frame_tabla.pack(fill="both", expand=True, padx=20, pady=10)
 
-        columnas = ("ID", "Cliente", "Código", "Artículo", "Cantidad", "Fecha", "Estatus")
-        tabla = ttk.Treeview(frame_tabla, columns=columnas, show="headings", height=14)
+        columnas = ("ID", "Cliente", "Teléfono", "Fecha Ent.", "Hora Ent.", "Total", "Estado")
+        self.tabla_pedidos_web = ttk.Treeview(frame_tabla, columns=columnas, show="headings", height=14)
         
         for col in columnas:
-            tabla.heading(col, text=col)
-            tabla.column(col, width=100, anchor="center")
+            self.tabla_pedidos_web.heading(col, text=col)
+            self.tabla_pedidos_web.column(col, width=100, anchor="center")
         
-        tabla.column("Artículo", width=200, anchor="w")
-        tabla.column("Cliente", width=140, anchor="w")
-        tabla.pack(fill="both", expand=True)
-        
-        def refrescar_datos_apartados():
-            for row in tabla.get_children():
-                tabla.delete(row)
-            try:
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
-                cursor.execute("SELECT id, cliente, codigo, articulo, cantidad, fecha_registro, estatus FROM const_apartados_web ORDER BY id DESC")
-                for fila in cursor.fetchall():
-                    tag = "pendiente" if fila[6] == "Pendiente" else "entregado"
-                    tabla.insert("", "end", values=fila, tags=(tag,))
-                conn.close()
-            except Exception as e:
-                print(f"Error al leer apartados: {e}")
+        self.tabla_pedidos_web.column("Cliente", width=160, anchor="w")
+        self.tabla_pedidos_web.pack(fill="both", expand=True)
                 
-        tabla.tag_configure("pendiente", background="#374151", foreground="#f9fafb")
-        tabla.tag_configure("entregado", background="#10b981", foreground="#ffffff")
+        self.tabla_pedidos_web.tag_configure("pendiente", background="#374151", foreground="#f9fafb")
+        self.tabla_pedidos_web.tag_configure("entregado", background="#10b981", foreground="#ffffff")
 
         def cambiar_a_entregado():
-            seleccion = tabla.selection()
+            seleccion = self.tabla_pedidos_web.selection()
             if not seleccion:
-                messagebox.showwarning("Atención", "Por favor, selecciona un apartado de la lista.", parent=ventana_web)
+                messagebox.showwarning("Atención", "Por favor, selecciona un apartado de la lista.", parent=self.ventana_web_abierta)
                 return
                 
-            datos = tabla.item(seleccion[0], "values")
+            datos = self.tabla_pedidos_web.item(seleccion[0], "values")
             id_registro = datos[0]
             estatus = datos[6]
             
             if estatus == "Entregado":
-                messagebox.showinfo("Aviso", "Este pedido ya ha sido entregado.", parent=ventana_web)
+                messagebox.showinfo("Aviso", "Este pedido ya ha sido entregado.", parent=self.ventana_web_abierta)
                 return
                 
-            if messagebox.askyesno("Confirmación", f"¿Deseas marcar el pedido de '{datos[1]}' como ENTREGADO?", parent=ventana_web):
+            if messagebox.askyesno("Confirmación", f"¿Deseas marcar el pedido de '{datos[1]}' como ENTREGADO?", parent=self.ventana_web_abierta):
                 conn = sqlite3.connect(DB_PATH)
                 cursor = conn.cursor()
-                cursor.execute("UPDATE const_apartados_web SET estatus = 'Entregado' WHERE id = ?", (id_registro,))
+                cursor.execute("UPDATE apartados_web SET estado = 'Entregado' WHERE id = ?", (id_registro,))
                 conn.commit()
                 conn.close()
                 
@@ -469,31 +599,165 @@ class POSApp:
                         with open(ruta_json_apartados, "r", encoding="utf-8") as f:
                             lista = json.load(f)
                         for item in lista:
-                            if item["cliente"] == datos[1] and item["codigo"] == datos[2] and item["estatus"] == "Pendiente":
-                                item["estatus"] = "Entregado"
+                            if str(item.get("id")) == str(id_registro) and item.get("estado", "Pendiente") != "Entregado":
+                                item["estado"] = "Entregado"
                                 break
                         with open(ruta_json_apartados, "w", encoding="utf-8") as f:
                             json.dump(lista, f, indent=4, ensure_ascii=False)
                     except Exception as e:
                         print(f"No se pudo actualizar el JSON: {e}")
                 
-                messagebox.showinfo("Éxito", "Apartado completado correctamente.", parent=ventana_web)
-                refrescar_datos_apartados()
+                messagebox.showinfo("Éxito", "Apartado completado correctamente.", parent=self.ventana_web_abierta)
+                self.refrescar_datos_apartados()
 
-        frame_btn = tk.Frame(ventana_web, bg="#1a1a1a")
+        def limpiar_pedidos_web():
+            if messagebox.askyesno("Confirmación Crítica", "⚠️ ¿Estás seguro de que deseas ELIMINAR TODOS los pedidos web?\n\nEsta acción borrará el historial por completo y NO se puede deshacer.", parent=self.ventana_web_abierta):
+                try:
+                    conn = sqlite3.connect(DB_PATH)
+                    cursor = conn.cursor()
+                    cursor.execute("DELETE FROM apartados_web")
+                    conn.commit()
+                    conn.close()
+                    
+                    ruta_json = os.path.join(BASE_DIR, "pedidos_apartados.json")
+                    if os.path.exists(ruta_json):
+                        with open(ruta_json, "w", encoding="utf-8") as f:
+                            json.dump([], f)
+
+                    self.refrescar_datos_apartados()
+                    messagebox.showinfo("Éxito", "Todos los pedidos web han sido limpiados de la base de datos.", parent=self.ventana_web_abierta)
+                except Exception as e:
+                    messagebox.showerror("Error", f"No se pudo limpiar la tabla: {e}", parent=self.ventana_web_abierta)
+
+        frame_btn = tk.Frame(self.ventana_web_abierta, bg="#1a1a1a")
         frame_btn.pack(pady=15)
         
-        tk.Button(frame_btn, text="🔄 Actualizar Tabla", command=refrescar_datos_apartados, bg="#374151", fg="white", font=("Segoe UI", 11, "bold"), relief="flat").grid(row=0, column=0, padx=10, pady=5)
-        tk.Button(frame_btn, text="✅ Registrar Entrega", command=cambiar_a_entregado, bg="#10b981", fg="white", font=("Segoe UI", 11, "bold"), relief="flat").grid(row=0, column=1, padx=10, pady=5) # Hemos quitado 'padding=6' y añadido 'pady=5'
+        tk.Button(frame_btn, text="🔄 Actualizar Tabla", command=self.refrescar_datos_apartados, bg="#374151", fg="white", font=("Segoe UI", 11, "bold"), relief="flat").grid(row=0, column=0, padx=10, pady=5)
+        tk.Button(frame_btn, text="✅ Registrar Entrega", command=cambiar_a_entregado, bg="#10b981", fg="white", font=("Segoe UI", 11, "bold"), relief="flat").grid(row=0, column=1, padx=10, pady=5)
+        tk.Button(frame_btn, text="🗑 Limpiar Pedidos", command=limpiar_pedidos_web, bg="#d50000", fg="white", font=("Segoe UI", 11, "bold"), relief="flat").grid(row=0, column=2, padx=10, pady=5)
         
-        refrescar_datos_apartados()
+        self.refrescar_datos_apartados()
 
-    # 🌟 GRÁFICA DE ESTADÍSTICAS
+    def refrescar_datos_apartados(self):
+        if not hasattr(self, 'tabla_pedidos_web') or not self.tabla_pedidos_web:
+            return
+            
+        for item in self.tabla_pedidos_web.get_children():
+            self.tabla_pedidos_web.delete(item)
+            
+        ruta_pedidos_json = os.path.join(BASE_DIR, "pedidos_apartados.json")
+        
+        if os.path.exists(ruta_pedidos_json):
+            try:
+                with open(ruta_pedidos_json, "r", encoding="utf-8") as f:
+                    pedidos = json.load(f)
+                    
+                for p in pedidos:
+                    estado_actual = p.get("estado", "Pendiente")
+                    tag_fila = "entregado" if estado_actual == "Entregado" else "pendiente"
+                    
+                    self.tabla_pedidos_web.insert("", "end", values=(
+                        p.get("id", ""),
+                        p.get("cliente", "Sin Nombre"),
+                        p.get("telefono", ""),
+                        p.get("fecha_entrega", ""),
+                        p.get("hora_entrega", ""),
+                        f"${float(p.get('total', 0.0)):.2f}",
+                        estado_actual
+                    ), tags=(tag_fila,))
+            except Exception as e:
+                print(f"[ERROR UI] No se pudo leer el JSON para mostrar en pantalla: {e}")
+
+    def guardar_pedido_desde_web(self, datos_pedido):
+        try:
+            conexion = sqlite3.connect(DB_PATH)
+            cursor = conexion.cursor()
+            
+            productos_solicitados = datos_pedido.get('productos', [])
+            total_pedido = 0.0
+            detalles_lista = []
+            
+            for prod in productos_solicitados:
+                codigo = prod.get('codigo')
+                cantidad = int(prod.get('cantidad', 0))
+                
+                cursor.execute("SELECT stock, articulo, precio FROM productos WHERE codigo = ?", (codigo,))
+                fila = cursor.fetchone()
+                if fila:
+                    stock_actual, nombre_articulo, precio = fila
+                    nuevo_stock = max(0, stock_actual - cantidad)
+                    
+                    cursor.execute("UPDATE productos SET stock = ? WHERE codigo = ?", (nuevo_stock, codigo))
+                    
+                    total_pedido += (precio * cantidad)
+                    detalles_lista.append(f"{nombre_articulo} (x{cantidad})")
+            
+            texto_detalles = ", ".join(detalles_lista) if detalles_lista else "Pedido vacío"
+            conexion.commit()
+            conexion.close()
+            
+            ruta_pedidos_json = os.path.join(BASE_DIR, "pedidos_apartados.json")
+            pedidos_existentes = []
+            
+            if os.path.exists(ruta_pedidos_json):
+                try:
+                    with open(ruta_pedidos_json, "r", encoding="utf-8") as f:
+                        pedidos_existentes = json.load(f)
+                        if not isinstance(pedidos_existentes, list):
+                            pedidos_existentes = []
+                except:
+                    pedidos_existentes = []
+            
+            nuevo_pedido_json = {
+                "id": len(pedidos_existentes) + 1,
+                "cliente": datos_pedido.get('cliente', 'Cliente Web'),
+                "telefono": datos_pedido.get('telefono', ''),
+                "fecha_entrega": datos_pedido.get('fecha_entrega'),
+                "hora_entrega": datos_pedido.get('hora_entrega'),
+                "total": total_pedido,
+                "detalles": texto_detalles,
+                "productos": productos_solicitados,
+                "estado": "Pendiente",
+                "fecha_registro": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            
+            pedidos_existentes.append(nuevo_pedido_json)
+            
+            with open(ruta_pedidos_json, "w", encoding="utf-8") as f:
+                json.dump(pedidos_existentes, f, ensure_ascii=False, indent=4)
+            print(f"[JSON] ¡Pedido guardado con éxito en pedidos_apartados.json!")
+
+            try:
+                conexion = sqlite3.connect(DB_PATH)
+                cursor = conexion.cursor()
+                cursor.execute("""
+                    INSERT INTO apartados_web (cliente, telefono, fecha_entrega, hora_entrega, total, detalles, estado, fecha_registro) 
+                    VALUES (?, ?, ?, ?, ?, ?, 'Pendiente', ?)
+                """, (
+                    datos_pedido.get('cliente', 'Cliente Web'),
+                    datos_pedido.get('telefono', ''),
+                    datos_pedido.get('fecha_entrega'),
+                    datos_pedido.get('hora_entrega'),
+                    total_pedido,
+                    texto_detalles,
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ))
+                conexion.commit()
+                conexion.close()
+            except Exception as e_bd:
+                print(f"[AVISO BD] No se insertó en SQLite: {e_bd}")
+
+            self.root.after(0, lambda: ejecutar_sincronizacion_total_web(self))
+
+        except Exception as e:
+            print(f"[ERROR BD] No se pudo procesar pedido: {e}")
+
     def ver_estadisticas(self):
         ventana_stats = tk.Toplevel(self.root)
         ventana_stats.title("📊 ESTADÍSTICAS DE VENTA")
         ventana_stats.configure(bg="#1a1a1a")
-        self.centrar_ventana(ventana_stats, 600, 450)
+        self.poner_fullscreen(ventana_stats)
+        ventana_stats.bind("<Escape>", lambda e: ventana_stats.destroy())
         
         ventana_stats.lift()
         ventana_stats.focus_force()
@@ -535,7 +799,7 @@ class POSApp:
                 canvas_grafica.create_text(x1 + (ancho_barra/2), y1 - 10, text=str(cantidad), fill="#f9fafb", font=("Segoe UI", 9, "bold"))
                 canvas_grafica.create_text(x1 + (ancho_barra/2), y2 + 15, text=cat_nombre[:8], fill="#9ca3af", font=("Segoe UI", 8))
         
-        btn_actualizar = tk.Button(ventana_stats, text="🔄 Actualizar Gráficos", command=dibujar_grafica, bg="#a855f7", fg="white", font=("Segoe UI", 11, "bold"), relief="flat", padding=8)
+        btn_actualizar = tk.Button(ventana_stats, text="🔄 Actualizar Gráficos", command=dibujar_grafica, bg="#a855f7", fg="white", font=("Segoe UI", 11, "bold"), relief="flat", padx=8, pady=8)
         btn_actualizar.pack(pady=10)
         dibujar_grafica()
 
@@ -552,7 +816,7 @@ class POSApp:
         ventana_val = tk.Toplevel(self.root)
         ventana_val.title("📊 REPORTE FINANCIERO Y CONTROL DE GANANCIAS")
         ventana_val.configure(bg="#121212")
-        self.poner_fullscreen(ventana_val)
+        self.poner_fullscreen(ventana_val) 
         
         ventana_val.lift()
         ventana_val.focus_force()
@@ -645,7 +909,7 @@ class POSApp:
         ventana_cobro = tk.Toplevel(self.root)
         ventana_cobro.title("💵 PROCESAR COBRO")
         ventana_cobro.configure(bg="#1a1a1a")
-        self.centrar_ventana(ventana_cobro, 650, 520)
+        self.poner_fullscreen(ventana_cobro) 
         
         ventana_cobro.lift()
         ventana_cobro.focus_force()
@@ -653,7 +917,7 @@ class POSApp:
         ventana_cobro.bind("<Escape>", lambda e: ventana_cobro.destroy())
 
         main_box = tk.Frame(ventana_cobro, bg="#212121", bd=1, relief="solid")
-        main_box.pack(fill="both", expand=True, padx=25, pady=25)
+        main_box.pack(expand=True, padx=25, pady=25) 
 
         tk.Label(main_box, text="RESUMEN DE COMPRA", bg="#212121", fg="#00ff90", font=("Arial", 14, "bold")).pack(pady=12)
         
@@ -751,9 +1015,9 @@ class POSApp:
                     if res_stock and res_stock[0] == 1:
                         productos_alerta_stock.append(res_stock[1])
 
-                self.folio += 1
-                cursor.execute("UPDATE config SET folio = ? WHERE id = 1", (self.folio,))
+                cursor.execute("UPDATE config SET folio = folio + 1 WHERE id = 1")
                 conexion.commit()
+                self.folio += 1 
 
                 self.actualizar_web_json()
 
@@ -855,64 +1119,127 @@ class POSApp:
             self.entry_codigo.focus()
 
     def abrir_buscador_ventas(self):
-        ventana_busqueda = tk.Toplevel(self.root)
-        ventana_busqueda.title("🔍 BUSCAR ARTÍCULO")
-        ventana_busqueda.configure(bg="#1e1e1e")
-        self.centrar_ventana(ventana_busqueda, 650, 480)
+        ventana_buscar = tk.Toplevel(self.root)
+        ventana_buscar.title("🔍 BUSCADOR DE ARTÍCULOS")
+        ventana_buscar.configure(bg="#1a1a1a")
+        self.poner_fullscreen(ventana_buscar)
         
-        ventana_busqueda.lift()
-        ventana_busqueda.focus_force()
-        ventana_busqueda.grab_set()
-        ventana_busqueda.bind("<Escape>", lambda e: ventana_busqueda.destroy())
+        ventana_buscar.lift()
+        ventana_buscar.focus_force()
+        ventana_buscar.grab_set()
+        ventana_buscar.bind("<Escape>", lambda e: ventana_buscar.destroy())
 
-        tk.Label(ventana_busqueda, text="Escribe el nombre del producto:", bg="#1e1e1e", fg="white", font=("Arial", 12)).pack(pady=8)
-        entry_filtro = tk.Entry(ventana_busqueda, font=("Arial", 14), width=32, bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
-        entry_filtro.pack(pady=5, ipady=4)
-        entry_filtro.focus()
+        lbl_titulo = tk.Label(ventana_buscar, text="🔍 CONSULTA DE ARTÍCULOS", font=("Segoe UI", 16, "bold"), bg="#1a1a1a", fg="#00ff90")
+        lbl_titulo.pack(pady=10)
 
-        tabla_res = ttk.Treeview(ventana_busqueda, columns=("Codigo", "Articulo", "Precio", "Stock"), show="headings", height=8)
-        for col in ("Codigo", "Articulo", "Precio", "Stock"):
-            tabla_res.heading(col, text=col)
-            tabla_res.column(col, anchor="center", width=140)
-        tabla_res.pack(fill="both", expand=True, padx=20, pady=10)
+        frame_busqueda = tk.Frame(ventana_buscar, bg="#1a1a1a")
+        frame_busqueda.pack(fill="x", padx=20, pady=5)
 
-        def filtrar_productos(event=None):
-            for item in tabla_res.get_children():
-                tabla_res.delete(item)
-            texto = entry_filtro.get().strip()
-            if not texto:
+        tk.Label(frame_busqueda, text="Buscar término:", font=("Arial", 12), bg="#1a1a1a", fg="white").pack(side="left", padx=5)
+        entry_termino = tk.Entry(frame_busqueda, font=("Arial", 14), width=30, bg="#2d2d2d", fg="white", insertbackground="white")
+        entry_termino.pack(side="left", padx=5, ipady=3)
+        entry_termino.focus()
+
+        contenedor_central_b = tk.Frame(ventana_buscar, bg="#1a1a1a")
+        contenedor_central_b.pack(fill="both", expand=True, padx=20, pady=10)
+
+        frame_tabla_b = tk.Frame(contenedor_central_b, bg="#1e1e1e")
+        frame_tabla_b.pack(side="left", fill="both", expand=True)
+
+        columnas = ("Código", "Artículo", "Precio", "Stock", "Categoría")
+        tabla_b = ttk.Treeview(frame_tabla_b, columns=columnas, show="headings", height=15)
+        
+        for col in columnas:
+            tabla_b.heading(col, text=col)
+            tabla_b.column(col, width=120, anchor="center")
+        tabla_b.column("Artículo", width=250, anchor="w")
+        
+        scroll_b = ttk.Scrollbar(frame_tabla_b, orient="vertical", command=tabla_b.yview)
+        tabla_b.configure(yscrollcommand=scroll_b.set)
+        scroll_b.pack(side="right", fill="y")
+        tabla_b.pack(side="left", fill="both", expand=True)
+
+        frame_visor_b = tk.LabelFrame(contenedor_central_b, text=" Imagen del Artículo ", bg="#1e1e1e", fg="white", font=("Arial", 12, "bold"), width=300)
+        frame_visor_b.pack(side="right", fill="y", padx=(15, 0))
+        frame_visor_b.pack_propagate(False)
+
+        lbl_imagen_visor_b = tk.Label(frame_visor_b, bg="#121212", text="Sin imagen\nseleccionada", fg="grey", font=("Arial", 12))
+        lbl_imagen_visor_b.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.imagen_buscador_cache = None
+
+        def mostrar_imagen_buscador(event):
+            seleccion = tabla_b.selection()
+            if not seleccion:
                 return
+            codigo_prod = tabla_b.item(seleccion[0], "values")[0]
             try:
                 with sqlite3.connect(DB_PATH) as conn:
                     cursor = conn.cursor()
-                    cursor.execute("SELECT codigo, articulo, precio, stock FROM productos WHERE articulo LIKE ?", (f"%{texto}%",))
-                    for fila in cursor.fetchall():
-                        tabla_res.insert("", "end", values=(fila[0], fila[1], f"${fila[2]:.2f}", fila[3]))
+                    cursor.execute("SELECT imagen FROM productos WHERE codigo = ?", (codigo_prod,))
+                    res = cursor.fetchone()
+                
+                if res and res[0] and os.path.exists(res[0]):
+                    img = Image.open(res[0])
+                    img.thumbnail((260, 260))
+                    img_tk = ImageTk.PhotoImage(img)
+                    self.imagen_buscador_cache = img_tk
+                    lbl_imagen_visor_b.config(image=img_tk, text="")
+                else:
+                    lbl_imagen_visor_b.config(image="", text="Producto sin foto\no no encontrada", fg="grey")
             except Exception:
-                pass
+                lbl_imagen_visor_b.config(image="", text="Error al cargar\nimagen", fg="red")
 
-        entry_filtro.bind("<KeyRelease>", filtrar_productos)
+        tabla_b.bind("<<TreeviewSelect>>", mostrar_imagen_buscador)
 
-        def seleccionar_y_agregar(event=None):
-            seleccion = tabla_res.selection()
+        def ejecutar_busqueda(event=None):
+            for item in tabla_b.get_children():
+                tabla_b.delete(item)
+            termino = entry_termino.get().strip()
+            try:
+                with sqlite3.connect(DB_PATH) as conn:
+                    cursor = conn.cursor()
+                    if termino == "":
+                        cursor.execute("SELECT codigo, articulo, precio, stock, categoria FROM productos")
+                    else:
+                        cursor.execute("SELECT codigo, articulo, precio, stock, categoria FROM productos WHERE codigo LIKE ? OR articulo LIKE ? OR categoria LIKE ?", 
+                                       (f"%{termino}%", f"%{termino}%", f"%{termino}%"))
+                    for fila in cursor.fetchall():
+                        tabla_b.insert("", "end", values=(fila[0], fila[1], f"${fila[2]:.2f}", fila[3], fila[4] if fila[4] else "General"))
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al consultar: {e}", parent=ventana_buscar)
+
+        entry_termino.bind("<KeyRelease>", ejecutar_busqueda)
+
+        def seleccionar_y_cerrar(event=None):
+            seleccion = tabla_b.selection()
             if not seleccion:
+                messagebox.showwarning("Atención", "Selecciona un producto de la lista.", parent=ventana_buscar)
                 return
-            item = tabla_res.item(seleccion[0])
-            codigo_seleccionado = str(item["values"][0])
+            codigo_prod = tabla_b.item(seleccion[0], "values")[0]
             self.entry_codigo.delete(0, tk.END)
-            self.entry_codigo.insert(0, codigo_seleccionado)
+            self.entry_codigo.insert(0, codigo_prod)
+            ventana_buscar.destroy()
             self.agregar_producto()
-            ventana_busqueda.destroy()
 
-        btn_seleccionar = tk.Button(ventana_busqueda, text="➕ AGREGAR AL CARRITO", font=("Arial", 11, "bold"), bg="#00c853", fg="white", command=seleccionar_y_agregar, relief="flat", cursor="hand2")
-        btn_seleccionar.pack(pady=15, fill="x", padx=20)
-        tabla_res.bind("<Double-1>", seleccionar_y_agregar)
+        tabla_b.bind("<Double-1>", seleccionar_y_cerrar)
+
+        frame_btn_b = tk.Frame(ventana_buscar, bg="#1a1a1a")
+        frame_btn_b.pack(pady=15)
+
+        btn_seleccionar = tk.Button(frame_btn_b, text="🛒 AGREGAR A VENTAS", command=seleccionar_y_cerrar, bg="#00c853", fg="white", font=("Segoe UI", 12, "bold"), relief="flat", width=22, height=2, cursor="hand2")
+        btn_seleccionar.grid(row=0, column=0, padx=10)
+        
+        btn_cancelar = tk.Button(frame_btn_b, text="❌ CANCELAR", command=ventana_buscar.destroy, bg="#333333", fg="white", font=("Segoe UI", 12, "bold"), relief="flat", width=15, height=2, cursor="hand2")
+        btn_cancelar.grid(row=0, column=1, padx=10)
+
+        ejecutar_busqueda()
 
     def abrir_buscador_codigos(self):
         ventana_busc_c = tk.Toplevel(self.root)
         ventana_busc_c.title("🖨️ GENERADOR DE HOJAS DE ETIQUETAS MÚLTIPLES")
         ventana_busc_c.configure(bg="#1a1a1a")
-        self.poner_fullscreen(ventana_busc_c)
+        self.poner_fullscreen(ventana_busc_c) 
         
         ventana_busc_c.lift()
         ventana_busc_c.focus_force()
@@ -1244,7 +1571,7 @@ class POSApp:
         ventana_ticket = tk.Toplevel(self.root)
         ventana_ticket.title(f"📄 TICKET ELECTRÓNICO - FOLIO #{self.folio - 1}")
         ventana_ticket.configure(bg="#1a1a1a")
-        self.centrar_ventana(ventana_ticket, 440, 580)
+        self.poner_fullscreen(ventana_ticket) 
         
         ventana_ticket.lift()
         ventana_ticket.focus_force()
@@ -1252,9 +1579,9 @@ class POSApp:
         ventana_ticket.bind("<Escape>", lambda e: ventana_ticket.destroy())
 
         papel = tk.Frame(ventana_ticket, bg="white", bd=1, relief="solid")
-        papel.pack(fill="both", expand=True, padx=25, pady=20)
+        papel.pack(expand=True, padx=25, pady=20) 
 
-        txt_visor = tk.Text(papel, bg="white", fg="black", font=("Courier", 11), wrap="none", bd=0)
+        txt_visor = tk.Text(papel, bg="white", fg="black", font=("Courier", 14), wrap="none", bd=0, height=30, width=50)
         scroll = tk.Scrollbar(papel, command=txt_visor.yview)
         txt_visor.configure(yscrollcommand=scroll.set)
         
@@ -1265,16 +1592,16 @@ class POSApp:
         txt_visor.config(state="disabled")
 
         btn_cerrar = tk.Button(
-            ventana_ticket, text="❌ CERRAR VISOR (ESC)", font=("Arial", 11, "bold"), 
+            ventana_ticket, text="❌ CERRAR VISOR (ESC)", font=("Arial", 14, "bold"), 
             bg="#2d2d2d", fg="white", relief="flat", command=ventana_ticket.destroy, cursor="hand2"
         )
-        btn_cerrar.pack(fill="x", padx=25, pady=(0, 20), ipady=5)
+        btn_cerrar.pack(fill="x", padx=100, pady=(0, 20), ipady=10)
 
     def nuevo_producto(self):
         ventana_nuevo = tk.Toplevel(self.root)
         ventana_nuevo.title("📦 REGISTRO DE NUEVO PRODUCTO")
         ventana_nuevo.configure(bg="#1e1e1e")
-        self.centrar_ventana(ventana_nuevo, 550, 680)
+        self.poner_fullscreen(ventana_nuevo) 
         
         ventana_nuevo.lift()
         ventana_nuevo.focus_force()
@@ -1283,6 +1610,8 @@ class POSApp:
 
         frame = tk.Frame(ventana_nuevo, bg="#1e1e1e")
         frame.pack(expand=True, pady=15)
+
+        tk.Label(frame, text="📦 CREAR NUEVO PRODUCTO", font=("Arial", 22, "bold"), bg="#1e1e1e", fg="white").pack(pady=(0, 20))
 
         campos = {}
         datos = [
@@ -1294,19 +1623,19 @@ class POSApp:
         ]
 
         for texto, key in datos:
-            tk.Label(frame, text=texto, bg="#1e1e1e", fg="#00ff90", font=("Arial", 10, "bold")).pack(pady=(6, 2))
-            entry = tk.Entry(frame, font=("Arial", 12), width=28, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
-            entry.pack(ipady=5)
+            tk.Label(frame, text=texto, bg="#1e1e1e", fg="#00ff90", font=("Arial", 12, "bold")).pack(pady=(8, 2))
+            entry = tk.Entry(frame, font=("Arial", 16), width=35, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
+            entry.pack(ipady=6)
             campos[key] = entry
 
-        tk.Label(frame, text="CATEGORÍA", bg="#1e1e1e", fg="#00ff90", font=("Arial", 10, "bold")).pack(pady=(6, 2))
+        tk.Label(frame, text="CATEGORÍA", bg="#1e1e1e", fg="#00ff90", font=("Arial", 12, "bold")).pack(pady=(8, 2))
         categorias = ["Papeleria", "Jugueteria", "Electronica", "Ropa", "Calzado", "Accesorios", "manualidades"]
-        combo_categoria = ttk.Combobox(frame, values=categorias, font=("Arial", 11), state="readonly", justify="center", width=29)
-        combo_categoria.pack(ipady=3)
+        combo_categoria = ttk.Combobox(frame, values=categorias, font=("Arial", 14), state="readonly", justify="center", width=38)
+        combo_categoria.pack(ipady=4)
         combo_categoria.set("Papeleria")
 
         ruta_imagen_guardar = [None]
-        lbl_preview = tk.Label(frame, text="Sin Imagen Cargada", font=("Arial", 9, "italic"), bg="#1e1e1e", fg="gray")
+        lbl_preview = tk.Label(frame, text="Sin Imagen Cargada", font=("Arial", 11, "italic"), bg="#1e1e1e", fg="gray")
 
         def cargar_imagen_action():
             archivo = filedialog.askopenfilename(
@@ -1318,9 +1647,9 @@ class POSApp:
                 ruta_imagen_guardar[0] = archivo
                 lbl_preview.config(text=f"✓ Imagen lista: {os.path.basename(archivo)}", fg="#00ff90")
 
-        tk.Label(frame, text="IMAGEN DEL PRODUCTO (OPCIONAL)", bg="#1e1e1e", fg="#00ff90", font=("Arial", 10, "bold")).pack(pady=(15, 2))
-        btn_img = tk.Button(frame, text="📂 SELECCIONAR ARCHIVO", font=("Arial", 10, "bold"), bg="#424242", fg="white", command=cargar_imagen_action, cursor="hand2")
-        btn_img.pack(pady=3, ipady=4, fill="x")
+        tk.Label(frame, text="IMAGEN DEL PRODUCTO (OPCIONAL)", bg="#1e1e1e", fg="#00ff90", font=("Arial", 12, "bold")).pack(pady=(15, 2))
+        btn_img = tk.Button(frame, text="📂 SELECCIONAR ARCHIVO", font=("Arial", 12, "bold"), bg="#424242", fg="white", command=cargar_imagen_action, cursor="hand2")
+        btn_img.pack(pady=3, ipady=6, fill="x")
         lbl_preview.pack()
 
         def guardar_nuevo():
@@ -1383,20 +1712,20 @@ class POSApp:
         btn_guardar = tk.Button(
             frame, 
             text="💾 GUARDAR PRODUCTO", 
-            font=("Arial", 12, "bold"), 
+            font=("Arial", 14, "bold"), 
             bg="#2e7d32", 
             fg="white", 
             relief="flat",
             cursor="hand2", 
             command=guardar_nuevo
         )
-        btn_guardar.pack(pady=20, ipady=6, fill="x")
+        btn_guardar.pack(pady=25, ipady=10, fill="x")
 
     def editar_producto(self):
         ventana_edit = tk.Toplevel(self.root)
         ventana_edit.title("✏️ EDITAR PRECIO Y STOCK")
         ventana_edit.configure(bg="#1e1e1e")
-        self.centrar_ventana(ventana_edit, 480, 500)
+        self.poner_fullscreen(ventana_edit) 
         
         ventana_edit.lift()
         ventana_edit.focus_force()
@@ -1406,20 +1735,20 @@ class POSApp:
         frame = tk.Frame(ventana_edit, bg="#1e1e1e")
         frame.pack(expand=True, pady=15)
 
-        tk.Label(frame, text="✏️ MODIFICAR PRODUCTO", font=("Arial", 16, "bold"), bg="#1e1e1e", fg="white").pack(pady=(0, 20))
+        tk.Label(frame, text="✏️ MODIFICAR PRODUCTO", font=("Arial", 22, "bold"), bg="#1e1e1e", fg="white").pack(pady=(0, 20))
 
-        tk.Label(frame, text="CÓDIGO DEL PRODUCTO", bg="#1e1e1e", fg="#00ff90", font=("Arial", 10, "bold")).pack(pady=(6, 2))
-        entry_codigo = tk.Entry(frame, font=("Arial", 13), width=25, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
-        entry_codigo.pack(ipady=4)
+        tk.Label(frame, text="CÓDIGO DEL PRODUCTO", bg="#1e1e1e", fg="#00ff90", font=("Arial", 12, "bold")).pack(pady=(8, 2))
+        entry_codigo = tk.Entry(frame, font=("Arial", 16), width=35, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
+        entry_codigo.pack(ipady=6)
         entry_codigo.focus()
 
-        tk.Label(frame, text="NUEVO PRECIO DE VENTA ($)", bg="#1e1e1e", fg="#00ff90", font=("Arial", 10, "bold")).pack(pady=(15, 2))
-        entry_precio = tk.Entry(frame, font=("Arial", 13), width=25, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
-        entry_precio.pack(ipady=4)
+        tk.Label(frame, text="NUEVO PRECIO DE VENTA ($)", bg="#1e1e1e", fg="#00ff90", font=("Arial", 12, "bold")).pack(pady=(20, 2))
+        entry_precio = tk.Entry(frame, font=("Arial", 16), width=35, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
+        entry_precio.pack(ipady=6)
 
-        tk.Label(frame, text="NUEVO STOCK TOTAL", bg="#1e1e1e", fg="#00ff90", font=("Arial", 10, "bold")).pack(pady=(15, 2))
-        entry_stock = tk.Entry(frame, font=("Arial", 13), width=25, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
-        entry_stock.pack(ipady=4)
+        tk.Label(frame, text="NUEVO STOCK TOTAL", bg="#1e1e1e", fg="#00ff90", font=("Arial", 12, "bold")).pack(pady=(20, 2))
+        entry_stock = tk.Entry(frame, font=("Arial", 16), width=35, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
+        entry_stock.pack(ipady=6)
 
         def realizar_actualizacion():
             codigo = entry_codigo.get().strip()
@@ -1472,14 +1801,14 @@ class POSApp:
             finally:
                 self.entry_codigo.focus()
 
-        btn_guardar = tk.Button(frame, text="💾 ACTUALIZAR DATOS", bg="#6a1b9a", fg="white", font=("Arial", 11, "bold"), width=22, height=2, relief="flat", command=realizar_actualizacion, cursor="hand2")
-        btn_guardar.pack(pady=25)
+        btn_guardar = tk.Button(frame, text="💾 ACTUALIZAR DATOS", bg="#6a1b9a", fg="white", font=("Arial", 14, "bold"), width=30, height=2, relief="flat", command=realizar_actualizacion, cursor="hand2")
+        btn_guardar.pack(pady=35)
         entry_stock.bind("<Return>", lambda e: realizar_actualizacion())
 
     def ver_inventario(self):
         ventana = tk.Toplevel(self.root)
         ventana.title("📋 CONTROL DE INVENTARIO GENERAL")
-        self.poner_fullscreen(ventana)
+        self.poner_fullscreen(ventana) 
         ventana.configure(bg="#121212")
         
         ventana.lift()
@@ -1544,7 +1873,7 @@ class POSApp:
         ventana_del = tk.Toplevel(self.root)
         ventana_del.title("❌ BAJA DE PRODUCTOS")
         ventana_del.configure(bg="#1e1e1e")
-        self.centrar_ventana(ventana_del, 480, 320)
+        self.poner_fullscreen(ventana_del) 
         
         ventana_del.lift()
         ventana_del.focus_force()
@@ -1554,11 +1883,11 @@ class POSApp:
         frame = tk.Frame(ventana_del, bg="#1e1e1e")
         frame.pack(expand=True, pady=15)
 
-        tk.Label(frame, text="❌ ELIMINAR DEL SISTEMA", font=("Arial", 16, "bold"), bg="#1e1e1e", fg="white").pack(pady=(0, 15))
-        tk.Label(frame, text="CÓDIGO DEL PRODUCTO A BORRAR", bg="#1e1e1e", fg="#ff5252", font=("Arial", 10, "bold")).pack(pady=(6, 2))
+        tk.Label(frame, text="❌ ELIMINAR DEL SISTEMA", font=("Arial", 22, "bold"), bg="#1e1e1e", fg="white").pack(pady=(0, 20))
+        tk.Label(frame, text="CÓDIGO DEL PRODUCTO A BORRAR", bg="#1e1e1e", fg="#ff5252", font=("Arial", 14, "bold")).pack(pady=(8, 4))
         
-        entry_codigo = tk.Entry(frame, font=("Arial", 13), width=25, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
-        entry_codigo.pack(ipady=4)
+        entry_codigo = tk.Entry(frame, font=("Arial", 16), width=30, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
+        entry_codigo.pack(ipady=6)
         entry_codigo.focus()
 
         def procesar_baja():
@@ -1599,15 +1928,15 @@ class POSApp:
             finally:
                 self.entry_codigo.focus()
 
-        btn_eliminar = tk.Button(frame, text="🗑 BORRAR PERMANENTEMENTE", bg="#c62828", fg="white", font=("Arial", 11, "bold"), width=24, height=2, relief="flat", command=procesar_baja, cursor="hand2")
-        btn_eliminar.pack(pady=20)
+        btn_eliminar = tk.Button(frame, text="🗑 BORRAR PERMANENTEMENTE", bg="#c62828", fg="white", font=("Arial", 14, "bold"), width=30, height=2, relief="flat", command=procesar_baja, cursor="hand2")
+        btn_eliminar.pack(pady=35)
         entry_codigo.bind("<Return>", lambda e: procesar_baja())
 
     def surtir_stock(self):
         ventana_stock = tk.Toplevel(self.root)
         ventana_stock.title("📥 SURTIR STOCK EN ALMACÉN")
         ventana_stock.configure(bg="#1e1e1e")
-        self.centrar_ventana(ventana_stock, 480, 420)
+        self.poner_fullscreen(ventana_stock) 
         
         ventana_stock.lift()
         ventana_stock.focus_force()
@@ -1617,16 +1946,16 @@ class POSApp:
         frame = tk.Frame(ventana_stock, bg="#1e1e1e")
         frame.pack(expand=True, pady=15)
 
-        tk.Label(frame, text="📥 ENTRADA DE MERCANCÍA", font=("Arial", 16, "bold"), bg="#1e1e1e", fg="white").pack(pady=(0, 20))
+        tk.Label(frame, text="📥 ENTRADA DE MERCANCÍA", font=("Arial", 22, "bold"), bg="#1e1e1e", fg="white").pack(pady=(0, 25))
 
-        tk.Label(frame, text="CÓDIGO DEL PRODUCTO", bg="#1e1e1e", fg="#00ff90", font=("Arial", 10, "bold")).pack(pady=(6, 2))
-        entry_codigo = tk.Entry(frame, font=("Arial", 13), width=25, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
-        entry_codigo.pack(ipady=4)
+        tk.Label(frame, text="CÓDIGO DEL PRODUCTO", bg="#1e1e1e", fg="#00ff90", font=("Arial", 12, "bold")).pack(pady=(8, 2))
+        entry_codigo = tk.Entry(frame, font=("Arial", 16), width=35, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
+        entry_codigo.pack(ipady=6)
         entry_codigo.focus()
 
-        tk.Label(frame, text="CANTIDAD A AGREGAR (PIEZAS)", bg="#1e1e1e", fg="#00ff90", font=("Arial", 10, "bold")).pack(pady=(15, 2))
-        entry_cantidad = tk.Entry(frame, font=("Arial", 13), width=25, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
-        entry_cantidad.pack(ipady=4)
+        tk.Label(frame, text="CANTIDAD A AGREGAR (PIEZAS)", bg="#1e1e1e", fg="#00ff90", font=("Arial", 12, "bold")).pack(pady=(20, 2))
+        entry_cantidad = tk.Entry(frame, font=("Arial", 16), width=35, justify="center", bg="#2d2d2d", fg="white", insertbackground="white", relief="flat")
+        entry_cantidad.pack(ipady=6)
 
         def registrar_entrada():
             codigo = entry_codigo.get().strip()
@@ -1666,15 +1995,15 @@ class POSApp:
             finally:
                 self.entry_codigo.focus()
 
-        btn_surtir = tk.Button(frame, text="📥 AÑADIR AL INVENTARIO", bg="#ff9800", fg="white", font=("Arial", 11, "bold"), width=22, height=2, relief="flat", command=registrar_entrada, cursor="hand2")
-        btn_surtir.pack(pady=25)
+        btn_surtir = tk.Button(frame, text="📥 AÑADIR AL INVENTARIO", bg="#ff9800", fg="white", font=("Arial", 14, "bold"), width=30, height=2, relief="flat", command=registrar_entrada, cursor="hand2")
+        btn_surtir.pack(pady=35)
         entry_cantidad.bind("<Return>", lambda e: registrar_entrada())
 
     # =========================================================
     # LÓGICA DE APARTADOS LOCALES (SISTEMA DE TIENDA)
     # =========================================================
     def actualizar_apartados_json(self):
-        pass # Función dummy, en caso de necesitar guardar locales
+        pass
 
     def apartar_pedido(self):
         if self.total <= 0:
@@ -1717,24 +2046,25 @@ class POSApp:
         ventana_ap = tk.Toplevel(self.root)
         ventana_ap.title("🗓️ GESTIÓN DE APARTADOS LOCALES PENDIENTES")
         ventana_ap.configure(bg="#1a1a1a")
-        self.centrar_ventana(ventana_ap, 800, 500)
+        self.poner_fullscreen(ventana_ap) 
+        ventana_ap.bind("<Escape>", lambda e: ventana_ap.destroy())
         
         ventana_ap.lift()
         ventana_ap.focus_force()
         ventana_ap.grab_set()
 
-        tk.Label(ventana_ap, text="📦 PEDIDOS APARTADOS LOCALES (STOCK RETENIDO)", font=("Arial", 16, "bold"), bg="#1a1a1a", fg="#ff9800").pack(pady=15)
+        tk.Label(ventana_ap, text="📦 PEDIDOS APARTADOS LOCALES (STOCK RETENIDO)", font=("Arial", 18, "bold"), bg="#1a1a1a", fg="#ff9800").pack(pady=20)
 
         frame_tabla = tk.Frame(ventana_ap, bg="#1e1e1e")
-        frame_tabla.pack(fill="both", expand=True, padx=20, pady=10)
+        frame_tabla.pack(fill="both", expand=True, padx=40, pady=20)
 
         style = ttk.Style()
-        style.configure("Ap.Treeview", background="#1e1e1e", foreground="white", fieldbackground="#1e1e1e", rowheight=30)
+        style.configure("Ap.Treeview", background="#1e1e1e", foreground="white", fieldbackground="#1e1e1e", rowheight=40, font=("Arial", 12))
         
         columnas = ("ID", "Cliente", "Fecha", "Total")
         tabla = ttk.Treeview(frame_tabla, columns=columnas, show="headings", style="Ap.Treeview")
         
-        anchos = [50, 300, 200, 150]
+        anchos = [100, 400, 300, 200]
         for col, ancho in zip(columnas, anchos):
             tabla.heading(col, text=col)
             tabla.column(col, anchor="center", width=ancho)
@@ -1754,7 +2084,7 @@ class POSApp:
 
         cargar_apartados()
         frame_btn = tk.Frame(ventana_ap, bg="#1a1a1a")
-        frame_btn.pack(fill="x", pady=20)
+        frame_btn.pack(fill="x", pady=30, padx=50)
 
         def concretar_venta():
             sel = tabla.selection()
@@ -1820,8 +2150,8 @@ class POSApp:
             except Exception as e:
                 messagebox.showerror("ERROR", f"No se pudo cancelar:\n{e}")
 
-        tk.Button(frame_btn, text="✅ CONCRETAR VENTA", bg="#00c853", fg="white", font=("Arial", 11, "bold"), command=concretar_venta, height=2).pack(side="left", expand=True, fill="x", padx=10)
-        tk.Button(frame_btn, text="❌ CANCELAR Y DEVOLVER STOCK", bg="#d50000", fg="white", font=("Arial", 11, "bold"), command=cancelar_apartado, height=2).pack(side="left", expand=True, fill="x", padx=10)
+        tk.Button(frame_btn, text="✅ CONCRETAR VENTA", bg="#00c853", fg="white", font=("Arial", 14, "bold"), command=concretar_venta, height=2).pack(side="left", expand=True, fill="x", padx=10)
+        tk.Button(frame_btn, text="❌ CANCELAR Y DEVOLVER STOCK", bg="#d50000", fg="white", font=("Arial", 14, "bold"), command=cancelar_apartado, height=2).pack(side="left", expand=True, fill="x", padx=10)
 
 # =========================================================
 # INTERFAZ DE LOGIN AUTOMATIZADA CON BASE DE DATOS
@@ -1896,97 +2226,40 @@ class Login:
             messagebox.showerror("ERROR CRÍTICO", f"Error de conexión con la base de datos de usuarios:\n{e}")
 
 # =========================================================
-# SERVIDOR WEB INTEGRADO - GESTOR DE APARTADOS Y STOCK
+# LÓGICA DEL SERVIDOR WEB PARA RECIBIR PEDIDOS
 # =========================================================
-class ManejadorPedidosWeb(SimpleHTTPRequestHandler):
-    
+class ManejadorPedidosWeb(http.server.BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200, "ok")
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
-
-    def do_GET(self):
-        # 1. Servir las imágenes del inventario de forma estática
-        if self.path.startswith("/imagenes_productos/"):
-            try:
-                # Extraemos el nombre del archivo de la URL
-                nombre_archivo = self.path.split("/")[-1]
-                ruta_completa = os.path.join(CARPETA_IMAGENES, nombre_archivo)
-                
-                if os.path.exists(ruta_completa):
-                    self.send_response(200)
-                    # Identificar si es png o jpg para el navegador
-                    if ruta_completa.endswith(".png"):
-                        self.send_header('Content-type', 'image/png')
-                    else:
-                        self.send_header('Content-type', 'image/jpeg')
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.end_headers()
-                    
-                    # Leer y enviar la imagen en binario
-                    with open(ruta_completa, 'rb') as file:
-                        self.wfile.write(file.read())
-                    return
-                else:
-                    self.send_error(404, "Imagen no encontrada")
-                    return
-            except Exception as e:
-                self.send_error(500, f"Error al servir imagen: {e}")
-                return
-
-        # 2. Tu ruta original de productos en tiempo real
-        if self.path.startswith("/productos"):
-            try:
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
-                cursor.execute("SELECT codigo, articulo, precio, stock, categoria, imagen FROM productos")
-                filas = cursor.fetchall()
-                conn.close()
-                
-                productos = []
-                for f in filas:
-                    productos.append({
-                        "codigo": f[0],
-                        "articulo": f[1],
-                        "precio": f[2],
-                        "stock": f[3],
-                        "categoria": f[4],
-                        "imagen": f[5]
-                    })
-                
-                respuesta = json.dumps(productos, ensure_ascii=False).encode('utf-8')
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json; charset=utf-8')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(respuesta)
-            except Exception as e:
-                self.send_error(500, f"Error interno: {e}")
 
     def do_POST(self):
         try:
-            # ... tu lógica de procesamiento ...
-        
-            # En lugar de solo escribir, maneja la excepción de conexión
-            respuesta = b'{"status": "success", "mensaje": "Apartado registrado"}'
-        
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                self.send_response(400)
+                self.end_headers()
+                return
+
+            body = self.rfile.read(content_length)
+            datos_pedido = json.loads(body.decode('utf-8'))
+            print(f"[SERVIDOR] Recibido pedido de: {datos_pedido.get('cliente')}")
+            
+            if INSTANCIA_APP:
+                INSTANCIA_APP.guardar_pedido_desde_web(datos_pedido)
+            
             self.send_response(200)
-            self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(respuesta)
-        
-        except ConnectionAbortedError:
-            print("[AVISO] El cliente cerró la conexión antes de tiempo.")
-        except BrokenPipeError:
-            print("[AVISO] Tubería rota: el cliente desconectó.")
+            self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
         except Exception as e:
-            print(f"[ERROR CRÍTICO]: {e}")
-# =========================================================
-# FUNCIÓN PARA INICIAR EL SERVIDOR
-# =========================================================
+            print(f"[ERROR SERVIDOR EN POST] {e}")
+            self.send_response(500)
+            self.end_headers()
+
 def iniciar_servidor_segundo_plano():
     puerto = 5000 
     server_address = ('127.0.0.1', puerto)
@@ -1996,6 +2269,17 @@ def iniciar_servidor_segundo_plano():
         httpd.serve_forever()
     except Exception as e:
         print(f"[ERROR SERVIDOR]: {e}")
+
+def ejecutar_sincronizacion_total_web(app_instancia):
+    print("[SISTEMA CENTRAL] Iniciando actualización total automatizada...")
+    try:
+        app_instancia.actualizar_web_json()
+        if hasattr(app_instancia, 'sincronizar_github'):
+            app_instancia.sincronizar_github()
+            print("[SISTEMA CENTRAL] ¡Catálogo en línea en GitHub actualizado con éxito!")
+        app_instancia.refrescar_desde_web()
+    except Exception as e:
+        print(f"[ERROR EN SINCRONIZACIÓN AUTOMÁTICA]: {e}")
 
 # =========================================================
 # EJECUCIÓN DEL PROGRAMA

@@ -292,56 +292,121 @@ function actualizarCarritoVisual() {
     if (txtMonto) txtMonto.innerText = formatearDinero(totalGeneral);
 }
 
-async function enviarPedidoFinal() { 
-    if (carrito.length === 0) { 
-        alert("Tu carrito está vacío"); 
-        return; 
+async function enviarPedidoFinal() {
+    if (carrito.length === 0) {
+        alert("Tu carrito está vacío");
+        return;
     }
-    
+
     const fecha = document.getElementById('fecha').value;
     const hora = document.getElementById('hora').value;
     const cliente = document.getElementById('cliente').value.trim();
-    
-    if (!fecha) { 
-        alert("Selecciona la fecha de recogida"); 
-        return; 
-    }
-    if (cliente.length < 3) { 
-        alert("Escribe tu nombre completo."); 
-        return; 
+
+    if (!fecha) {
+        alert("Selecciona la fecha de recogida");
+        return;
     }
 
-    let mensaje = "*¡HOLA, TIENDA DAYH!*\n Quiero agendar el siguiente pedido:\n━━━━━━━━━━━━━━━━━━━━━\n\n";
-    mensaje += "*CLIENTE:* " + cliente + "\n\n*PRODUCTOS SOLICITADOS:*\n";
+    if (cliente.length < 3) {
+        alert("Escribe tu nombre completo.");
+        return;
+    }
+
+    let mensaje = "*¡HOLA, TIENDA DAYH!*\n";
+    mensaje += "Quiero agendar el siguiente pedido:\n";
+    mensaje += "━━━━━━━━━━━━━━━━━━━━━\n\n";
+    mensaje += "*CLIENTE:* " + cliente + "\n\n";
+    mensaje += "*PRODUCTOS SOLICITADOS:*\n";
 
     let total = 0;
 
     carrito.forEach(item => {
         const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
+
         if (!prod) return;
-        
-        const precioSeguro = parseFloat(prod.precio) || 0;
-        const subtotal = precioSeguro * item.cantidad;
+
+        const precio = parseFloat(prod.precio) || 0;
+        const subtotal = precio * item.cantidad;
+
         total += subtotal;
-        mensaje += "*" + item.cantidad + "x* [" + prod.codigo + "] " + prod.articulo + " ➔ " + formatearDinero(subtotal) + "\n";
-        
-        prod.stock -= item.cantidad;
+
+        mensaje +=
+            "*" + item.cantidad + "x* [" +
+            prod.codigo + "] " +
+            prod.articulo +
+            " ➔ " +
+            formatearDinero(subtotal) +
+            "\n";
     });
 
-    mensaje += "\n━━━━━━━━━━━━━━━━━━━━━\n*TOTAL:* " + formatearDinero(total) + "\n";
-    mensaje += "*FECHA DE RECOGIDA:* " + formatearFechaHumana(fecha) + "\n*HORA APROX:* " + hora + "\n";
+    mensaje += "\n━━━━━━━━━━━━━━━━━━━━━\n";
+    mensaje += "*TOTAL:* " + formatearDinero(total) + "\n";
+    mensaje += "*FECHA DE RECOGIDA:* " + formatearFechaHumana(fecha) + "\n";
+    mensaje += "*HORA APROX:* " + hora + "\n";
 
-    urlGlobalWhatsApp = "https://wa.me/" + TELEFONO_WHATSAPP + "?text=" + window.encodeURIComponent(mensaje);
+    const datosPedido = {
+        cliente: cliente,
+        telefono: "",
+        fecha_entrega: fecha,
+        hora_entrega: hora,
+        productos: carrito.map(item => ({
+            codigo: item.codigo,
+            cantidad: item.cantidad
+        }))
+    };
 
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(mensaje).then(() => {
-            document.getElementById('alerta-copiado').style.display = 'block';
-            window.open(urlGlobalWhatsApp, '_blank');
-            finalizarProcesoPedido();
-        }).catch(() => ejecutarCopiadoAlternativo(mensaje));
-    } else {
-        ejecutarCopiadoAlternativo(mensaje);
+    try {
+
+        console.log("[WEB] Enviando pedido:", datosPedido);
+
+        const response = await fetch(
+            "https://api.tudominio.com/pedido",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(datosPedido)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error("Error del servidor");
+        }
+
+        console.log("[WEB] Pedido guardado correctamente");
+
+    } catch (error) {
+
+        console.error("[ERROR] No se pudo guardar:", error);
+
+        alert(
+            "No fue posible registrar el pedido en el sistema. " +
+            "Verifica que el servidor esté funcionando."
+        );
+
     }
+
+    const urlWhatsApp =
+        "https://wa.me/" +
+        TELEFONO_WHATSAPP +
+        "?text=" +
+        encodeURIComponent(mensaje);
+
+    window.open(urlWhatsApp, "_blank");
+
+    localStorage.setItem(
+        "inventario_tienda",
+        JSON.stringify(INVENTARIO_GLOBAL)
+    );
+
+    carrito = [];
+
+    guardarCarritoEnLocalStorage();
+    actualizarCarritoVisual();
+
+    document.getElementById("cliente").value = "";
+    document.getElementById("fecha").value = "";
 }
 
 function finalizarProcesoPedido() {

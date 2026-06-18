@@ -1,1 +1,19 @@
-[]
+[
+    {
+        "id": 1,
+        "cliente": "alex",
+        "telefono": "527442411773",
+        "fecha_entrega": "2026-06-18",
+        "hora_entrega": "09:00 AM",
+        "total": 6.0,
+        "detalles": "borrador (x1)",
+        "productos": [
+            {
+                "codigo": "a2",
+                "cantidad": 1
+            }
+        ],
+        "estado": "Pendiente",
+        "fecha_registro": "2026-06-17 23:17:20"
+    }
+]
