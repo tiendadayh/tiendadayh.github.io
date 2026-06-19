@@ -49,7 +49,6 @@ function configuringCamposFecha() {
 }
 
 function formatearDinero(numero) {
-    // Protección extra: Si por alguna razón llega un valor vacío, lo convierte a 0 en lugar de crashear (NaN)
     let num = parseFloat(numero);
     if (isNaN(num)) num = 0;
     return '$' + num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
@@ -83,7 +82,6 @@ function cargarProductos() {
                 const itemEnCarrito = carrito.find(c => c.codigo === prodJson.codigo);
                 const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
                 
-                // 🌟 CORRECCIÓN CRÍTICA: Forzamos la limpieza de los datos a números reales
                 let precioLimpio = parseFloat(prodJson.precio);
                 if (isNaN(precioLimpio)) precioLimpio = 0;
                 
@@ -122,9 +120,8 @@ function renderizarTarjetasHTML(productosAMostrar) {
     }
 
     productosAMostrar.forEach(prod => {
-        const itemEnCarrito = carrito.find(c => c.codigo === prod.codigo);
-        const cantidadAgregada = itemEnCarrito ? itemEnCarrito.cantidad : 0;
-        const stockDisponibleReal = prod.stock - cantidadAgregada;
+        // CORRECCIÓN: Usamos directamente el stock del objeto porque ya contempla el carrito
+        const stockDisponibleReal = prod.stock; 
 
         const esAgotado = stockDisponibleReal <= 0;
         const textoStock = esAgotado ? 'Agotado' : `Disponibles: ${stockDisponibleReal}`;
@@ -185,15 +182,14 @@ function agregarAlCarrito(codigo) {
     const producto = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
     if (!producto) return;
 
-    const itemEnCarrito = carrito.find(item => item.codigo === codigo);
-    const cantidadActual = itemEnCarrito ? itemEnCarrito.cantidad : 0;
-
-    if (producto.stock > cantidadActual) {
+    if (producto.stock > 0) {
+        const itemEnCarrito = carrito.find(item => item.codigo === codigo);
         if (itemEnCarrito) {
             itemEnCarrito.cantidad += 1;
         } else {
             carrito.push({ codigo: codigo, cantidad: 1 });
         }
+        producto.stock -= 1; // Reducimos el stock local de inmediato
         guardarCarritoEnLocalStorage();
         actualizarCarritoVisual();
         filtrarCatalogo();
@@ -208,13 +204,15 @@ function cambiarCantidad(codigo, cambio) {
     if (!itemEnCarrito || !producto) return;
 
     if (cambio === 1) {
-        if (producto.stock > itemEnCarrito.cantidad) {
+        if (producto.stock > 0) {
             itemEnCarrito.cantidad += 1;
+            producto.stock -= 1;
         } else {
             alert("Lo sentimos, ya no quedan más unidades.");
         }
     } else if (cambio === -1) {
         itemEnCarrito.cantidad -= 1;
+        producto.stock += 1;
         if (itemEnCarrito.cantidad <= 0) {
             const index = carrito.findIndex(item => item.codigo === codigo);
             if (index !== -1) carrito.splice(index, 1);
@@ -229,8 +227,7 @@ function vaciarCarrito() {
     if (confirm("¿Estás seguro de vaciar el pedido?")) {
         carrito = [];
         guardarCarritoEnLocalStorage();
-        actualizarCarritoVisual();
-        filtrarCatalogo();
+        cargarProductos(); // Recargamos para devolver el stock original
     }
 }
 
@@ -260,11 +257,10 @@ function actualizarCarritoVisual() {
         const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
         if (!prod) return;
 
-        // 🌟 CORRECCIÓN CRÍTICA: Nos aseguramos de operar matemáticamente con seguridad
         const precioSeguro = parseFloat(prod.precio) || 0;
         const subtotal = precioSeguro * item.cantidad;
         totalGeneral += subtotal;
-        const sinStockMas = prod.stock <= item.cantidad;
+        const sinStockMas = prod.stock <= 0;
 
         contenedor.innerHTML += `
             <div class="item-linea">
@@ -322,21 +318,13 @@ async function enviarPedidoFinal() {
 
     carrito.forEach(item => {
         const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
-
         if (!prod) return;
 
         const precio = parseFloat(prod.precio) || 0;
         const subtotal = precio * item.cantidad;
-
         total += subtotal;
 
-        mensaje +=
-            "*" + item.cantidad + "x* [" +
-            prod.codigo + "] " +
-            prod.articulo +
-            " ➔ " +
-            formatearDinero(subtotal) +
-            "\n";
+        mensaje += `*${item.cantidad}x* [${prod.codigo}] ${prod.articulo} ➔ ${formatearDinero(subtotal)}\n`;
     });
 
     mensaje += "\n━━━━━━━━━━━━━━━━━━━━━\n";
@@ -355,110 +343,144 @@ async function enviarPedidoFinal() {
         }))
     };
 
+    // Intentar guardar en la API externa primero
     try {
-
-        console.log("[WEB] Enviando pedido:", datosPedido);
-
-        const response = await fetch(
-            "https://api.tudominio.com/pedido",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(datosPedido)
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error("Error del servidor");
-        }
-
-        console.log("[WEB] Pedido guardado correctamente");
-
+        console.log("[WEB] Enviando pedido a API:", datosPedido);
+        await fetch("https://api.tudominio.com/pedido", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(datosPedido)
+        });
     } catch (error) {
-
-        console.error("[ERROR] No se pudo guardar:", error);
-
-        alert(
-            "No fue posible registrar el pedido en el sistema. " +
-            "Verifica que el servidor esté funcionando."
-        );
-
+        console.error("[ERROR API]", error);
     }
 
-    const urlWhatsApp =
-        "https://wa.me/" +
-        TELEFONO_WHATSAPP +
-        "?text=" +
-        encodeURIComponent(mensaje);
+    // Intentar enviar al servidor Python local de respaldo
+    try {
+        console.log("[WEB] Enviando datos a Python local...");
+        await fetch('http://127.0.0.1:5000/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datosPedido)
+        });
+    } catch (error) {
+        console.warn("[AVISO] Python local no disponible");
+    }
 
+    // Abrir WhatsApp
+    const urlWhatsApp = "https://wa.me/" + TELEFONO_WHATSAPP + "?text=" + encodeURIComponent(mensaje);
     window.open(urlWhatsApp, "_blank");
 
-    localStorage.setItem(
-        "inventario_tienda",
-        JSON.stringify(INVENTARIO_GLOBAL)
-    );
-
+    // Limpieza de estados
+    localStorage.setItem("inventario_tienda", JSON.stringify(INVENTARIO_GLOBAL));
     carrito = [];
-
     guardarCarritoEnLocalStorage();
     actualizarCarritoVisual();
 
-    document.getElementById("cliente").value = "";
-    document.getElementById("fecha").value = "";
-}
-
-function finalizarProcesoPedido() {
-    const datosPedido = {
-        cliente: document.getElementById('cliente').value.trim() || "Cliente Web",
-        telefono: typeof TELEFONO_WHATSAPP !== 'undefined' ? TELEFONO_WHATSAPP : "",
-        fecha_entrega: document.getElementById('fecha').value || new Date().toISOString().split('T')[0],
-        hora_entrega: document.getElementById('hora') ? document.getElementById('hora').value : "No especificada",
-        productos: carrito.map(item => ({
-            codigo: item.codigo,
-            cantidad: item.cantidad
-        }))
-    };
-
-    console.log("[WEB] Enviando datos al servidor de Python...", datosPedido);
-
-    fetch('http://127.0.0.1:5000/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(datosPedido)
-    })
-        .then(response => {
-            if (!response.ok) throw new Error("Error en respuesta del servidor.");
-            console.log("[WEB] ¡Sincronizado con Python correctamente!");
-        })
-        .catch(error => {
-            console.warn("[AVISO] Python no está escuchando o está cerrado:", error);
-        })
-        .finally(() => {
-            localStorage.setItem('inventario_tienda', JSON.stringify(INVENTARIO_GLOBAL));
-            carrito = [];
-            guardarCarritoEnLocalStorage();
-            actualizarCarritoVisual();
-
-            setTimeout(() => {
-                cargarProductos();
-            }, 1500);
-
-            if (document.getElementById('fecha')) document.getElementById('fecha').value = '';
-            if (document.getElementById('cliente')) document.getElementById('cliente').value = '';
-        });
+    if(document.getElementById("cliente")) document.getElementById("cliente").value = "";
+    if(document.getElementById("fecha")) document.getElementById("fecha").value = "";
+    
+    setTimeout(() => { cargarProductos(); }, 1500);
 }
 
 function ejecutarCopiadoAlternativo(texto) {
     const textarea = document.createElement("textarea");
-    textarea.value = texto; document.body.appendChild(textarea);
-    textarea.select(); document.execCommand("copy"); document.body.removeChild(textarea);
-    document.getElementById('alerta-copiado').style.display = 'block';
+    textarea.value = texto; 
+    document.body.appendChild(textarea);
+    textarea.select(); 
+    document.execCommand("copy"); 
+    document.body.removeChild(textarea);
+    
+    if(document.getElementById('alerta-copiado')) {
+        document.getElementById('alerta-copiado').style.display = 'block';
+    }
     window.open(urlGlobalWhatsApp, '_blank');
-    finalizarProcesoPedido();
 }
 
 function abrirChatManual() {
     if (urlGlobalWhatsApp) window.open(urlGlobalWhatsApp, '_blank');
+}
+
+function setupEventListeners() {
+    document.getElementById('buscador').addEventListener('input', filtrarCatalogo);
+
+    document.querySelectorAll('.btn-categoria').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const categoria = e.target.getAttribute('data-cat');
+            seleccionarCategoria(categoria, e.target);
+        });
+    });
+
+    document.getElementById('btn-vaciar').addEventListener('click', vaciarCarrito);
+    document.getElementById('btn-enviar-pedido').addEventListener('click', enviarPedidoFinal);
+    document.getElementById('btn-chat-manual').addEventListener('click', abrirChatManual);
+
+    // ✨ NUEVO: Doble clic en el botón de enviar pedido para previsualizar despacho
+    const btnEnviar = document.getElementById('btn-enviar-pedido');
+    if (btnEnviar) {
+        btnEnviar.addEventListener('dblclick', (e) => {
+            e.preventDefault(); // Evita que se dispare el envío normal por WhatsApp
+            abrirModalDespacho();
+        });
+    }
+}
+
+function abrirModalDespacho() {
+    if (carrito.length === 0) {
+        alert("El carrito está vacío. No hay mercancía que despachar.");
+        return;
+    }
+
+    const contenedorDetalle = document.getElementById('detalle-despacho-productos');
+    const modal = document.getElementById('modal-despacho');
+    
+    if (!contenedorDetalle || !modal) return;
+    
+    contenedorDetalle.innerHTML = ''; // Limpiar contenido previo
+
+    carrito.forEach(item => {
+        const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
+        if (!prod) return;
+
+        // Resolver la ruta de la imagen tal cual lo haces en el catálogo
+        let nombreImagen = prod.imagen ? prod.imagen.split(/[/\\\\]/).pop() : '';
+        let rutaImagen = nombreImagen ? `imagenes_productos/${nombreImagen}` : 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=300&auto=format&fit=crop';
+        const articuloLimpio = prod.articulo.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        // Construir la fila del producto para despacho
+        contenedorDetalle.innerHTML += `
+            <div class="fila-despacho">
+                <img src="${rutaImagen}" alt="${articuloLimpio}" class="img-despacho" onerror="this.onerror=null; this.src='https://placehold.co/70?text=Prod'">
+                <div class="info-despacho">
+                    <h4 style="margin: 0 0 5px 0; font-size: 16px;">${articuloLimpio}</h4>
+                    <span style="font-size: 13px; color: #666;">Código: <code>${prod.codigo}</code></span>
+                </div>
+                <div class="cant-despacho">
+                    ${item.cantidad} <span style="font-size: 10px; display:block; font-weight: normal; color: #555;">Cant.</span>
+                </div>
+            </div>
+        `;
+    });
+
+    // Mostrar el modal con flex layout
+    modal.style.display = 'flex';
+
+    // Configurar eventos de cierre internos de la ventana modal
+    const btnCerrar = modal.querySelector('.btn-cerrar-modal');
+    if (btnCerrar) {
+        btnCerrar.onclick = () => { modal.style.display = 'none'; };
+    }
+
+    // Cerrar si hacen clic fuera del cuadro blanco
+    modal.onclick = (e) => {
+        if (e.target === modal) { modal.style.display = 'none'; }
+    };
+
+    // Funcionalidad extra: Botón para imprimir el reporte de entrega rápidamente
+    const btnImprimir = document.getElementById('btn-imprimir-despacho');
+    if (btnImprimir) {
+        btnImprimir.onclick = () => {
+            window.print();
+        };
+    }
 }
