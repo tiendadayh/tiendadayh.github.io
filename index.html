@@ -9,12 +9,24 @@
 </head>
 <body>
     <div class="header-tienda">
+        <button id="btn-tema" class="btn-tema" title="Cambiar Tema Oscuro/Claro">☀️</button>
         <h1>TIENDA DAYH</h1>
         <p>Tu catálogo de confianza — Elige tus productos y agenda tu pedido</p>
     </div>
     
     <div class="container">
         <div class="productos-seccion">
+            
+            <!-- SECCIÓN NUEVA: PRODUCTOS DESTACADOS / OFERTAS -->
+            <div id="seccion-destacados" class="destacados-seccion">
+                <h2>✨ Productos Destacados y Ofertas</h2>
+                <div class="productos-destacados" id="lista-destacados">
+                    <!-- Se llenará con JavaScript -->
+                </div>
+            </div>
+
+            <hr style="margin: 30px 0;">
+
             <div class="buscador-contenedor">
                 <input type="text" id="buscador" placeholder=" 🔍 ¿Qué estás buscando hoy? Escribe nombre o código...">
             </div>
@@ -30,6 +42,7 @@
                 <button class="btn-categoria" data-cat="manualidades">🎨 Manualidades</button>
             </div>
             
+            <!-- LISTA GENERAL DE PRODUCTOS -->
             <div class="productos" id="lista-productos">
             </div>
         </div>
@@ -94,12 +107,12 @@
         <span id="badge-flotante" class="badge-flotante">0</span>
     </div> 
 
+    <!-- MODAL DE DESPACHO INTERNO -->
     <div id="modal-despacho" class="modal-despacho" style="display: none;">
         <div class="modal-contenido">
             <span class="btn-cerrar-modal">&times;</span>
             <h2>📦 Resumen de Carga para Despacho</h2>
-            <div id="detalle-despacho-productos" class="grid-despacho">
-            </div>
+            <div id="detalle-despacho-productos" class="grid-despacho"></div>
             <div class="modal-acciones">
                 <button id="btn-imprimir-despacho" class="btn-modal-print">Imprimir / Guardar PDF</button>
             </div>

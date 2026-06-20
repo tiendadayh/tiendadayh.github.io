@@ -630,3 +630,127 @@ hr {
     font-weight: bold;
 }
 .btn-modal-print:hover { background-color: #01579b; }
+
+/* =======================================================
+   NUEVAS FUNCIONES: MODO CLARO, DESTACADOS Y CARRUSEL
+   ======================================================= */
+
+/* 1. MODO CLARO (Sobrescribe las variables originales) */
+body.light-mode {
+    --bg: #f3f4f6; 
+    --card-bg: #ffffff; 
+    --text: #1f2937; 
+    --text-light: #4b5563; 
+    --border: #d1d5db; 
+    --shadow: rgba(0, 0, 0, 0.08); 
+    --primary-light: #9333ea; /* Morado un poco más oscuro para que resalte en blanco */
+}
+
+body.light-mode .input-group input, 
+body.light-mode .input-group select {
+    background: #ffffff;
+    color: #1f2937;
+}
+
+body.light-mode .btn-qty {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+/* Botón flotante para cambiar de tema */
+.btn-tema {
+    position: absolute;
+    top: 25px;
+    right: 25px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px var(--shadow);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+.btn-tema:hover {
+    transform: scale(1.1) rotate(15deg);
+    border-color: var(--primary-light);
+}
+
+.header-tienda {
+    position: relative; /* Necesario para que el botón se coloque bien */
+}
+
+/* 2. PRODUCTOS DESTACADOS */
+.destacados-seccion {
+    margin-bottom: 10px;
+}
+.destacados-seccion h2 {
+    font-size: 20px;
+    color: var(--primary-light);
+    margin-bottom: 15px;
+}
+.productos-destacados {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 15px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--bg);
+}
+.productos-destacados .producto-card {
+    min-width: 240px;
+    flex: 0 0 auto;
+    border: 2px solid var(--primary); /* Resalta el borde */
+    background: linear-gradient(145deg, var(--card-bg) 0%, rgba(168,85,247,0.05) 100%);
+}
+
+/* Insignia especial para tarjetas destacadas */
+.badge-destacado {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #fbbf24;
+    color: #92400e;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 8px;
+    z-index: 2;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* 3. CARRUSEL DE IMÁGENES */
+.img-wrapper {
+    position: relative; /* Vital para posicionar las flechas adentro */
+}
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: all 0.2s;
+    z-index: 5;
+}
+.carousel-btn:hover {
+    opacity: 1;
+    background: var(--primary);
+    transform: translateY(-50%) scale(1.1);
+}
+.carousel-btn.left { left: 5px; }
+.carousel-btn.right { right: 5px; }
