@@ -20,7 +20,7 @@ window.addEventListener('load', () => {
 function configurarTema() {
     const temaGuardado = localStorage.getItem('tema_tienda');
     const btnTema = document.getElementById('btn-tema');
-    
+
     if (temaGuardado === 'light') {
         document.body.classList.add('light-mode');
         if (btnTema) btnTema.innerText = '🌙';
@@ -55,7 +55,7 @@ function setupEventListeners() {
     const btnEnviar = document.getElementById('btn-enviar-pedido');
     if (btnEnviar) {
         btnEnviar.addEventListener('dblclick', (e) => {
-            e.preventDefault(); 
+            e.preventDefault();
             abrirModalDespacho();
         });
     }
@@ -115,23 +115,22 @@ function cargarProductos() {
             INVENTARIO_GLOBAL = productosJson.map((prodJson, index) => {
                 const itemEnCarrito = carrito.find(c => c.codigo === prodJson.codigo);
                 const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
-                
+
                 let precioLimpio = parseFloat(prodJson.precio);
                 if (isNaN(precioLimpio)) precioLimpio = 0;
-                
+
                 let stockLimpio = parseInt(prodJson.stock);
                 if (isNaN(stockLimpio)) stockLimpio = 0;
-                
+
                 let stockActualizado = stockLimpio - cantidadEnCarrito;
 
                 // Para demostrar los Destacados, tomaremos los primeros 3 productos con inventario.
-                // En un futuro, podrías exportar esto desde SQLite (ej. prodJson.es_oferta)
                 let esDestacado = false;
                 if (index < 3) esDestacado = true;
 
                 return {
                     ...prodJson,
-                    precio: precioLimpio, 
+                    precio: precioLimpio,
                     stock: stockActualizado >= 0 ? stockActualizado : 0,
                     destacado: esDestacado
                 };
@@ -139,7 +138,7 @@ function cargarProductos() {
 
             localStorage.setItem('inventario_tienda', JSON.stringify(INVENTARIO_GLOBAL));
             filtrarCatalogo();
-            renderizarDestacados(); // Llamada a la nueva función
+            renderizarDestacados();
         })
         .catch(error => {
             console.error('Error al cargar inventario:', error);
@@ -160,10 +159,10 @@ function obtenerArregloImagenes(prod) {
     return [prod.imagen];
 }
 
-window.moverImagenCarrusel = function(codigo, direccion) {
+window.moverImagenCarrusel = function (codigo, direccion) {
     const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
     if (!prod) return;
-    
+
     const imagenes = obtenerArregloImagenes(prod);
     if (imagenes.length <= 1) return;
 
@@ -173,24 +172,29 @@ window.moverImagenCarrusel = function(codigo, direccion) {
 
     indicesCarrusel[codigo] += direccion;
 
-    // Lógica circular (si pasa el final, vuelve al inicio)
+    // Lógica circular
     if (indicesCarrusel[codigo] >= imagenes.length) {
         indicesCarrusel[codigo] = 0;
     } else if (indicesCarrusel[codigo] < 0) {
         indicesCarrusel[codigo] = imagenes.length - 1;
     }
 
-    const imgElement = document.getElementById(`img-carrusel-${codigo}`);
-    if (imgElement) {
-        let rutaCruda = imagenes[indicesCarrusel[codigo]];
-        let nombreImagen = rutaCruda ? rutaCruda.split(/[/\\\\]/).pop() : '';
-        imgElement.src = nombreImagen ? `imagenes_productos/${nombreImagen}` : 'https://placehold.co/300';
-    }
+    let rutaCruda = imagenes[indicesCarrusel[codigo]];
+    let nombreImagen = rutaCruda ? rutaCruda.split(/[/\\\\]/).pop() : '';
+    let nuevaRuta = nombreImagen ? `imagenes_productos/${nombreImagen}` : 'https://placehold.co/300';
+
+    // Actualizamos imagen normal si existe
+    const imgNormal = document.getElementById(`img-carrusel-${codigo}`);
+    if (imgNormal) imgNormal.src = nuevaRuta;
+
+    // Actualizamos imagen de destacados si existe
+    const imgDestacado = document.getElementById(`img-carrusel-dest-${codigo}`);
+    if (imgDestacado) imgDestacado.src = nuevaRuta;
 };
 
-// Función maestra para crear el HTML de una tarjeta (se usa en catálogo general y destacados)
+// Función maestra para crear el HTML de una tarjeta
 function generarHTMLTarjeta(prod, esSeccionDestacada = false) {
-    const stockDisponibleReal = prod.stock; 
+    const stockDisponibleReal = prod.stock;
     const esAgotado = stockDisponibleReal <= 0;
     const textoStock = esAgotado ? 'Agotado' : `Disponibles: ${stockDisponibleReal}`;
     const claseStock = esAgotado ? 'producto-stock agotado' : 'producto-stock';
@@ -198,12 +202,14 @@ function generarHTMLTarjeta(prod, esSeccionDestacada = false) {
     // Procesamiento de múltiples imágenes
     const arrayImagenes = obtenerArregloImagenes(prod);
     const tieneCarrusel = arrayImagenes.length > 1;
-    
+
     let nombreImagen = arrayImagenes[0] ? arrayImagenes[0].split(/[/\\\\]/).pop() : '';
     let rutaImagen = nombreImagen ? `imagenes_productos/${nombreImagen}` : 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=300&auto=format&fit=crop';
     const articuloLimpio = prod.articulo.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-    // Botones del carrusel (solo se imprimen si hay >1 imagen)
+    const idImagenUnico = codigoUnicoParaID(prod.codigo, esSeccionDestacada);
+
+    // Botones del carrusel
     const btnIzq = tieneCarrusel ? `<button class="carousel-btn left" onclick="moverImagenCarrusel('${prod.codigo}', -1)">◀</button>` : '';
     const btnDer = tieneCarrusel ? `<button class="carousel-btn right" onclick="moverImagenCarrusel('${prod.codigo}', 1)">▶</button>` : '';
 
@@ -217,7 +223,7 @@ function generarHTMLTarjeta(prod, esSeccionDestacada = false) {
                 <div class="producto-codigo">CÓDIGO: ${prod.codigo}</div>
                 <div class="img-wrapper">
                     ${btnIzq}
-                    <img id="img-carrusel-${codigoUnicoParaID(prod.codigo, esSeccionDestacada)}" src="${rutaImagen}" alt="${articuloLimpio}" onerror="this.onerror=null; this.src='https://placehold.co/300?text=${encodeURIComponent(articuloLimpio)}'">
+                    <img id="img-carrusel-${idImagenUnico}" src="${rutaImagen}" alt="${articuloLimpio}" onerror="this.onerror=null; this.src='https://placehold.co/300?text=${encodeURIComponent(articuloLimpio)}'">
                     ${btnDer}
                 </div>
                 <h3>${articuloLimpio}</h3>
@@ -236,8 +242,7 @@ function codigoUnicoParaID(codigo, esSeccionDestacada) {
     return esSeccionDestacada ? `dest-${codigo}` : codigo;
 }
 
-// Hacemos la función global para que los botones generados por texto (onclick) puedan llamarla
-window.agregarAlCarritoGlobal = function(codigo) {
+window.agregarAlCarritoGlobal = function (codigo) {
     agregarAlCarrito(codigo);
 }
 
@@ -247,11 +252,10 @@ function renderizarDestacados() {
     const seccionCompleta = document.getElementById('seccion-destacados');
     if (!contenedorDestacados || !seccionCompleta) return;
 
-    // Filtramos los que marcamos como destacados (y que aún tengan stock si quieres)
     const productosDestacados = INVENTARIO_GLOBAL.filter(p => p.destacado === true);
 
     if (productosDestacados.length === 0) {
-        seccionCompleta.style.display = 'none'; // Ocultamos si no hay ofertas
+        seccionCompleta.style.display = 'none';
         return;
     }
 
@@ -313,11 +317,11 @@ function agregarAlCarrito(codigo) {
         } else {
             carrito.push({ codigo: codigo, cantidad: 1 });
         }
-        producto.stock -= 1; 
+        producto.stock -= 1;
         guardarCarritoEnLocalStorage();
         actualizarCarritoVisual();
         filtrarCatalogo();
-        renderizarDestacados(); // Actualizar stock visual en la barra de ofertas también
+        renderizarDestacados();
     } else {
         alert("Lo sentimos, ya no quedan más unidades.");
     }
@@ -353,7 +357,7 @@ function vaciarCarrito() {
     if (confirm("¿Estás seguro de vaciar el pedido?")) {
         carrito = [];
         guardarCarritoEnLocalStorage();
-        cargarProductos(); 
+        cargarProductos();
     }
 }
 
@@ -461,23 +465,28 @@ async function enviarPedidoFinal() {
     };
 
     urlGlobalWhatsApp = "https://wa.me/" + TELEFONO_WHATSAPP + "?text=" + encodeURIComponent(mensaje);
-    window.open(urlGlobalWhatsApp, "_blank");
+    // Si es un dispositivo móvil, usamos href para evitar el bloqueo de popups
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        window.location.href = urlGlobalWhatsApp;
+    } else {
+        window.open(urlGlobalWhatsApp, "_blank");
+    }
 
     fetch('http://127.0.0.1:5000/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datosPedido)
     }).then(() => console.log("[WEB] Datos enviados a Python local"))
-      .catch(() => console.warn("[AVISO] Python local no disponible"));
+        .catch(() => console.warn("[AVISO] Python local no disponible"));
 
     localStorage.setItem("inventario_tienda", JSON.stringify(INVENTARIO_GLOBAL));
     carrito = [];
     guardarCarritoEnLocalStorage();
     actualizarCarritoVisual();
 
-    if(document.getElementById("cliente")) document.getElementById("cliente").value = "";
-    if(document.getElementById("fecha")) document.getElementById("fecha").value = "";
-    
+    if (document.getElementById("cliente")) document.getElementById("cliente").value = "";
+    if (document.getElementById("fecha")) document.getElementById("fecha").value = "";
+
     setTimeout(() => { cargarProductos(); }, 1500);
 }
 
@@ -493,10 +502,10 @@ function abrirModalDespacho() {
 
     const contenedorDetalle = document.getElementById('detalle-despacho-productos');
     const modal = document.getElementById('modal-despacho');
-    
+
     if (!contenedorDetalle || !modal) return;
-    
-    contenedorDetalle.innerHTML = ''; 
+
+    contenedorDetalle.innerHTML = '';
 
     carrito.forEach(item => {
         const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);

@@ -15,5 +15,22 @@
         ],
         "estado": "Pendiente",
         "fecha_registro": "2026-06-19 20:53:52"
+    },
+    {
+        "id": 2,
+        "cliente": "juan",
+        "telefono": "",
+        "fecha_entrega": "2026-06-22",
+        "hora_entrega": "09:00 AM",
+        "total": 5.0,
+        "detalles": "sacapunta (x1)",
+        "productos": [
+            {
+                "codigo": "a1",
+                "cantidad": 1
+            }
+        ],
+        "estado": "Pendiente",
+        "fecha_registro": "2026-06-20 22:16:46"
     }
 ]
