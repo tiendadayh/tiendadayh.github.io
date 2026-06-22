@@ -6,7 +6,7 @@
         "stock": 5,
         "categoria": "Papeleria",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_a1_1782026382.png",
-        "destacado": false
+        "destacado": true
     },
     {
         "codigo": "a2",
@@ -15,7 +15,7 @@
         "stock": 5,
         "categoria": "Papeleria",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_a2_1782026423.png",
-        "destacado": false
+        "destacado": true
     },
     {
         "codigo": "d1",
