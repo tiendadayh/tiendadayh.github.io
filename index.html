@@ -9,35 +9,27 @@
 </head>
 <body>
 
-    <!-- 1. SECCIÓN DE EVENTOS AL INICIO ABSOLUTO DE LA PÁGINA -->
-    <div class="eventos-seccion" id="seccion-eventos" style="margin: 20px 20px 0 20px; display: none;">
-        <h2 style="font-size: 20px; color: var(--primary-light); margin-top: 0; margin-bottom: 15px;">📅 Próximos Eventos y Fechas Especiales</h2>
-        <div class="eventos-contenedor" id="lista-eventos" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 15px;">
-            <!-- Se cargan dinámicamente con JS -->
-        </div>
-    </div>
-
-    <!-- 2. CABECERA PRINCIPAL DE TIENDA DAYH -->
     <div class="header-tienda">
         <button id="btn-tema" class="btn-tema" title="Cambiar Tema Oscuro/Claro">☀️</button>
         <h1>TIENDA DAYH</h1>
         <p>Tu catálogo de confianza — Elige tus productos y agenda tu pedido</p>
     </div>
     
-    <!-- CONTEXTO GENERAL DEL CONTENIDO -->
     <div class="container">
         <div class="productos-seccion">
             
-            <!-- 3. SECCIÓN DE DESTACADOS -->
+            <div class="eventos-seccion" id="seccion-eventos" style="display: none;">
+                <h2>📅 Próximos Eventos y Fechas Especiales</h2>
+                <div class="productos-destacados" id="lista-eventos"></div>
+            </div>
+            
             <div id="seccion-destacados" class="destacados-seccion">
                 <h2>✨ Productos Destacados y Ofertas</h2>
-                <div class="productos-destacados" id="lista-destacados">
-                </div>
+                <div class="productos-destacados" id="lista-destacados"></div>
             </div>
 
             <hr style="margin: 30px 0;">
 
-            <!-- 4. BUSCADOR Y CATEGORÍAS -->
             <div class="buscador-contenedor">
                 <input type="text" id="buscador" placeholder=" 🔍 ¿Qué estás buscando hoy? Escribe nombre o código...">
             </div>
@@ -53,19 +45,16 @@
                 <button class="btn-categoria" data-cat="manualidades">🎨 Manualidades</button>
             </div>
             
-            <div class="productos" id="lista-productos">
-            </div>
+            <div class="productos" id="lista-productos"></div>
         </div>
         
-        <!-- CARRITO DE COMPRAS -->
         <div class="carrito">
             <div class="carrito-header">
                 <h2>Tu Pedido <span class="cart-badge" id="badge-contador">0</span></h2>
                 <button id="btn-vaciar" class="btn-danger" style="display: none;">Vaciar</button>
             </div>
             
-            <div id="items-carrito">
-            </div>
+            <div id="items-carrito"></div>
             
             <h3 id="total-carrito" style="font-size: 20px; margin-top: 15px; display: flex; justify-content: space-between;">
                 <span>Total:</span> <span id="total-monto">$0.00</span>

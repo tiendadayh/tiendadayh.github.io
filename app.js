@@ -8,34 +8,34 @@ let carrito = [];
 let indicesCarrusel = {};
 
 // =========================================================================
-// CONFIGURACIÓN DE EVENTOS (Actualizado con imágenes y categorías)
+// CONFIGURACIÓN DE EVENTOS
 // =========================================================================
 const EVENTOS_CONFIG = [
     {
-        titulo: "👨 Día del Padre(Electronica)",
+        titulo: "👨Día del Padre(Electronica)",
         fecha: "21 de Junio",
-        descripcion: "¡Sorprende a papá! Haz clic aquí para descubrir electrónica y accesorios con precios especiales.",
+        descripcion: "¡Sorprende a papá! Descubre electrónica y accesorios con precios especiales.",
         categoriaVinculada: "electronica",
-        imagen: "imagenes_eventos/dia_del_padre.jpg" // <-- Ruta de la imagen del evento
+        imagen: "imagenes_eventos/dia_del_padre.jpg" 
     },
     {
-        titulo: "👨 Día del Padre(Ropa)",
+        titulo: "👨Día del Padre(Ropa)",
         fecha: "21 de Junio",
-        descripcion: "¡Sorprende a papá! Haz clic aquí para descubrir ropa y accesorios con precios especiales.",
+        descripcion: "¡Sorprende a papá! Descubre ropa y accesorios con precios especiales.",
         categoriaVinculada: "ropa",
-        imagen: "imagenes_eventos/dia_del_padre.jpg" // <-- Ruta de la imagen del evento
+        imagen: "imagenes_eventos/dia_del_padre.jpg" 
     },
     {
-        titulo: " 🎓 Graduaciones(Manualidades)",
+        titulo: " 🎓Graduaciones(Manualidades)",
         fecha: "Mes de Julio",
-        descripcion: "Hoy termina una etapa llena de juegos, risas y aprendizajes; mañana comienza una nueva gran aventura haciendo clic aquí.",
+        descripcion: "Termina una etapa llena de aprendizajes; comienza una nueva aventura aquí.",
         categoriaVinculada: "manualidades",
         imagen: "imagenes_eventos/graduaciones.jpg"
     },
     {
-        titulo: " 🎓 Graduaciones(Ropa)",
+        titulo: " 🎓Graduaciones(Ropa)",
         fecha: "Mes de Julio",
-        descripcion: "Hoy termina una etapa llena de juegos, risas y aprendizajes; mañana comienza una nueva gran aventura haciendo clic aquí.",
+        descripcion: "Termina una etapa llena de aprendizajes; comienza una nueva aventura aquí.",
         categoriaVinculada: "ropa",
         imagen: "imagenes_eventos/graduaciones.jpg"
     }
@@ -71,23 +71,21 @@ function renderizarEventos() {
     contenedor.innerHTML = '';
 
     EVENTOS_CONFIG.forEach(evento => {
-        // Si no se define una imagen o falla, cargará un marcador de posición gris elegante
         const rutaImagen = evento.imagen ? evento.imagen : 'https://placehold.co/300x150?text=Evento';
         
         contenedor.innerHTML += `
-        <div class="producto-card card-evento-interactiva" style="cursor: pointer; text-align: left; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;" onclick="filtrarPorEvento('${evento.categoriaVinculada}')">
+        <div class="producto-card card-evento-interactiva" style="cursor: pointer;" onclick="filtrarPorEvento('${evento.categoriaVinculada}')">
             <div>
-                <div class="img-wrapper" style="height: 140px; width: 100%; overflow: hidden;">
+                <div class="producto-codigo">EVENTO ESPECIAL</div>
+                <div class="img-wrapper" style="height: 115px;">
                     <img src="${rutaImagen}" alt="${evento.titulo}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='https://placehold.co/300x150?text=${encodeURIComponent(evento.titulo)}'">
                 </div>
-                <div style="padding: 12px;">
-                    <h3 style="margin: 0 0 5px 0; font-size: 16px; color: var(--text);">${evento.titulo}</h3>
-                    <div style="font-size: 12px; color: var(--primary-light); font-weight: bold; margin-bottom: 6px;">📅 Temporada: ${evento.fecha}</div>
-                    <p style="font-size: 13px; color: var(--text-light); margin: 0; line-height: 1.4;">${evento.descripcion}</p>
-                </div>
+                <h3 style="font-size: 14px; margin: 8px 0 3px 0;">${evento.titulo}</h3>
+                <div style="font-size: 11px; color: var(--primary-light); font-weight: bold; margin-bottom: 5px;">📅 ${evento.fecha}</div>
+                <p style="font-size: 12px; color: var(--text-light); margin: 0 0 8px 0; line-height: 1.3; text-align: center;">${evento.descripcion}</p>
             </div>
-            <div style="padding: 0 12px 12px 12px; text-align: right;">
-                <span style="font-size: 11px; color: var(--primary-light); font-weight: bold;">Ver productos ➔</span>
+            <div style="text-align: center; margin-top: auto; padding-top: 3px;">
+                <span style="font-size: 11px; color: var(--primary-light); font-weight: bold; display: inline-block;">Ver productos ➔</span>
             </div>
         </div>
         `;
@@ -303,7 +301,7 @@ function generarHTMLTarjeta(prod, esSeccionDestacada = false) {
         textoStock = '❌ Agotado';
         claseStock = 'producto-stock agotado';
     } else if (stockDisponibleReal <= 3) {
-        textoStock = `🔥 ¡Últimas ${stockDisponibleReal} piezas!`;
+        textoStock = `🔥 ¡Últimas ${stockDisponibleReal} pzs!`;
         claseStock = 'producto-stock stock-critico';
     }
 
@@ -333,7 +331,7 @@ function generarHTMLTarjeta(prod, esSeccionDestacada = false) {
             </div>
             <h3>${articuloLimpio}</h3>
             <div class="${claseStock}">${textoStock}</div>
-            <p style="color: var(--primary-light); font-weight: 700; font-size: 18px; margin: 0 0 8px 0;">${formatearDinero(prod.precio)}</p>
+            <p style="color: var(--primary-light); font-weight: 700; font-size: 16px; margin: 0 0 6px 0;">${formatearDinero(prod.precio)}</p>
         </div>
         <button class="btn" onclick="agregarAlCarritoGlobal('${prod.codigo}')" ${esAgotado ? 'disabled' : ''}>
             ${esAgotado ? 'Sin existencias' : 'Agregar'}
@@ -346,7 +344,6 @@ window.agregarAlCarritoGlobal = function (codigo) {
     agregarAlCarrito(codigo);
 }
 
-// Asegurar que la función se asigne globalmente para los botones onclick del HTML dinámico
 window.filtrarPorEvento = filtrarPorEvento;
 
 function renderizarDestacados() {
@@ -534,11 +531,11 @@ async function enviarPedidoFinal() {
         return;
     }
 
-    let mensaje = "*¡HOLA, TIENDA DAYH!*\n";
-    mensaje += "Quiero agendar el siguiente pedido:\n";
-    mensaje += "━━━━━━━━━━━━━━━━━━━━━\n\n";
-    mensaje += "*CLIENTE:* " + cliente + "\n\n";
-    mensaje += "*PRODUCTOS SOLICITADOS:*\n";
+    let mensaje = "*¡HOLA, TIENDA DAYH!*\\n";
+    mensaje += "Quiero agendar el siguiente pedido:\\n";
+    mensaje += "━━━━━━━━━━━━━━━━━━━━━\\n\\n";
+    mensaje += "*CLIENTE:* " + cliente + "\\n\\n";
+    mensaje += "*PRODUCTOS SOLICITADOS:*\\n";
 
     let total = 0;
     const productosParaAPI = [];
@@ -551,14 +548,14 @@ async function enviarPedidoFinal() {
         const subtotal = precio * item.cantidad;
         total += subtotal;
 
-        mensaje += `*${item.cantidad}x* [${prod.codigo}] ${prod.articulo} ➔ ${formatearDinero(subtotal)}\n`;
+        mensaje += `*${item.cantidad}x* [${prod.codigo}] ${prod.articulo} ➔ ${formatearDinero(subtotal)}\\n`;
         productosParaAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
     });
 
-    mensaje += "\n━━━━━━━━━━━━━━━━━━━━━\n";
-    mensaje += "*TOTAL:* " + formatearDinero(total) + "\n";
-    mensaje += "*FECHA DE ENTREGA:* " + formatearFechaHumana(fecha) + "\n";
-    mensaje += "*HORA APROX:* " + hora + "\n";
+    mensaje += "\\n━━━━━━━━━━━━━━━━━━━━━\\n";
+    mensaje += "*TOTAL:* " + formatearDinero(total) + "\\n";
+    mensaje += "*FECHA DE ENTREGA:* " + formatearFechaHumana(fecha) + "\\n";
+    mensaje += "*HORA APROX:* " + hora + "\\n";
 
     const datosPedido = {
         cliente: cliente,
