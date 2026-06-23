@@ -3,7 +3,7 @@
         "codigo": "a1",
         "articulo": "sacapunta",
         "precio": 4.0,
-        "stock": 4,
+        "stock": 5,
         "categoria": "Papeleria",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_a1_1782026382.png",
         "destacado": true
@@ -19,7 +19,7 @@
     },
     {
         "codigo": "d1",
-        "articulo": "pantalon azul talla-L",
+        "articulo": "playera azul Talla-L",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Ropa",
