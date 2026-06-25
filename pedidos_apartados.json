@@ -3,7 +3,41 @@
         "id": 1,
         "cliente": "alexis",
         "telefono": "",
-        "fecha_entrega": "2026-06-24",
+        "fecha_entrega": "2026-06-26",
+        "hora_entrega": "09:00 AM",
+        "total": 8.0,
+        "detalles": "sacapunta (x2)",
+        "productos": [
+            {
+                "codigo": "a1",
+                "cantidad": 2
+            }
+        ],
+        "estado": "Pendiente",
+        "fecha_registro": "2026-06-25 00:03:13"
+    },
+    {
+        "id": 2,
+        "cliente": "alexis",
+        "telefono": "",
+        "fecha_entrega": "2026-06-25",
+        "hora_entrega": "09:00 AM",
+        "total": 10.0,
+        "detalles": "borrador (x2)",
+        "productos": [
+            {
+                "codigo": "a2",
+                "cantidad": 2
+            }
+        ],
+        "estado": "Pendiente",
+        "fecha_registro": "2026-06-25 00:53:51"
+    },
+    {
+        "id": 3,
+        "cliente": "alexis",
+        "telefono": "",
+        "fecha_entrega": "2026-06-25",
         "hora_entrega": "09:00 AM",
         "total": 4.0,
         "detalles": "sacapunta (x1)",
@@ -14,6 +48,6 @@
             }
         ],
         "estado": "Pendiente",
-        "fecha_registro": "2026-06-24 22:57:37"
+        "fecha_registro": "2026-06-25 01:38:53"
     }
 ]
