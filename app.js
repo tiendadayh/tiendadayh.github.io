@@ -307,34 +307,42 @@ function guardarCarritoEnLocalStorage() { localStorage.setItem('carrito_tienda',
 function recuperarCarritoDeLocalStorage() { const guardado = localStorage.getItem('carrito_tienda'); if (guardado) { carrito = JSON.parse(guardado); } }
 
 function cargarProductos() {
-    fetch('productos.json?v=' + Date.now())
-        .then(res => res.json())
-        .then(json => {
-            INVENTARIO_GLOBAL = json.map(p => ({ 
-                ...p, 
-                stock: parseInt(p.stock) || 0, 
-                destacado: p.destacado === true 
-            }));
-            
-            carrito.forEach(item => {
-                let p = INVENTARIO_GLOBAL.find(ig => ig.codigo === item.codigo);
-                if (p) p.stock = Math.max(0, p.stock - item.cantidad);
-            });
+    // 1. Primero intentamos recuperar el inventario modificado localmente desde el LocalStorage
+    let inventarioGuardado = localStorage.getItem('inventario_tienda_real');
 
-            localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
-            filtrarCatalogo();
-            renderizarDestacados();
-            actualizarCarritoVisual();
-        })
-        .catch(() => {
-            let inventarioGuardado = localStorage.getItem('inventario_tienda_real');
-            if (inventarioGuardado) { 
-                INVENTARIO_GLOBAL = JSON.parse(inventarioGuardado); 
-                filtrarCatalogo(); 
-                renderizarDestacados(); 
-                actualizarCarritoVisual(); 
-            }
-        });
+    if (inventarioGuardado) {
+        // Si ya existe en el navegador, usamos este inventario para mantener los stocks actualizados
+        INVENTARIO_GLOBAL = JSON.parse(inventarioGuardado);
+        filtrarCatalogo();
+        renderizarDestacados();
+        actualizarCarritoVisual();
+    } else {
+        // 2. Si no existe (es la primera vez que entras), descargamos el JSON original
+        fetch('productos.json?v=' + Date.now())
+            .then(res => res.json())
+            .then(json => {
+                INVENTARIO_GLOBAL = json.map(p => ({ 
+                    ...p, 
+                    stock: parseInt(p.stock) || 0, 
+                    destacado: p.destacado === true 
+                }));
+                
+                // Descontamos del stock inicial los productos que ya estén guardados en el carrito
+                carrito.forEach(item => {
+                    let p = INVENTARIO_GLOBAL.find(ig => ig.codigo === item.codigo);
+                    if (p) p.stock = Math.max(0, p.stock - item.cantidad);
+                });
+
+                // Guardamos esta base inicial en el Local Storage
+                localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
+                filtrarCatalogo();
+                renderizarDestacados();
+                actualizarCarritoVisual();
+            })
+            .catch((error) => {
+                console.error("Error cargando el archivo de productos:", error);
+            });
+    }
 }
 
 function obtenerArregloImagenes(prod) {
