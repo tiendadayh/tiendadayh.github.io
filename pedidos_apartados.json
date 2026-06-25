@@ -1,1 +1,19 @@
-[]
+[
+    {
+        "id": 1,
+        "cliente": "alexis",
+        "telefono": "",
+        "fecha_entrega": "2026-06-24",
+        "hora_entrega": "09:00 AM",
+        "total": 4.0,
+        "detalles": "sacapunta (x1)",
+        "productos": [
+            {
+                "codigo": "a1",
+                "cantidad": 1
+            }
+        ],
+        "estado": "Pendiente",
+        "fecha_registro": "2026-06-24 22:57:37"
+    }
+]

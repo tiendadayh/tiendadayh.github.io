@@ -25,13 +25,13 @@ body {
     min-height: 100vh;
 }
 
-/* Ajustes para la nueva cabecera con imagen */
+/* CABECERA Y CONEXIÓN EN VIVO */
 .header-tienda { 
     text-align: center; 
     margin-bottom: 35px; 
-    padding: 20px 10px; /* Reducido el padding vertical excesivo para ajustar la imagen */
+    padding: 20px 10px;
     position: relative;
-    background: transparent; /* Permite que resalte más tu diseño */
+    background: transparent;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -40,18 +40,44 @@ body {
 .img-header-inicio {
     max-width: 100%;
     height: auto;
-    max-height: 220px; /* Controla la altura máxima para que no sature la pantalla */
+    max-height: 220px;
     object-fit: contain;
-    border-radius: 12px; /* Un toque sutil redondeado en las esquinas */
-    filter: drop-shadow(0px 4px 12px rgba(168, 85, 247, 0.25)); /* Sombra suave morada neón */
+    border-radius: 12px;
+    filter: drop-shadow(0px 4px 12px rgba(168, 85, 247, 0.25));
 }
 
-/* Asegurar que el botón flotante de tema no estorbe la imagen */
 .btn-tema {
     position: absolute;
     top: 15px;
     right: 20px;
     z-index: 10;
+}
+
+.status-websocket {
+    position: absolute;
+    top: 15px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(31, 41, 55, 0.8);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    z-index: 10;
+}
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444; 
+    box-shadow: 0 0 8px #ef4444;
+    transition: all 0.3s ease;
+}
+.status-websocket.online .status-dot {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
 }
 
 /* BANNER ROTATIVO */
@@ -163,7 +189,7 @@ body {
 .producto-stock { font-size: 12px; font-weight: 600; color: var(--success); margin-bottom: 6px; }
 .producto-stock.agotado { color: var(--danger); }
 
-/* CONTROLES DE CANTIDAD DIRECTA EN LA TARJETA (NUEVO) */
+/* CONTROLES DE CANTIDAD DIRECTA */
 .tarjeta-controles-qty {
     display: flex;
     align-items: center;
@@ -190,7 +216,7 @@ body {
 .tarjeta-cant-num { font-weight: bold; font-size: 14px; color: var(--text); }
 
 .btn { background: var(--primary); color: white; border: none; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; width: 100%; margin-top: 8px; transition: all 0.2s ease; font-size: 13px; }
-.btn:hover { background: var(--primary-light); box-shadow: 0 0 12px rgba(192, 132, 252, 0.4); }
+.btn:hover:not(:disabled) { background: var(--primary-light); box-shadow: 0 0 12px rgba(192, 132, 252, 0.4); }
 .btn:disabled { background: #4b5563; color: #9ca3af; cursor: not-allowed; box-shadow: none; }
 .btn-danger { background: var(--danger); font-size: 11px; padding: 5px 12px; width: auto; margin: 0; border-radius: 7px; border: none; color: white; cursor: pointer; font-weight: bold; }
 .btn-danger:hover { background: var(--danger-hover); }
@@ -247,19 +273,12 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-/* CARRITO FLOTANTE Y ANIMACIÓN SHAKE (NUEVO) */
+/* CARRITO FLOTANTE */
 .carrito-flotante { position: fixed; bottom: 25px; right: 25px; background: var(--primary); color: white; font-size: 24px; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5); cursor: pointer; z-index: 9999; transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease; }
 .carrito-flotante:hover { transform: scale(1.1) translateY(-3px); background: var(--primary-light); }
 .badge-flotante { position: absolute; top: -2px; right: -2px; background: var(--danger); color: white; font-size: 11px; font-weight: 800; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg); box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
 
-@keyframes shake-carrito {
-    0% { transform: scale(1); }
-    15% { transform: scale(1.15) rotate(-10deg); }
-    30% { transform: scale(1.15) rotate(10deg); }
-    45% { transform: scale(1.15) rotate(-10deg); }
-    60% { transform: scale(1.15) rotate(10deg); }
-    100% { transform: scale(1); }
-}
+@keyframes shake-carrito { 0% { transform: scale(1); } 15% { transform: scale(1.15) rotate(-10deg); } 30% { transform: scale(1.15) rotate(10deg); } 45% { transform: scale(1.15) rotate(-10deg); } 60% { transform: scale(1.15) rotate(10deg); } 100% { transform: scale(1); } }
 .animar-shake { animation: shake-carrito 0.6s ease-in-out; }
 
 /* MODAL DESPACHO */
@@ -282,6 +301,7 @@ body.light-mode .input-group input, body.light-mode .input-group select { backgr
 body.light-mode .btn-qty { background: #e5e7eb; color: #1f2937; }
 body.light-mode .btn-qty:disabled { background: #f3f4f6; color: #d1d5db; }
 body.light-mode .tarjeta-controles-qty { background: #f9fafb; border-color: #d1d5db; }
+body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
 
 .btn-tema { position: absolute; top: 20px; right: 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px var(--shadow); transition: all 0.3s ease; z-index: 10; }
 .btn-tema:hover { transform: scale(1.1) rotate(15deg); border-color: var(--primary-light); }
@@ -315,6 +335,7 @@ body.light-mode .tarjeta-controles-qty { background: #f9fafb; border-color: #d1d
 .notificacion-carrito-guardado { position: fixed; bottom: 95px; right: 25px; background: #2e1065; color: #f3e8ff; border: 1px solid #6b21a8; padding: 12px 18px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); z-index: 9999; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
 .notificacion-carrito-guardado .btn-cerrar-notif { background: none; border: none; color: var(--text-light); cursor: pointer; }
 
+/* OPTIMIZACIÓN DE ZONAS TÁCTILES PARA MÓVILES (A11Y) */
 @media (max-width: 768px) {
     body { padding: 12px; }
     .container { gap: 15px; }
@@ -323,4 +344,12 @@ body.light-mode .tarjeta-controles-qty { background: #f9fafb; border-color: #d1d
     .categorias-barra { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 10px; }
     .carrito { padding: 15px; }
     .productos-destacados .producto-card, .productos-destacados .card-evento-interactiva { min-width: 185px !important; max-width: 195px !important; }
+    
+    /* Aumento de zonas táctiles */
+    .btn-qty, .tarjeta-btn-qty { min-width: 44px; min-height: 44px; font-size: 18px; }
+    .carrito-flotante { width: 60px; height: 60px; font-size: 26px; }
+}
+
+@media (max-width: 480px) {
+    .productos { grid-template-columns: 1fr; gap: 15px; }
 }
