@@ -331,4 +331,3 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
 @media (max-width: 480px) {
     .productos { grid-template-columns: 1fr; gap: 15px; }
 }
-

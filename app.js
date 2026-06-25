@@ -69,11 +69,17 @@ function configurarWebSockets() {
         let producto = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
         
         if (producto) {
-            // Descontar lo que el usuario ya tiene apartado en su carrito
-            const itemEnCarrito = carrito.find(i => i.codigo === codigo);
-            const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
+            // AGREGADO Y CORREGIDO: Evita descuento doble. Actualiza según base de datos central.
+            producto.stock = nuevo_stock;
             
-            producto.stock = Math.max(0, nuevo_stock - cantidadEnCarrito);
+            const itemEnCarrito = carrito.find(i => i.codigo === codigo);
+            if (itemEnCarrito && itemEnCarrito.cantidad > producto.stock) {
+                itemEnCarrito.cantidad = producto.stock;
+                if (itemEnCarrito.cantidad <= 0) {
+                    carrito = carrito.filter(c => c.codigo !== codigo);
+                }
+                actualizarCarritoVisual(); // Refrescar visualmente el carrito
+            }
             
             localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
             filtrarCatalogo();
@@ -172,7 +178,12 @@ function filtrarPorEvento(categoria) {
         }
     });
     filtrarCatalogo();
-    if (document.getElementById('buscador')) document.getElementById('buscador').value = "";
+    if (document.getElementById('buscador')) {
+        const buscador = document.getElementById('buscador');
+        buscador.value = "";
+        // AGREGADO: Cambio de texto para guiar al usuario
+        buscador.placeholder = `🔍 Buscando eventos...`; 
+    }
     if (document.getElementById('barra-categorias')) document.getElementById('barra-categorias').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -448,6 +459,14 @@ function seleccionarCategoria(cat, elemento) {
     categorySeleccionada = cat;
     document.querySelectorAll('.btn-categoria').forEach(b => b.classList.remove('activo'));
     if (elemento) elemento.classList.add('activo');
+    
+    // AGREGADO: Restaurar el buscador visualmente al cambiar la categoría
+    if (document.getElementById('buscador')) {
+        document.getElementById('buscador').placeholder = cat === 'todas' 
+            ? " 🔍 ¿Qué estás buscando hoy? Escribe nombre o código..." 
+            : `🔍 Buscando en ${cat}...`;
+    }
+    
     filtrarCatalogo();
 }
 
