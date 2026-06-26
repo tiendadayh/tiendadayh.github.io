@@ -9,7 +9,9 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <script src="https://cdn.socketio.cloud/4.7.5/socketio.min.js"></script>
+    
     <script src="app.js" defer></script>
 </head>
 
@@ -110,7 +112,7 @@
         </div>
     </div>
 
-    <div id="carrito-flotante" class="carrito-flotante" onclick="abrirModalCarritoMovil()">
+    <div id="carrito-flotante" class="carrito-flotante" onclick="document.querySelector('.carrito').scrollIntoView({behavior: 'smooth'})">
         🛒
         <span id="badge-flotante" class="badge-flotante">0</span>
     </div>
@@ -133,17 +135,5 @@
             </div>
         </div>
     </div>
-
-    <div id="modal-carrito-movil" class="modal-carrito-movil" style="display: none;">
-        <div class="modal-carrito-contenido">
-            <div class="modal-carrito-header">
-                <h2>🛒 Mi Carrito</h2>
-                <span class="cerrar-carrito-movil" onclick="cerrarModalCarritoMovil()">&times;</span>
-            </div>
-            <div id="lista-carrito-movil" style="flex: 1; overflow-y: auto;"></div>
-            <div id="totales-carrito-movil" style="margin-top: 15px;"></div>
-        </div>
-    </div>
-
 </body>
 </html>

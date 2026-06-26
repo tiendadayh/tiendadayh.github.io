@@ -6,31 +6,15 @@ let INVENTARIO_GLOBAL = [];
 let carrito = [];
 let indicesCarrusel = {};
 
-// 🔌 Inicializar la conexión WebSocket con tu servidor local
+// 🔌 Inicializar la conexión WebSocket con tu servidor local en Python
 const socket = typeof io !== 'undefined' ? io("http://127.0.0.1:5000") : null;
 
-// Eventos preconfigurados - Las fechas se filtrarán dinámicamente
 const EVENTOS_CONFIG = [
-    { titulo: "👨 Día del Padre (Electrónica)", mes_vigente: 5, descripcion: "¡Sorprende a papá! Descubre electrónica.", categoriaVinculada: "electronica", imagen: "imagenes_eventos/dia_del_padre.jpg" },
-    { titulo: "👨 Día del Padre (Ropa)", mes_vigente: 5, descripcion: "¡Sorprende a papá! Descubre ropa.", categoriaVinculada: "ropa", imagen: "imagenes_eventos/dia_del_padre.jpg" },
-    { titulo: "🎓 Graduaciones (Manualidades)", mes_vigente: 6, descripcion: "Termina una etapa llena de aprendizajes.", categoriaVinculada: "manualidades", imagen: "imagenes_eventos/graduaciones.jpg" },
-    { titulo: "🎓 Graduaciones (Ropa)", mes_vigente: 6, descripcion: "Termina una etapa llena de aprendizajes.", categoriaVinculada: "ropa", imagen: "imagenes_eventos/graduaciones.jpg" }
+    { titulo: "👨 Día del Padre (Electrónica)", fecha: "21 de Junio", descripcion: "¡Sorprende a papá! Descubre electrónica.", categoriaVinculada: "electronica", imagen: "imagenes_eventos/dia_del_padre.jpg" },
+    { titulo: "👨 Día del Padre (Ropa)", fecha: "21 de Junio", descripcion: "¡Sorprende a papá! Descubre ropa.", categoriaVinculada: "ropa", imagen: "imagenes_eventos/dia_del_padre.jpg" },
+    { titulo: "🎓 Graduaciones (Manualidades)", fecha: "Mes de Julio", descripcion: "Termina una etapa llena de aprendizajes.", categoriaVinculada: "manualidades", imagen: "imagenes_eventos/graduaciones.jpg" },
+    { titulo: "🎓 Graduaciones (Ropa)", fecha: "Mes de Julio", descripcion: "Termina una etapa llena de aprendizajes.", categoriaVinculada: "ropa", imagen: "imagenes_eventos/graduaciones.jpg" }
 ];
-
-// 🌐 FUNCIÓN PRINCIPAL DE SINCRONIZACIÓN: Forzar la recarga limpiando la caché
-function solicitarActualizacionWeb() {
-    // 💡 Paso 1: Borrar la memoria temporal local para obligar a re-descargar el JSON fresco
-    localStorage.removeItem('inventario_tienda_real');
-    
-    if (socket && socket.connected) {
-        socket.emit('forzar_recarga_inventario_general');
-        mostrarNotificacionFlotante("🚀 Sincronizando catálogo con la web...", 3000, '#10b981');
-    } else {
-        // Si no hay WebSocket activo, intentamos recargar los productos directamente por HTTP/JSON
-        mostrarNotificacionFlotante("🔄 Recargando componentes del catálogo...", 2000, '#a855f7');
-        cargarProductos();
-    }
-}
 
 window.addEventListener('load', () => {
     configurarTema();
@@ -45,85 +29,88 @@ window.addEventListener('load', () => {
 
     mostrarSkeletons();
     setTimeout(() => {
-        cargarProductos();
+        cargarProductos(); // 🔥 Carga los productos actualizados desde el origen json
         verificarCarritoGuardadoAlEntrar();
-    }, 700);
-
+    }, 700); 
+    
     renderizarEventos();
     setupEventListeners();
+    
+    // 🔌 Iniciar escucha de WebSockets para cambios en vivo desde el Punto de Venta
     configurarWebSockets();
 
+    // DETECTAR ENLACES COMPARTIDOS
     setTimeout(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const productoFiltrado = urlParams.get('prod');
+
         if (productoFiltrado) {
             const buscadorInput = document.getElementById('buscador');
             if (buscadorInput) {
                 buscadorInput.value = productoFiltrado;
-                categorySeleccionada = "todas";
+                categorySeleccionada = "todas"; 
                 filtrarCatalogo();
+                
                 const catalogoSeccion = document.getElementById('barra-categorias') || document.getElementById('lista-productos');
-                if (catalogoSeccion) catalogoSeccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (catalogoSeccion) {
+                    catalogoSeccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }
         }
     }, 900);
 });
 
+// 🔌 ESCUCHA DE ACTUALIZACIÓN EN VIVO DESDE EL PUNTO DE VENTA Y CONFIRMACIONES
 function configurarWebSockets() {
     if (!socket) return;
-
+    
     socket.on('actualizar_stock_web', (data) => {
         const { codigo, nuevo_stock } = data;
         let producto = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
-
+        
         if (producto) {
-            producto.stock = nuevo_stock;
+            // Sincroniza directamente con las piezas del Punto de Venta o Descuentos
+            producto.stock = parseInt(nuevo_stock) || 0;
+            
+            // Si el cliente tiene más piezas en el carrito de las que quedan disponibles, se ajusta
             const itemEnCarrito = carrito.find(i => i.codigo === codigo);
             if (itemEnCarrito && itemEnCarrito.cantidad > producto.stock) {
                 itemEnCarrito.cantidad = producto.stock;
-                if (itemEnCarrito.cantidad <= 0) carrito = carrito.filter(c => c.codigo !== codigo);
-                actualizarCarritoVisual();
+                if (itemEnCarrito.cantidad <= 0) {
+                    carrito = carrito.filter(c => c.codigo !== codigo);
+                }
+                actualizarCarritoVisual(); 
             }
-
+            
+            // Guardar en almacenamiento para mantener consistencia
             localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
+            
+            // RE-RENDERIZAR CATÁLOGO INMEDIATAMENTE CON LAS PIEZAS NUEVAS EN PANTALLA
             filtrarCatalogo();
             renderizarDestacados();
-
-            if (producto.stock === 0) mostrarNotificacionFlotante(`❌ Se ha agotado: ${producto.articulo}`, 5000, '#7f1d1d');
-            else if (producto.stock <= 3) mostrarNotificacionFlotante(`🔥 ¡Últimas ${producto.stock} piezas de: ${producto.articulo}!`, 5000, '#9a3412');
+            
+            // Notificar alertas de inventario crítico
+            if (producto.stock === 0) {
+                mostrarNotificacionFlotante(`❌ Se ha agotado en inventario: ${producto.articulo}`, 5000, '#7f1d1d');
+            } else if (producto.stock <= 3) {
+                mostrarNotificacionFlotante(`🔥 ¡Inventario actualizado! Últimas ${producto.stock} piezas de: ${producto.articulo}`, 5000, '#9a3412');
+            }
         }
-    });
-
-    socket.on('respuesta_verificacion_stock', function(data) {
-        if (data.aprobado) {
-            procederALanzarWhatsApp();
-        } else {
-            let mensaje = "No se puede procesar el pedido. Algunos artículos se agotaron:\n\n";
-            data.errores.forEach(err => {
-                mensaje += `- ${err.nombre} (Disponibles: ${err.stock_disponible})\n`;
-            });
-            alert(mensaje);
-        }
-    });
-
-    socket.on('recargar_tus_productos', () => {
-        localStorage.removeItem('inventario_tienda_real');
-        cargarProductos();
-        mostrarNotificacionFlotante("🔄 ¡Catálogo web actualizado con éxito!", 4000, '#059669');
     });
 }
 
 function mostrarNotificacionFlotante(mensaje, duracion = 4000, colorFondo = '#2e1065') {
     const miniNotif = document.createElement('div');
     miniNotif.className = 'notificacion-carrito-guardado';
-    miniNotif.style.bottom = '160px';
-    miniNotif.style.background = colorFondo;
+    miniNotif.style.bottom = '160px'; 
+    miniNotif.style.background = colorFondo; 
     miniNotif.style.color = '#fff';
     miniNotif.style.border = '1px solid rgba(255,255,255,0.2)';
     miniNotif.style.zIndex = '9999';
     miniNotif.innerHTML = `<span>${mensaje}</span> <button class="btn-cerrar-notif" onclick="this.parentElement.remove()" style="color:white;">✕</button>`;
+    
     document.body.appendChild(miniNotif);
-    setTimeout(() => { if (miniNotif) miniNotif.remove(); }, duracion);
+    setTimeout(() => { if(miniNotif) miniNotif.remove(); }, duracion);
 }
 
 function verificarCarritoGuardadoAlEntrar() {
@@ -161,29 +148,25 @@ function renderizarEventos() {
     const contenedor = document.getElementById('lista-eventos');
     const seccionEventos = document.getElementById('seccion-eventos');
     if (!contenedor || !seccionEventos) return;
-
-    const mesActual = new Date().getMonth(); 
-    const eventosVigentes = EVENTOS_CONFIG.filter(evento => evento.mes_vigente === mesActual);
-
-    if (eventosVigentes.length === 0) { 
-        seccionEventos.style.display = 'none'; 
-        return; 
-    }
-    
+    if (EVENTOS_CONFIG.length === 0) { seccionEventos.style.display = 'none'; return; }
     seccionEventos.style.display = 'block';
     contenedor.innerHTML = '';
 
-    eventosVigentes.forEach(evento => {
+    EVENTOS_CONFIG.forEach(evento => {
         const rutaImagen = evento.imagen ? evento.imagen : 'https://placehold.co/300x150?text=Evento';
         contenedor.innerHTML += `
         <div class="producto-card card-evento-interactiva" style="cursor: pointer;" onclick="filtrarPorEvento('${evento.categoriaVinculada}')">
             <div>
                 <div class="producto-codigo">EVENTO ESPECIAL</div>
                 <div class="img-wrapper" style="height: 115px;">
-                    <img src="${rutaImagen}" alt="${evento.titulo}" style="width: 100%; height: 100%; object-fit: cover;">
+                    <img src="${rutaImagen}" alt="${evento.titulo}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='https://placehold.co/300x150?text=${encodeURIComponent(evento.titulo)}'">
                 </div>
                 <h3 style="font-size: 14px; margin: 8px 0 3px 0;">${evento.titulo}</h3>
+                <div style="font-size: 11px; color: var(--primary-light); font-weight: bold; margin-bottom: 5px;">📅 ${evento.fecha}</div>
                 <p style="font-size: 12px; color: var(--text-light); margin: 0 0 8px 0; line-height: 1.3; text-align: center;">${evento.descripcion}</p>
+            </div>
+            <div style="text-align: center; margin-top: auto; padding-top: 3px;">
+                <span style="font-size: 11px; color: var(--primary-light); font-weight: bold; display: inline-block;">Ver productos ➔</span>
             </div>
         </div>`;
     });
@@ -194,7 +177,7 @@ function filtrarPorEvento(categoria) {
     categorySeleccionada = categoria;
     document.querySelectorAll('.btn-categoria').forEach(btn => btn.classList.remove('activo'));
     document.querySelectorAll('.btn-categoria').forEach(btn => {
-        if (btn.getAttribute('data-cat') && btn.getAttribute('data-cat').toLowerCase() === categoria.toLowerCase()) {
+        if(btn.getAttribute('data-cat') && btn.getAttribute('data-cat').toLowerCase() === categoria.toLowerCase()) {
             btn.classList.add('activo');
         }
     });
@@ -202,7 +185,7 @@ function filtrarPorEvento(categoria) {
     if (document.getElementById('buscador')) {
         const buscador = document.getElementById('buscador');
         buscador.value = "";
-        buscador.placeholder = `🔍 Buscando eventos...`;
+        buscador.placeholder = `🔍 Buscando eventos...`; 
     }
     if (document.getElementById('barra-categorias')) document.getElementById('barra-categorias').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -231,13 +214,6 @@ function setupEventListeners() {
     });
     document.getElementById('btn-vaciar').addEventListener('click', vaciarCarrito);
     document.getElementById('btn-enviar-pedido').addEventListener('click', enviarPedidoFinal);
-    
-    // 🔌 Asignación segura del botón de Sincronización
-    const btnActualizarTodo = document.getElementById('btn-actualizar-todo');
-    if (btnActualizarTodo) {
-        btnActualizarTodo.addEventListener('click', solicitarActualizacionWeb);
-    }
-
     if (document.getElementById('btn-chat-manual')) document.getElementById('btn-chat-manual').addEventListener('click', abrirChatManual);
     if (document.getElementById('btn-enviar-pedido')) {
         document.getElementById('btn-enviar-pedido').addEventListener('dblclick', (e) => { e.preventDefault(); abrirModalDespacho(); });
@@ -247,6 +223,7 @@ function setupEventListeners() {
 function configuringCamposFecha() {
     const hoyObj = new Date();
     const hoy = `${hoyObj.getFullYear()}-${String(hoyObj.getMonth() + 1).padStart(2, '0')}-${String(hoyObj.getDate()).padStart(2, '0')}`;
+
     const DIAS_FESTIVOS = ["2026-09-16", "2026-11-16", "2026-12-25"];
 
     const campoFecha = document.getElementById('fecha');
@@ -255,7 +232,7 @@ function configuringCamposFecha() {
         campoFecha.addEventListener('input', (e) => {
             const fechaSeleccionada = e.target.value;
             if (!fechaSeleccionada) return;
-
+            
             if (DIAS_FESTIVOS.includes(fechaSeleccionada)) {
                 alert("⚠️ Los días festivos oficiales no realizamos entregas. Por favor selecciona otro día.");
                 e.target.value = '';
@@ -268,11 +245,11 @@ function configuringCamposFecha() {
                 e.target.value = '';
                 return;
             }
-            validarHorariosDisponibles();
+            validarHorariosDisponibles(); 
         });
     }
     const campoHora = document.getElementById('hora');
-    if (campoHora) campoHora.addEventListener('focus', validarHorariosDisponibles);
+    if(campoHora) campoHora.addEventListener('focus', validarHorariosDisponibles);
 }
 
 function validarHorariosDisponibles() {
@@ -283,20 +260,23 @@ function validarHorariosDisponibles() {
     const fechaSeleccionada = campoFecha.value;
     const hoyObj = new Date();
     const hoyStr = `${hoyObj.getFullYear()}-${String(hoyObj.getMonth() + 1).padStart(2, '0')}-${String(hoyObj.getDate()).padStart(2, '0')}`;
-
+    
     Array.from(campoHora.options).forEach(opcion => {
-        opcion.disabled = false;
+        opcion.disabled = false; 
+        
         if (fechaSeleccionada === hoyStr) {
-            const horaActual = hoyObj.getHours();
-            const minActual = hoyObj.getMinutes();
+            const ahora = new Date();
+            const horaActual = ahora.getHours();
+            const minActual = ahora.getMinutes();
 
-            let val = opcion.value;
+            let horaOpcion = 0;
+            const val = opcion.value; 
             let [hStr, periodo] = val.split(' ');
             let [h, m] = hStr.split(':').map(Number);
-
+            
             if (periodo === "PM" && h !== 12) h += 12;
             if (periodo === "AM" && h === 12) h = 0;
-
+            
             if (h < horaActual || (h === horaActual && minActual > 15)) {
                 opcion.disabled = true;
             }
@@ -324,56 +304,38 @@ function formatearFechaHumana(fechaISO) {
 function guardarCarritoEnLocalStorage() { localStorage.setItem('carrito_tienda', JSON.stringify(carrito)); }
 function recuperarCarritoDeLocalStorage() { const guardado = localStorage.getItem('carrito_tienda'); if (guardado) { carrito = JSON.parse(guardado); } }
 
-async function cargarProductos() {
-    const inventarioGuardado = localStorage.getItem('inventario_tienda_real');
-    if (inventarioGuardado) {
-        INVENTARIO_GLOBAL = JSON.parse(inventarioGuardado);
-        filtrarCatalogo();
-        renderizarDestacados();
-        return; 
-    }
-
-    const timestamp = new Date().getTime();
-    try {
-        // Se añade timestamp para evitar que la API devuelva datos cacheados
-        const respuesta = await fetch(`http://127.0.0.1:5000/api/productos?v=${timestamp}`);
-        if (!respuesta.ok) throw new Error("API local no disponible, usando respaldo");
-        const data = await respuesta.json();
-        procesarInventarioDescargado(data);
-    } catch (error) {
-        console.warn("Fallo API Local, usando respaldo de productos.json:", error);
-        fetch(`productos.json?v=${timestamp}`)
-            .then(res => res.json())
-            .then(data => procesarInventarioDescargado(data))
-            .catch(err => {
-                const contenedor = document.getElementById('lista-productos');
-                if (contenedor) {
-                    contenedor.innerHTML = `
-                    <div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-light);">
-                        <p style="font-size: 18px; font-weight: bold; color: var(--danger);">⚠️ El catálogo se está actualizando</p>
-                        <p>Por favor, espera 1 o 2 minutos a que se procesen los cambios y vuelve a recargar la página.</p>
-                    </div>`;
-                }
+function cargarProductos() {
+    fetch('productos.json?v=' + Date.now())
+        .then(res => res.json())
+        .then(json => {
+            INVENTARIO_GLOBAL = json.map(p => ({ 
+                ...p, 
+                stock: parseInt(p.stock) || 0, 
+                destacado: p.destacado === true 
+            }));
+            
+            // Simular descuento local visual por artículos en carrito en la sesión actual
+            carrito.forEach(item => {
+                let p = INVENTARIO_GLOBAL.find(ig => ig.codigo === item.codigo);
+                if (p) p.stock = Math.max(0, p.stock - item.cantidad);
             });
-    }
-}
 
-function procesarInventarioDescargado(data) {
-    if (Array.isArray(data)) {
-        INVENTARIO_GLOBAL = data;
-        if (carrito && carrito.length > 0) {
-            carrito.forEach(itemCarrito => {
-                let productoEnInventario = INVENTARIO_GLOBAL.find(p => p.codigo === itemCarrito.codigo);
-                if (productoEnInventario) {
-                    productoEnInventario.stock -= itemCarrito.cantidad;
-                    if (productoEnInventario.stock < 0) productoEnInventario.stock = 0;
-                }
-            });
-        }
-        localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
-        filtrarCatalogo();
-        renderizarDestacados();
-    }
+            localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
+            
+            filtrarCatalogo();
+            renderizarDestacados();
+            actualizarCarritoVisual();
+        })
+        .catch((error) => {
+            console.error("Error cargando productos frescos:", error);
+            let inventarioGuardado = localStorage.getItem('inventario_tienda_real');
+            if (inventarioGuardado) {
+                INVENTARIO_GLOBAL = JSON.parse(inventarioGuardado);
+                filtrarCatalogo();
+                renderizarDestacados();
+                actualizarCarritoVisual();
+            }
+        });
 }
 
 function obtenerArregloImagenes(prod) {
@@ -397,12 +359,17 @@ window.moverImagenCarrusel = function (codigo, direccion) {
     if (document.getElementById(`img-carrusel-dest-${codigo}`)) document.getElementById(`img-carrusel-dest-${codigo}`).src = nRuta;
 };
 
-window.compartirProducto = function (codigo, nombre, precio) {
+window.compartirProducto = function(codigo, nombre, precio) {
     const urlBase = window.location.origin + window.location.pathname;
     const enlaceWebProducto = `${urlBase}?prod=${encodeURIComponent(codigo)}`;
+
     const txt = `*¡Mira este producto en Tienda DAYH!* 🤩\n\n` +
-        `🛍️ *${nombre}*\n📌 Código: ${codigo}\n💰 Precio: ${formatearDinero(precio)}\n\n` +
-        `👇 Ver detalles y agregarlo al carrito aquí:\n${enlaceWebProducto}`;
+                `🛍️ *${nombre}*\n` +
+                `📌 Código: ${codigo}\n` +
+                `💰 Precio: ${formatearDinero(precio)}\n\n` +
+                `👇 Ver detalles y agregarlo al carrito aquí:\n` +
+                `${enlaceWebProducto}`;
+
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
 };
 
@@ -416,7 +383,7 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
     const arrImg = obtenerArregloImagenes(prod);
     let imgN = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
     let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/300?text=No+disponible';
-
+    
     let img2N = arrImg.length > 1 ? arrImg[1].split(/[/\\\\]/).pop() : '';
     let rImg2 = img2N ? `imagenes_productos/${img2N}` : rImg;
 
@@ -447,6 +414,7 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
         <button class="btn-compartir" title="Compartir producto" onclick="compartirProducto('${prod.codigo}', '${artLimpio}', ${prod.precio})">🔗</button>
         <div>
             <div class="producto-codigo">CÓDIGO: ${prod.codigo}</div>
+            
             <div class="img-wrapper" style="cursor: zoom-in;" onclick="abrirLightbox('${rImg}', '${artLimpio}')">
                 ${bIzq} 
                 <img id="${idImg}" src="${rImg}" alt="${artLimpio}" 
@@ -455,6 +423,7 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
                      onerror="this.onerror=null; this.src='https://placehold.co/300?text=${encodeURIComponent(artLimpio)}'"> 
                 ${bDer}
             </div>
+            
             <h3>${artLimpio}</h3>
             <div class="${cStock}">${txtStock}</div>
             <p style="color: var(--primary-light); font-weight: 700; font-size: 16px; margin: 0 0 6px 0;">${formatearDinero(prod.precio)}</p>
@@ -491,20 +460,22 @@ function seleccionarCategoria(cat, elemento) {
     categorySeleccionada = cat;
     document.querySelectorAll('.btn-categoria').forEach(b => b.classList.remove('activo'));
     if (elemento) elemento.classList.add('activo');
+    
     if (document.getElementById('buscador')) {
-        document.getElementById('buscador').placeholder = cat === 'todas'
-            ? " 🔍 ¿Qué estás buscando hoy? Escribe nombre o código..."
+        document.getElementById('buscador').placeholder = cat === 'todas' 
+            ? " 🔍 ¿Qué estás buscando hoy? Escribe nombre o código..." 
             : `🔍 Buscando en ${cat}...`;
     }
+    
     filtrarCatalogo();
 }
 
 function dispararAnimacionCarrito() {
     const elements = [document.getElementById('badge-contador'), document.getElementById('carrito-flotante')];
     elements.forEach(el => {
-        if (el) {
+        if(el) {
             el.classList.remove('animar-pop', 'animar-shake');
-            void el.offsetWidth;
+            void el.offsetWidth; 
             if (el.id === 'carrito-flotante') el.classList.add('animar-shake');
             else el.classList.add('animar-pop');
         }
@@ -526,11 +497,11 @@ window.agregarAlCarrito = function (codigo) {
         renderizarDestacados();
         dispararAnimacionCarrito();
     } else {
-        alert("Lo sentimos, ya no quedan más unidades.");
+        alert("Lo sentimos, ya no quedan más unidades disponibles.");
     }
 };
 
-window.agregarAlCarritoConEfecto = function (codigo, botonElement) {
+window.agregarAlCarritoConEfecto = function(codigo, botonElement) {
     agregarAlCarrito(codigo);
     if (botonElement && !botonElement.disabled) {
         const textoOriginal = botonElement.innerHTML;
@@ -547,16 +518,16 @@ window.agregarAlCarritoConEfecto = function (codigo, botonElement) {
     }
 };
 
-window.cambiarCantidad = function (codigo, cambio) {
+window.cambiarCantidad = function(codigo, cambio) {
     const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
     const item = carrito.find(i => i.codigo === codigo);
     if (!item || !prod) return;
 
     if (cambio === 1) {
-        if (prod.stock > 0) { item.cantidad += 1; prod.stock -= 1; dispararAnimacionCarrito(); } 
-        else { alert("Lo sentimos, ya no quedan más unidades."); }
+        if (prod.stock > 0) { item.cantidad += 1; prod.stock -= 1; dispararAnimacionCarrito(); }
+        else { alert("Lo sentimos, ya no quedan más unidades disponibles."); }
     } else if (cambio === -1) {
-        item.cantidad -= 1; prod.stock += 1; 
+        item.cantidad -= 1; prod.stock += 1;
         if (item.cantidad <= 0) {
             const idx = carrito.findIndex(i => i.codigo === codigo);
             if (idx !== -1) carrito.splice(idx, 1);
@@ -575,31 +546,8 @@ function vaciarCarrito() {
         carrito = [];
         guardarCarritoEnLocalStorage();
         localStorage.removeItem('inventario_tienda_real');
-        cargarProductos(); 
+        cargarProductos();
     }
-}
-
-function abrirModalCarritoMovil() {
-    if (window.innerWidth > 768) {
-        document.querySelector('.carrito').scrollIntoView({behavior: 'smooth'});
-        return;
-    }
-    const modal = document.getElementById('modal-carrito-movil');
-    if (modal) {
-        modal.style.display = 'flex';
-        document.getElementById('lista-carrito-movil').innerHTML = document.getElementById('items-carrito').innerHTML || '<p style="color:white; text-align:center;">Vacío</p>';
-        document.getElementById('totales-carrito-movil').innerHTML = `
-            <div style="display:flex; justify-content:space-between; color:white; font-size:18px; font-weight:bold; margin-bottom:15px;">
-                <span>Total:</span> <span>${document.getElementById('total-monto').innerText}</span>
-            </div>
-            <button class="btn" style="width:100%;" onclick="cerrarModalCarritoMovil(); document.querySelector('.carrito').scrollIntoView({behavior: 'smooth'})">Terminar Pedido</button>
-        `;
-    }
-}
-
-function cerrarModalCarritoMovil() {
-    const modal = document.getElementById('modal-carrito-movil');
-    if (modal) modal.style.display = 'none';
 }
 
 function actualizarCarritoVisual() {
@@ -641,46 +589,40 @@ function actualizarCarritoVisual() {
             </div>
         </div>`;
     });
-    if (txtMonto) txtMonto.innerText = formattingDinero(totalGeneral);
-    if (document.getElementById('modal-carrito-movil').style.display === 'flex') abrirModalCarritoMovil();
+    if (txtMonto) txtMonto.innerText = formatearDinero(totalGeneral);
 }
 
-function enviarPedidoFinal() {
+// 🛒 ENVIAR PEDIDO, DESCONTAR EN EL JSON REAL Y REDIRIGIR A WHATSAPP
+async function enviarPedidoFinal() {
     if (carrito.length === 0) { alert("Tu carrito está vacío"); return; }
-    const fecha = document.getElementById('fecha').value;
-    const hora = document.getElementById('hora').value;
-    const cliente = document.getElementById('cliente').value.trim();
-
-    if (!fecha || !hora || cliente.length < 3) {
-        alert("Por favor completa los campos: Fecha, Hora y Nombre Completo.");
-        return;
-    }
-
-    if (socket && socket.connected) {
-        socket.emit('verificar_stock_antes_de_confirmar', { carrito: carrito });
-    } else {
-        procederALanzarWhatsApp();
-    }
-}
-
-async function procederALanzarWhatsApp() {
     const fecha = document.getElementById('fecha').value;
     const hora = document.getElementById('hora').value;
     const cliente = document.getElementById('cliente').value.trim();
     const metodoPago = document.getElementById('metodo-pago') ? document.getElementById('metodo-pago').value : "No especificado";
 
+    if (!fecha || !hora || cliente.length < 3) { 
+        alert("Por favor completa los campos: Fecha, Hora y Nombre Completo."); 
+        return; 
+    }
+
     lanzarEfectoConfeti();
+
     let total = 0;
     let textoMensajeWhatsApp = `*¡Hola Tienda DAYH! Generé un nuevo pedido* 📄🛒\n\n`;
-    textoMensajeWhatsApp += `👤 *Cliente:* ${cliente}\n📅 *Fecha de Entrega:* ${formatearFechaHumana(fecha)}\n⏰ *Hora:* ${hora}\n💳 *Forma de Pago:* ${metodoPago}\n\n📦 *DETALLE DEL PEDIDO:*\n`;
+    textoMensajeWhatsApp += `👤 *Cliente:* ${cliente}\n`;
+    textoMensajeWhatsApp += `📅 *Fecha de Entrega:* ${formatearFechaHumana(fecha)}\n`;
+    textoMensajeWhatsApp += `⏰ *Hora Aproximada:* ${hora}\n`;
+    textoMensajeWhatsApp += `💳 *Forma de Pago:* ${metodoPago}\n\n`;
+    textoMensajeWhatsApp += `📦 *DETALLE DEL PEDIDO:*\n`;
 
+    // Estructuración de datos exacta para mandarle al backend de Python
     const productosParaAPI = [];
 
     if (!window.jspdf) {
         carrito.forEach(item => {
             const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
             if (!prod) return;
-            const subtotal = prod.precio * item.cantidad;
+            const subtotal = prod.precio * item.cantidad; 
             total += subtotal;
             textoMensajeWhatsApp += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(subtotal)}_\n`;
             productosParaAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
@@ -688,79 +630,108 @@ async function procederALanzarWhatsApp() {
     } else {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        
+
         doc.setFillColor(168, 85, 247); doc.rect(0, 0, 210, 35, "F");
-        doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(22);
-        doc.text("TIENDA DAYH", 15, 18);
-        doc.setFont("helvetica", "italic"); doc.setFontSize(10);
-        doc.text("Tu catálogo de confianza — Comprobante Oficial de Pedido", 15, 26);
-        
-        doc.setTextColor(17, 24, 39); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-        doc.text("DATOS DEL CLIENTE Y LOGÍSTICA", 15, 48);
+        doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.text("TIENDA DAYH", 15, 18);
+        doc.setFont("helvetica", "italic"); doc.setFontSize(10); doc.text("Tu catálogo de confianza — Comprobante Oficial de Pedido", 15, 26);
+
+        doc.setTextColor(17, 24, 39); doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.text("DATOS DEL CLIENTE Y LOGÍSTICA", 15, 48);
         doc.setDrawColor(192, 132, 252); doc.setLineWidth(0.5); doc.line(15, 51, 95, 51);
-        
-        doc.text("Nombre Completo:", 15, 59); doc.setFont("helvetica", "normal"); doc.text(cliente, 55, 59);
+
+        doc.setFont("helvetica", "bold"); doc.text("Nombre Completo:", 15, 59); doc.setFont("helvetica", "normal"); doc.text(cliente, 55, 59);
         doc.setFont("helvetica", "bold"); doc.text("Fecha de Entrega:", 15, 66); doc.setFont("helvetica", "normal"); doc.text(formatearFechaHumana(fecha), 55, 66);
         doc.setFont("helvetica", "bold"); doc.text("Hora Aproximada:", 15, 73); doc.setFont("helvetica", "normal"); doc.text(hora, 55, 73);
-        
+        doc.setFont("helvetica", "bold"); doc.text("Método de Pago:", 15, 80); doc.setFont("helvetica", "normal"); doc.text(metodoPago, 55, 80);
+
         doc.setFont("helvetica", "bold"); doc.text("DETALLE DEL PEDIDO", 15, 93); doc.line(15, 96, 195, 96);
         doc.setFillColor(249, 250, 251); doc.rect(15, 100, 180, 8, "F");
-        doc.setFontSize(10); doc.text("Cant.", 18, 105); doc.text("Código", 35, 105); doc.text("Descripción", 65, 105); doc.text("Subtotal", 172, 105);
+        
+        doc.setFontSize(10); doc.text("Cant.", 18, 105); doc.text("Código", 35, 105); doc.text("Descripción del Artículo", 65, 105); doc.text("Subtotal", 172, 105);
         doc.setDrawColor(229, 231, 235); doc.line(15, 108, 195, 108);
 
         let yPosition = 116; doc.setFont("helvetica", "normal");
-
+        
         carrito.forEach((item, index) => {
             const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
             if (!prod) return;
-            const subtotal = prod.precio * item.cantidad;
-            total += subtotal;
-
+            
+            const subtotal = prod.precio * item.cantidad; total += subtotal;
+            
             if (yPosition > 270) {
-                doc.addPage(); yPosition = 25;
+                doc.addPage(); yPosition = 25; 
                 doc.setFont("helvetica", "bold"); doc.setFillColor(249, 250, 251); doc.rect(15, yPosition - 5, 180, 8, "F");
-                doc.text("Cant.", 18, yPosition); doc.text("Código", 35, yPosition); doc.text("Descripción", 65, yPosition); doc.text("Subtotal", 172, yPosition);
+                doc.text("Cant.", 18, yPosition); doc.text("Código", 35, yPosition); doc.text("Descripción del Artículo", 65, yPosition); doc.text("Subtotal", 172, yPosition);
                 yPosition += 12; doc.setFont("helvetica", "normal");
             }
+
             if (index % 2 === 0) { doc.setFillColor(253, 244, 255); doc.rect(15, yPosition - 5, 180, 8, "F"); }
 
             doc.text(`${item.cantidad}x`, 18, yPosition); doc.text(prod.codigo, 35, yPosition);
-            doc.text(prod.articulo.length > 40 ? prod.articulo.substring(0, 37) + "..." : prod.articulo, 65, yPosition);
-            doc.text(formatearDinero(subtotal), 172, yPosition);
+            const itemNombre = prod.articulo.length > 40 ? prod.articulo.substring(0, 37) + "..." : prod.articulo;
+            doc.text(itemNombre, 65, yPosition); doc.text(formatearDinero(subtotal), 172, yPosition);
 
             textoMensajeWhatsApp += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(subtotal)}_\n`;
             productosParaAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
             yPosition += 8;
         });
 
-        doc.setDrawColor(168, 85, 247); doc.setLineWidth(1); doc.line(15, yPosition, 195, yPosition); yPosition += 12;
-        doc.setFillColor(243, 232, 255); doc.rect(120, yPosition - 6, 75, 10, "F");
-        doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(107, 33, 168);
+        doc.setDrawColor(168, 85, 247); doc.setLineWidth(1); doc.line(15, yPosition, 195, yPosition);
+        yPosition += 12; doc.setFillColor(243, 232, 255); doc.rect(120, yPosition - 6, 75, 10, "F");
+
+        doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(107, 33, 168); 
         doc.text("TOTAL A PAGAR:", 125, yPosition); doc.text(formatearDinero(total), 172, yPosition);
+
+        doc.setTextColor(156, 163, 175); doc.setFontSize(9); doc.setFont("helvetica", "italic");
+        doc.text("Gracias por tu preferencia. Conserva este PDF como tu comprobante de compra.", 15, yPosition + 15);
 
         const safeName = cliente.replace(/[^a-z0-9]/gi, '_').toLowerCase();
         doc.save(`Pedido_${safeName}_${fecha}.pdf`);
     }
 
-    textoMensajeWhatsApp += `\n💰 *TOTAL NETO A PAGAR: ${formatearDinero(total)}*\n\n⚠️ _Nota: Ya descargué mi comprobante en PDF._`;
-    const numeroDestino = typeof TELEFONO_WHATSAPP !== 'undefined' ? TELEFONO_WHATSAPP : "527442411773";
-    const urlWhatsApp = `https://wa.me/${numeroDestino}?text=${encodeURIComponent(textoMensajeWhatsApp)}`;
-    window.open(urlWhatsApp, '_blank');
+    textoMensajeWhatsApp += `\n💰 *TOTAL NETO A PAGAR: ${formatearDinero(total)}*\n\n`;
+    if (window.jspdf) textoMensajeWhatsApp += `⚠️ _Nota: Ya he descargado mi comprobante oficial en formato PDF en mi dispositivo._`;
 
-    fetch('http://127.0.0.1:5000/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosParaAPI, metodo_pago: metodoPago })
-    }).catch(() => console.warn("Python local no disponible"));
+    // 🚀 ENVIAR EL PEDIDO DE FORMA ASÍNCRONA HACIA EL BACKEND EN PYTHON PARA REBAJAR EL JSON DEFINITIVO
+    fetch('http://127.0.0.1:5000/', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+            cliente: cliente, 
+            fecha_entrega: fecha, 
+            hora_entrega: hora, 
+            productos: productosParaAPI,
+            metodo_pago: metodoPago 
+        }) 
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("Inventario rebajado con éxito en el servidor y guardado en JSON:", data);
+    })
+    .catch(err => {
+        console.warn("No se pudo conectar con el servidor Python local, los cambios del JSON físico no se guardaron.", err);
+    });
 
-    localStorage.setItem("nombre_cliente_dayh", cliente);
+    // Limpiar carrito local
     carrito = [];
     guardarCarritoEnLocalStorage();
     actualizarCarritoVisual();
 
+    const numeroDestino = typeof TELEFONO_WHATSAPP !== 'undefined' ? TELEFONO_WHATSAPP : "527442411773";
+    const urlWhatsApp = `https://wa.me/${numeroDestino}?text=${encodeURIComponent(textoMensajeWhatsApp)}`;
+    window.open(urlWhatsApp, '_blank');
+
+    if (document.getElementById('alerta-copiado')) {
+        const alerta = document.getElementById('alerta-copiado');
+        alerta.innerText = "¡PDF generado, existencias descontadas y pedido enviado a WhatsApp! 📄📱";
+        alerta.style.display = 'block';
+    }
+
+    localStorage.setItem("nombre_cliente_dayh", cliente);
     if (document.getElementById("fecha")) document.getElementById("fecha").value = "";
     if (document.getElementById("hora")) document.getElementById("hora").value = "";
-    filtrarCatalogo();
+    if (document.getElementById("metodo-pago")) document.getElementById("metodo-pago").selectedIndex = 0;
+    
+    filtrarCatalogo(); 
     renderizarDestacados();
 }
 
@@ -791,54 +762,46 @@ function abrirModalDespacho() {
     document.getElementById('btn-imprimir-despacho').onclick = () => { window.print(); };
 }
 
-window.abrirLightbox = function (src, titulo) {
+window.abrirLightbox = function(src, titulo) {
     const modal = document.getElementById('lightbox-modal');
     const img = document.getElementById('lightbox-img');
     const caption = document.getElementById('lightbox-caption');
     if (!modal || !img) return;
-    modal.style.display = 'flex';
-    img.src = src;
-    caption.innerText = titulo || "Visualización de producto";
+    modal.style.display = 'flex'; img.src = src; caption.innerText = titulo || "Visualización de producto";
 };
 
-window.cerrarLightbox = function () {
-    const modal = document.getElementById('lightbox-modal');
-    if (modal) modal.style.display = 'none';
+window.cerrarLightbox = function() {
+    const modal = document.getElementById('lightbox-modal'); if (modal) modal.style.display = 'none';
 };
 
 function inicializarBotónVolverArriba() {
     const btnTop = document.getElementById('btn-back-to-top');
     const btnCarritoFlotante = document.getElementById('carrito-flotante');
-
     if (!btnTop) return;
-
+    
     window.addEventListener('scroll', () => {
         if (window.scrollY > 400) btnTop.style.display = 'flex';
         else btnTop.style.display = 'none';
-
+        
         const carritoSeccion = document.querySelector('.carrito');
         if (carritoSeccion) {
             const rect = carritoSeccion.getBoundingClientRect();
             if (rect.top < window.innerHeight && rect.bottom >= 0) {
-                if (btnCarritoFlotante) btnCarritoFlotante.style.display = 'none';
+                if(btnCarritoFlotante) btnCarritoFlotante.style.display = 'none';
             } else {
-                if (btnCarritoFlotante) btnCarritoFlotante.style.display = 'flex';
+                if(btnCarritoFlotante) btnCarritoFlotante.style.display = 'flex';
             }
         }
     });
-
-    btnTop.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    
+    btnTop.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
 }
 
 window.addEventListener('storage', (e) => {
     if (e.key === 'carrito_tienda') {
         recuperarCarritoDeLocalStorage();
         let inventarioGuardado = localStorage.getItem('inventario_tienda_real');
-        if (inventarioGuardado) {
-            INVENTARIO_GLOBAL = JSON.parse(inventarioGuardado);
-        }
+        if (inventarioGuardado) INVENTARIO_GLOBAL = JSON.parse(inventarioGuardado);
         actualizarCarritoVisual();
         filtrarCatalogo();
         renderizarDestacados();
