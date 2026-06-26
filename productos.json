@@ -7,5 +7,14 @@
         "categoria": "Papeleria",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_a1_1782458799.png",
         "destacado": true
+    },
+    {
+        "codigo": "a2",
+        "articulo": "borrador",
+        "precio": 5.0,
+        "stock": 4,
+        "categoria": "Papeleria",
+        "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_a2_1782460582.png",
+        "destacado": true
     }
 ]
