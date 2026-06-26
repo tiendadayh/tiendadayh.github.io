@@ -16,14 +16,5 @@
         "categoria": "Papeleria",
         "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_a2_1782460582.png",
         "destacado": true
-    },
-    {
-        "codigo": "d1",
-        "articulo": "playera azul talla L",
-        "precio": 120.0,
-        "stock": 1,
-        "categoria": "Ropa",
-        "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_d1_1782462372.png",
-        "destacado": true
     }
 ]
