@@ -25,5 +25,14 @@
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d1_1782591329.png",
         "destacado": true
+    },
+    {
+        "codigo": "b2",
+        "articulo": "loteria",
+        "precio": 30.0,
+        "stock": 2,
+        "categoria": "Papeleria",
+        "imagen": "imagenes_productos/IMG_b2_1782596871.png",
+        "destacado": true
     }
 ]
