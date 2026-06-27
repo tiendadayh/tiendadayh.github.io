@@ -1,29 +1,11 @@
 [
     {
         "codigo": "a1",
-        "articulo": "sacapunta",
+        "articulo": "borrador",
         "precio": 4.0,
         "stock": 5,
         "categoria": "Papeleria",
-        "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_a1_1782458799.png",
-        "destacado": true
-    },
-    {
-        "codigo": "a2",
-        "articulo": "borrador",
-        "precio": 5.0,
-        "stock": 5,
-        "categoria": "Papeleria",
-        "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_a2_1782460582.png",
-        "destacado": true
-    },
-    {
-        "codigo": "d1",
-        "articulo": "playera azul talla L",
-        "precio": 120.0,
-        "stock": 1,
-        "categoria": "Ropa",
-        "imagen": "C:\\Users\\Diana\\OneDrive\\Escritorio\\TIENDA DAYH POOS\\aplicacion\\imagenes_productos\\IMG_d1_1782462985.png",
-        "destacado": true
+        "imagen": "imagenes_productos/IMG_a1_1782585525.png",
+        "destacado": false
     }
 ]
