@@ -3,7 +3,7 @@
         "codigo": "a1",
         "articulo": "sacapunta",
         "precio": 4.0,
-        "stock": 5,
+        "stock": 6,
         "categoria": "Papeleria",
         "imagen": "imagenes_productos/IMG_a1_1782590432.png",
         "destacado": true
