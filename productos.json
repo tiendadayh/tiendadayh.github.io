@@ -61,5 +61,14 @@
         "categoria": "Electronica",
         "imagen": "imagenes_productos/IMG_c7_1782609367.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "c8",
+        "articulo": "ventilador de escritorio",
+        "precio": 70.0,
+        "stock": 1,
+        "categoria": "Electronica",
+        "imagen": "imagenes_productos/IMG_c8_1782609658.jpg",
+        "destacado": false
     }
 ]
