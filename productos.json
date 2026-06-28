@@ -52,5 +52,14 @@
         "categoria": "Papeleria",
         "imagen": "imagenes_productos/IMG_c6_1782608336.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "c7",
+        "articulo": "lámpara de escritorio",
+        "precio": 90.0,
+        "stock": 1,
+        "categoria": "Electronica",
+        "imagen": "imagenes_productos/IMG_c7_1782609367.jpg",
+        "destacado": false
     }
 ]
