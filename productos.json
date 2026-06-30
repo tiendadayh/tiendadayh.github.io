@@ -1,20 +1,20 @@
 [
     {
-        "codigo": "c1",
-        "articulo": "Mini Bocina Hongo Verde",
-        "precio": 100.0,
-        "stock": 1,
-        "categoria": "Electronica",
-        "imagen": "imagenes_productos/IMG_c1_1782605716.jpg",
-        "destacado": false
-    },
-    {
         "codigo": "c3",
         "articulo": "Mini Bocina Azul",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Electronica",
         "imagen": "imagenes_productos/IMG_c3_1782606032.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "c1",
+        "articulo": "Mini Bocina Hongo Verde",
+        "precio": 100.0,
+        "stock": 1,
+        "categoria": "Electronica",
+        "imagen": "imagenes_productos/IMG_c1_1782605716.jpg",
         "destacado": false
     },
     {
@@ -36,6 +36,15 @@
         "destacado": false
     },
     {
+        "codigo": "c2",
+        "articulo": "barra multicontacto",
+        "precio": 45.0,
+        "stock": 4,
+        "categoria": "Electronica",
+        "imagen": "imagenes_productos/IMG_c2_1782858645.jpg",
+        "destacado": false
+    },
+    {
         "codigo": "c7",
         "articulo": "lámpara de escritorio",
         "precio": 90.0,
@@ -51,15 +60,6 @@
         "stock": 1,
         "categoria": "Electronica",
         "imagen": "imagenes_productos/IMG_c8_1782609658.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "c2",
-        "articulo": "barra multicontacto",
-        "precio": 45.0,
-        "stock": 4,
-        "categoria": "Electronica",
-        "imagen": "imagenes_productos/IMG_c2_1782858645.jpg",
         "destacado": false
     }
 ]
