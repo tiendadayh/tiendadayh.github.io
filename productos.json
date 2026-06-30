@@ -45,6 +45,15 @@
         "destacado": false
     },
     {
+        "codigo": "c6",
+        "articulo": "mini ventilador de escritorio",
+        "precio": 140.0,
+        "stock": 1,
+        "categoria": "Electronica",
+        "imagen": "imagenes_productos/IMG_c6_1782859899.jpg",
+        "destacado": false
+    },
+    {
         "codigo": "c7",
         "articulo": "lámpara de escritorio",
         "precio": 90.0,
