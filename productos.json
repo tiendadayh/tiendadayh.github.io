@@ -9,15 +9,6 @@
         "destacado": false
     },
     {
-        "codigo": "c2",
-        "articulo": "Regleta Multicontacto",
-        "precio": 45.0,
-        "stock": 4,
-        "categoria": "Electronica",
-        "imagen": "imagenes_productos/IMG_c2_1782605789.jpg",
-        "destacado": false
-    },
-    {
         "codigo": "c3",
         "articulo": "Mini Bocina Azul",
         "precio": 120.0,
