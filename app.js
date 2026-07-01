@@ -447,7 +447,7 @@ function filtrarCatalogo() {
     const filtrados = INVENTARIO_GLOBAL.filter(prod => {
         const nom = prod.articulo ? prod.articulo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
         const cod = prod.codigo ? prod.codigo.toLowerCase() : "";
-        const cat = prod.categoria ? prod.categoria.toLowerCase() : "general";
+        const cat = prod.categoria ? prod.categoria.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "general";
         return (nom.includes(buscar) || cod.includes(buscar)) && (categorySeleccionada === "todas" || cat === categorySeleccionada.toLowerCase());
     });
     const cont = document.getElementById('lista-productos');
