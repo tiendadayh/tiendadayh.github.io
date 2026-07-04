@@ -1,1 +1,36 @@
-[]
+[
+    {
+        "id": 1,
+        "cliente": "juanirvin",
+        "telefono": "",
+        "fecha_entrega": "2026-07-06",
+        "hora_entrega": "09:00 AM",
+        "total": 0.0,
+        "detalles": "Mini Bocina Azul (x0)",
+        "productos": [
+            {
+                "codigo": "c3",
+                "quantity": 1
+            }
+        ],
+        "estado": "Pendiente",
+        "fecha_registro": "2026-07-04 12:22:22"
+    },
+    {
+        "id": 2,
+        "cliente": "juan",
+        "telefono": "",
+        "fecha_entrega": "2026-07-07",
+        "hora_entrega": "09:00 AM",
+        "total": 0.0,
+        "detalles": "Mini Bocina Rojo (x0)",
+        "productos": [
+            {
+                "codigo": "c4",
+                "quantity": 1
+            }
+        ],
+        "estado": "Pendiente",
+        "fecha_registro": "2026-07-04 12:27:16"
+    }
+]
