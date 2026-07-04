@@ -9,7 +9,6 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
     <script src="https://cdn.socketio.cloud/4.7.5/socketio.min.js"></script>
     
     <script src="app.js" defer></script>
@@ -30,6 +29,13 @@
                 <div class="productos-destacados" id="lista-eventos"></div>
             </div>
 
+            <!-- Nueva Sección para la Lista de Deseos (Wishlist) -->
+            <div id="seccion-wishlist" class="wishlist-seccion" style="display: none; margin-bottom: 25px;">
+                <h2>❤️ Mi Lista de Deseos <span class="wishlist-badge" id="badge-wishlist">0</span></h2>
+                <div class="productos-destacados" id="lista-wishlist"></div>
+                <hr style="margin: 20px 0;">
+            </div>
+
             <div id="seccion-destacados" class="destacados-seccion">
                 <h2>✨ Productos Destacados y Ofertas</h2>
                 <div class="productos-destacados" id="lista-destacados"></div>
@@ -37,8 +43,10 @@
 
             <hr style="margin: 30px 0;">
 
-            <div class="buscador-contenedor">
+            <!-- Buscador optimizado con botón de limpieza manual -->
+            <div class="buscador-contenedor" style="position: relative;">
                 <input type="text" id="buscador" placeholder=" 🔍 ¿Qué estás buscando hoy? Escribe nombre o código...">
+                <button id="btn-limpiar-busqueda" class="btn-limpiar-busqueda" style="display: none;">✕</button>
             </div>
 
             <div class="categorias-barra" id="barra-categorias">
