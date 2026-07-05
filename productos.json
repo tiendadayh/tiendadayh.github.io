@@ -81,6 +81,60 @@
         "destacado": false
     },
     {
+        "codigo": "d2",
+        "articulo": "Blusa Rosa",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d2_1783227384.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d3",
+        "articulo": "Blusa Gris",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d3_1783227510.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d4",
+        "articulo": "Falda Negro",
+        "precio": 140.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d4_1783230488.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d5",
+        "articulo": "Falda Fucsia",
+        "precio": 140.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d5_1783231714.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d6",
+        "articulo": "Falda Verde",
+        "precio": 140.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d6_1783232073.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d7",
+        "articulo": "Falda Azul marino",
+        "precio": 140.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d7_1783232170.jpg",
+        "destacado": false
+    },
+    {
         "codigo": "g1",
         "articulo": "Arreglo Graduacion",
         "precio": 350.0,
