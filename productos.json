@@ -70,5 +70,14 @@
         "categoria": "Electronica",
         "imagen": "imagenes_productos/IMG_c8_1782609658.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "g1",
+        "articulo": "Arreglo Graduacion",
+        "precio": 350.0,
+        "stock": 1,
+        "categoria": "Manualidades",
+        "imagen": "imagenes_productos/IMG_g1_1783214340.jpg",
+        "destacado": true
     }
 ]
