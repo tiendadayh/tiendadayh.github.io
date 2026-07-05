@@ -135,6 +135,24 @@
         "destacado": false
     },
     {
+        "codigo": "d8",
+        "articulo": "Conjuto Negro",
+        "precio": 250.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d8_1783276600.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d9",
+        "articulo": "Conjunto Fiusha",
+        "precio": 250.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d9_1783276656.jpg",
+        "destacado": false
+    },
+    {
         "codigo": "g1",
         "articulo": "Arreglo Graduacion",
         "precio": 350.0,
@@ -187,5 +205,23 @@
         "categoria": "Manualidades",
         "imagen": "imagenes_productos/IMG_g6_1783215146.jpg",
         "destacado": true
+    },
+    {
+        "codigo": "d10",
+        "articulo": "Conjunto Azul cielo",
+        "precio": 250.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d10_1783276772.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d11",
+        "articulo": "Vestido mini Rojo",
+        "precio": 150.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d11_1783277106.jpg",
+        "destacado": false
     }
 ]
