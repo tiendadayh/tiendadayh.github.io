@@ -72,6 +72,15 @@
         "destacado": false
     },
     {
+        "codigo": "d1",
+        "articulo": "Blusa Blanca",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d1_1783226968.jpg",
+        "destacado": false
+    },
+    {
         "codigo": "g1",
         "articulo": "Arreglo Graduacion",
         "precio": 350.0,
