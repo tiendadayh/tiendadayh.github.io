@@ -79,5 +79,14 @@
         "categoria": "Manualidades",
         "imagen": "imagenes_productos/IMG_g1_1783214340.jpg",
         "destacado": true
+    },
+    {
+        "codigo": "g2",
+        "articulo": "Arreglo Rosas",
+        "precio": 450.0,
+        "stock": 1,
+        "categoria": "Manualidades",
+        "imagen": "imagenes_productos/IMG_g2_1783214703.jpg",
+        "destacado": true
     }
 ]
