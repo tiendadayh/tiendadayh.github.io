@@ -68,6 +68,7 @@ window.addEventListener('load', () => {
 
 function configurarWebSockets() {
     if (!socket) return;
+    
     socket.on('actualizar_stock_web', (data) => {
         const { codigo, nuevo_stock } = data;
         let producto = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
@@ -89,6 +90,26 @@ function configurarWebSockets() {
             } else if (producto.stock <= 3) {
                 mostrarNotificacionFlotante(`🔥 ¡Inventario actualizado! Últimas ${producto.stock} piezas de: ${producto.articulo}`, 5000, '#9a3412');
             }
+        }
+    });
+
+    // 💥 AÑADE ESTE NUEVO EVENTO:
+    socket.on('nuevo_producto_web', (nuevoProducto) => {
+        // Verificar si el producto ya existe para no duplicarlo
+        let existe = INVENTARIO_GLOBAL.some(p => p.codigo === nuevoProducto.codigo);
+        
+        if (!existe) {
+            // Insertar el nuevo producto al inicio del inventario
+            INVENTARIO_GLOBAL.unshift(nuevoProducto);
+            
+            // Actualizar almacenamiento local, contadores y renderizar la interfaz
+            localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
+            actualizarContadoresCategorias();
+            filtrarCatalogo();
+            renderizarDestacados();
+            
+            // Mostrar una alerta flotante al usuario en la web
+            mostrarNotificacionFlotante(`✨ ¡Nuevo producto agregado!: ${nuevoProducto.articulo}`, 5000, '#a855f7');
         }
     });
 }
