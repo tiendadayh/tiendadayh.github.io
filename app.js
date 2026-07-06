@@ -1,3 +1,6 @@
+// =========================================================================
+// VARIABLES GLOBALES Y ESTADO DE LA APLICACIÓN
+// =========================================================================
 const TELEFONO_WHATSAPP = "527442411773";
 let categorySeleccionada = "todas";
 let urlGlobalWhatsApp = "";
@@ -14,6 +17,9 @@ const EVENTOS_CONFIG = [
     { titulo: "🎓 Graduaciones (Ropa)", fecha: "Mes de Julio", descripcion: "Termina una etapa llena de aprendizajes.", categoriaVinculada: "ropa", imagen: "imagenes_eventos/graduaciones.jpg" }
 ];
 
+// =========================================================================
+// INICIALIZACIÓN DE LA APLICACIÓN
+// =========================================================================
 window.addEventListener('load', () => {
     configurarTema();
     configuringCamposFecha();
@@ -66,6 +72,9 @@ window.addEventListener('load', () => {
     }, 900);
 });
 
+// =========================================================================
+// PASO 4: OPTIMIZACIÓN DEL HANDLER DEL WEBSOCKET
+// =========================================================================
 function configurarWebSockets() {
     if (!socket) return;
     
@@ -74,17 +83,22 @@ function configurarWebSockets() {
         let producto = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
         if (producto) {
             producto.stock = parseInt(nuevo_stock) || 0;
+            
+            // Validar si el cliente web excedió el nuevo stock real con su carrito
             const itemEnCarrito = carrito.find(i => i.codigo === codigo);
             if (itemEnCarrito && itemEnCarrito.cantidad > producto.stock) {
                 itemEnCarrito.cantidad = producto.stock;
                 if (itemEnCarrito.cantidad <= 0) carrito = carrito.filter(c => c.codigo !== codigo);
+                guardarCarritoEnLocalStorage();
                 actualizarCarritoVisual(); 
             }
+            
             localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
             actualizarContadoresCategorias();
             filtrarCatalogo();
             renderizarDestacados();
             renderizarWishlist();
+            
             if (producto.stock === 0) {
                 mostrarNotificacionFlotante(`❌ Se ha agotado en inventario: ${producto.articulo}`, 5000, '#7f1d1d');
             } else if (producto.stock <= 3) {
@@ -93,27 +107,180 @@ function configurarWebSockets() {
         }
     });
 
-    // 💥 AÑADE ESTE NUEVO EVENTO:
     socket.on('nuevo_producto_web', (nuevoProducto) => {
-        // Verificar si el producto ya existe para no duplicarlo
         let existe = INVENTARIO_GLOBAL.some(p => p.codigo === nuevoProducto.codigo);
-        
         if (!existe) {
-            // Insertar el nuevo producto al inicio del inventario
             INVENTARIO_GLOBAL.unshift(nuevoProducto);
-            
-            // Actualizar almacenamiento local, contadores y renderizar la interfaz
             localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
             actualizarContadoresCategorias();
             filtrarCatalogo();
             renderizarDestacados();
-            
-            // Mostrar una alerta flotante al usuario en la web
             mostrarNotificacionFlotante(`✨ ¡Nuevo producto agregado!: ${nuevoProducto.articulo}`, 5000, '#a855f7');
         }
     });
 }
 
+// =========================================================================
+// PASO 1: CORREGIR LA CARGA INICIAL DE PRODUCTOS
+// =========================================================================
+function cargarProductos() {
+    fetch('productos.json?v=' + Date.now())
+        .then(res => res.json())
+        .then(json => {
+            // El stock se guarda tal cual viene del servidor (la fuente de verdad sin mutaciones en carga)
+            INVENTARIO_GLOBAL = json.map(p => ({ 
+                ...p, 
+                stock: parseInt(p.stock) || 0, 
+                destacado: p.destacado === true 
+            }));
+            
+            localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
+            
+            actualizarContadoresCategorias();
+            filtrarCatalogo();
+            renderizarDestacados();
+            renderizarWishlist();
+            actualizarCarritoVisual();
+        })
+        .catch((error) => {
+            console.error("Error cargando productos frescos:", error);
+            let inventarioGuardado = localStorage.getItem('inventario_tienda_real');
+            if (inventarioGuardado) {
+                INVENTARIO_GLOBAL = JSON.parse(inventarioGuardado);
+                actualizarContadoresCategorias();
+                filtrarCatalogo();
+                renderizarDestacados();
+                renderizarWishlist();
+                actualizarCarritoVisual();
+            }
+        });
+}
+
+// =========================================================================
+// PASO 2: LOGICA DE DISPONIBILIDAD DINÁMICA EN LA TARJETA
+// =========================================================================
+function generarHTMLTarjeta(prod, esDestacada = false) {
+    const itemEnCarrito = carrito.find(i => i.codigo === prod.codigo);
+    const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
+    
+    // El stock disponible real calculado de forma reactiva restando el carrito local
+    const stockDisponible = Math.max(0, prod.stock - cantidadEnCarrito);
+    const esAgotado = stockDisponible <= 0;
+    
+    let txtStock = `Disponibles: ${stockDisponible}`, cStock = 'producto-stock';
+    if (prod.stock <= 0) { 
+        txtStock = '❌ Agotado en Tienda'; cStock = 'producto-stock agotado'; 
+    } else if (stockDisponible <= 0) {
+        txtStock = '❌ Agotado en tu Carrito'; cStock = 'producto-stock agotado';
+    } else if (stockDisponible <= 3) { 
+        txtStock = `🔥 ¡Últimas ${stockDisponible} pzs!`; cStock = 'producto-stock stock-critico'; 
+    }
+
+    const arrImg = obtenerArregloImagenes(prod);
+    let imgN = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
+    let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/300?text=No+disponible';
+    let img2N = arrImg.length > 1 ? arrImg[1].split(/[/\\\\]/).pop() : '';
+    let rImg2 = img2N ? `imagenes_productos/${img2N}` : rImg;
+
+    const artLimpio = prod.articulo.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const idImg = esDestacada ? `img-carrusel-dest-${prod.codigo}` : `img-carrusel-${prod.codigo}`;
+
+    const bIzq = arrImg.length > 1 ? `<button class="carousel-btn left" onclick="moverImagenCarrusel('${prod.codigo}', -1); event.stopPropagation();">◀</button>` : '';
+    const bDer = arrImg.length > 1 ? `<button class="carousel-btn right" onclick="moverImagenCarrusel('${prod.codigo}', 1); event.stopPropagation();">▶</button>` : '';
+    const badgeDestacado = (!esDestacada && prod.destacado) ? `<div class="badge-destacado">OFERTA</div>` : '';
+    const esFavorito = WISHLIST_GLOBAL.includes(prod.codigo) ? 'en-wishlist' : '';
+
+    let botonFilaHTML = '';
+    if (itemEnCarrito) {
+        botonFilaHTML = `
+        <div class="tarjeta-controles-qty">
+            <button class="tarjeta-btn-qty" onclick="cambiarCantidad('${prod.codigo}', -1)">-</button>
+            <span class="tarjeta-cant-num">${itemEnCarrito.cantidad} pzs</span>
+            <button class="tarjeta-btn-qty" onclick="cambiarCantidad('${prod.codigo}', 1)" ${esAgotado ? 'disabled' : ''}>+</button>
+        </div>`;
+    } else {
+        botonFilaHTML = `<button class="btn" onclick="agregarAlCarritoConEfecto('${prod.codigo}', this)" ${esAgotado ? 'disabled' : ''}>${esAgotado ? 'Sin existencias' : '🛒 Agregar'}</button>`;
+    }
+
+    return `
+    <div class="producto-card">
+        ${badgeDestacado}
+        <button class="btn-wishlist ${esFavorito}" title="Guardar en Favoritos" onclick="alternarWishlist('${prod.codigo}')">❤️</button>
+        <button class="btn-compartir" title="Compartir producto" onclick="compartirProducto('${prod.codigo}', '${artLimpio}', ${prod.precio})">🔗</button>
+        <div>
+            <div class="producto-codigo">CÓDIGO: ${prod.codigo}</div>
+            <div class="img-wrapper" style="cursor: zoom-in;" onclick="abrirLightbox('${rImg}', '${artLimpio}')">
+                ${bIzq} 
+                <img id="${idImg}" src="${rImg}" alt="${artLimpio}" 
+                     onmouseover="if('${rImg2}' !== '${rImg}') this.src='${rImg2}'"
+                     onmouseout="this.src='${rImg}'"
+                     onerror="this.onerror=null; this.src='https://placehold.co/300?text=${encodeURIComponent(artLimpio)}'"> 
+                ${bDer}
+            </div>
+            <h3>${artLimpio}</h3>
+            <div class="${cStock}">${txtStock}</div>
+            <p style="color: var(--primary-light); font-weight: 700; font-size: 16px; margin: 0 0 6px 0;">${formatearDinero(prod.precio)}</p>
+        </div>
+        ${botonFilaHTML}
+    </div>`;
+}
+
+// =========================================================================
+// PASO 3: QUITAR LA MUTACIÓN MANUAL EN GESTIÓN DE CARRITO
+// =========================================================================
+window.agregarAlCarrito = function (codigo) {
+    const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
+    if (!prod) return;
+    
+    const item = carrito.find(i => i.codigo === codigo);
+    const cantidadActual = item ? item.cantidad : 0;
+    
+    if (prod.stock > cantidadActual) {
+        if (item) item.cantidad += 1;
+        else carrito.push({ codigo: codigo, bandwidth: 1, cantidad: 1 });
+        
+        guardarCarritoEnLocalStorage();
+        actualizarCarritoVisual();
+        filtrarCatalogo();
+        renderizarDestacados();
+        renderizarWishlist();
+        dispararAnimacionCarrito();
+    } else {
+        alert("Lo sentimos, ya no quedan más unidades disponibles en el inventario.");
+    }
+};
+
+window.cambiarCantidad = function(codigo, cambio) {
+    const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
+    const item = carrito.find(i => i.codigo === codigo);
+    if (!item || !prod) return;
+
+    if (cambio === 1) {
+        if (prod.stock > item.cantidad) { 
+            item.cantidad += 1; 
+            dispararAnimacionCarrito(); 
+        } else {
+            alert("Lo sentimos, ya no quedan más unidades disponibles.");
+        }
+    } else if (cambio === -1) {
+        item.cantidad -= 1;
+        if (item.cantidad <= 0) {
+            const idx = carrito.findIndex(i => i.codigo === codigo);
+            if (idx !== -1) carrito.splice(idx, 1);
+        }
+        dispararAnimacionCarrito();
+    }
+    
+    guardarCarritoEnLocalStorage();
+    actualizarCarritoVisual();
+    filtrarCatalogo();
+    renderizarDestacados();
+    renderizarWishlist();
+};
+
+// =========================================================================
+// FUNCIONES AUXILIARES DE UI, FACHADA Y HELPERS INTERNOS
+// =========================================================================
 function mostrarNotificacionFlotante(mensaje, duracion = 4000, colorFondo = '#2e1065') {
     const miniNotif = document.createElement('div');
     miniNotif.className = 'notificacion-carrito-guardado';
@@ -314,41 +481,6 @@ function formatearFechaHumana(fechaISO) {
 function guardarCarritoEnLocalStorage() { localStorage.setItem('carrito_tienda', JSON.stringify(carrito)); }
 function recuperarCarritoDeLocalStorage() { const guardado = localStorage.getItem('carrito_tienda'); if (guardado) carrito = JSON.parse(guardado); }
 
-function cargarProductos() {
-    fetch('productos.json?v=' + Date.now())
-        .then(res => res.json())
-        .then(json => {
-            INVENTARIO_GLOBAL = json.map(p => ({ 
-                ...p, 
-                stock: parseInt(p.stock) || 0, 
-                destacado: p.destacado === true 
-            }));
-            carrito.forEach(item => {
-                let p = INVENTARIO_GLOBAL.find(ig => ig.codigo === item.codigo);
-                if (p) p.stock = Math.max(0, p.stock - item.cantidad);
-            });
-            localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
-            
-            actualizarContadoresCategorias();
-            filtrarCatalogo();
-            renderizarDestacados();
-            renderizarWishlist();
-            actualizarCarritoVisual();
-        })
-        .catch((error) => {
-            console.error("Error cargando productos frescos:", error);
-            let inventarioGuardado = localStorage.getItem('inventario_tienda_real');
-            if (inventarioGuardado) {
-                INVENTARIO_GLOBAL = JSON.parse(inventarioGuardado);
-                actualizarContadoresCategorias();
-                filtrarCatalogo();
-                renderizarDestacados();
-                renderizarWishlist();
-                actualizarCarritoVisual();
-            }
-        });
-}
-
 function actualizarContadoresCategorias() {
     const conteo = { todas: INVENTARIO_GLOBAL.length };
     INVENTARIO_GLOBAL.forEach(prod => {
@@ -393,64 +525,6 @@ window.compartirProducto = function(codigo, nombre, precio) {
     const txt = `*¡Mira este producto en Tienda DAYH!* 🤩\n\n🛍️ *${nombre}*\n📌 Código: ${codigo}\n💰 Precio: ${formatearDinero(precio)}\n\n👇 Ver detalles y agregarlo al carrito aquí:\n${enlaceWebProducto}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
 };
-
-function generarHTMLTarjeta(prod, esDestacada = false) {
-    const stock = prod.stock;
-    const esAgotado = stock <= 0 && (!carrito.find(i => i.codigo === prod.codigo));
-    let txtStock = `Disponibles: ${stock}`, cStock = 'producto-stock';
-    if (stock <= 0) { txtStock = '❌ Agotado'; cStock = 'producto-stock agotado'; }
-    else if (stock <= 3) { txtStock = `🔥 ¡Últimas ${stock} pzs!`; cStock = 'producto-stock stock-critico'; }
-
-    const arrImg = obtenerArregloImagenes(prod);
-    let imgN = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
-    let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/300?text=No+disponible';
-    let img2N = arrImg.length > 1 ? arrImg[1].split(/[/\\\\]/).pop() : '';
-    let rImg2 = img2N ? `imagenes_productos/${img2N}` : rImg;
-
-    const artLimpio = prod.articulo.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const idImg = esDestacada ? `img-carrusel-dest-${prod.codigo}` : `img-carrusel-${prod.codigo}`;
-
-    const bIzq = arrImg.length > 1 ? `<button class="carousel-btn left" onclick="moverImagenCarrusel('${prod.codigo}', -1); event.stopPropagation();">◀</button>` : '';
-    const bDer = arrImg.length > 1 ? `<button class="carousel-btn right" onclick="moverImagenCarrusel('${prod.codigo}', 1); event.stopPropagation();">▶</button>` : '';
-    const badgeDestacado = (!esDestacada && prod.destacado) ? `<div class="badge-destacado">OFERTA</div>` : '';
-    const esFavorito = WISHLIST_GLOBAL.includes(prod.codigo) ? 'en-wishlist' : '';
-
-    const itemEnCarrito = carrito.find(i => i.codigo === prod.codigo);
-    let botonFilaHTML = '';
-
-    if (itemEnCarrito) {
-        botonFilaHTML = `
-        <div class="tarjeta-controles-qty">
-            <button class="tarjeta-btn-qty" onclick="cambiarCantidad('${prod.codigo}', -1)">-</button>
-            <span class="tarjeta-cant-num">${itemEnCarrito.cantidad} pzs</span>
-            <button class="tarjeta-btn-qty" onclick="cambiarCantidad('${prod.codigo}', 1)" ${stock <= 0 ? 'disabled' : ''}>+</button>
-        </div>`;
-    } else {
-        botonFilaHTML = `<button class="btn" onclick="agregarAlCarritoConEfecto('${prod.codigo}', this)" ${esAgotado ? 'disabled' : ''}>${esAgotado ? 'Sin existencias' : '🛒 Agregar'}</button>`;
-    }
-
-    return `
-    <div class="producto-card">
-        ${badgeDestacado}
-        <button class="btn-wishlist ${esFavorito}" title="Guardar en Favoritos" onclick="alternarWishlist('${prod.codigo}')">❤️</button>
-        <button class="btn-compartir" title="Compartir producto" onclick="compartirProducto('${prod.codigo}', '${artLimpio}', ${prod.precio})">🔗</button>
-        <div>
-            <div class="producto-codigo">CÓDIGO: ${prod.codigo}</div>
-            <div class="img-wrapper" style="cursor: zoom-in;" onclick="abrirLightbox('${rImg}', '${artLimpio}')">
-                ${bIzq} 
-                <img id="${idImg}" src="${rImg}" alt="${artLimpio}" 
-                     onmouseover="if('${rImg2}' !== '${rImg}') this.src='${rImg2}'"
-                     onmouseout="this.src='${rImg}'"
-                     onerror="this.onerror=null; this.src='https://placehold.co/300?text=${encodeURIComponent(artLimpio)}'"> 
-                ${bDer}
-            </div>
-            <h3>${artLimpio}</h3>
-            <div class="${cStock}">${txtStock}</div>
-            <p style="color: var(--primary-light); font-weight: 700; font-size: 16px; margin: 0 0 6px 0;">${formatearDinero(prod.precio)}</p>
-        </div>
-        ${botonFilaHTML}
-    </div>`;
-}
 
 window.alternarWishlist = function(codigo) {
     const index = WISHLIST_GLOBAL.indexOf(codigo);
@@ -530,26 +604,6 @@ function dispararAnimacionCarrito() {
     });
 }
 
-window.agregarAlCarrito = function (codigo) {
-    const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
-    if (!prod) return;
-    if (prod.stock > 0) {
-        const item = carrito.find(i => i.codigo === codigo);
-        if (item) item.cantidad += 1;
-        else carrito.push({ codigo: codigo, cantidad: 1 });
-        prod.stock -= 1;
-        localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
-        guardarCarritoEnLocalStorage();
-        actualizarCarritoVisual();
-        filtrarCatalogo();
-        renderizarDestacados();
-        renderizarWishlist();
-        dispararAnimacionCarrito();
-    } else {
-        alert("Lo sentimos, ya no quedan más unidades disponibles.");
-    }
-};
-
 window.agregarAlCarritoConEfecto = function(codigo, botonElement) {
     agregarAlCarrito(codigo);
     if (botonElement && !botonElement.disabled) {
@@ -588,30 +642,6 @@ function crearEfectoVolador(elementoOrigen) {
     setTimeout(() => { particula.remove(); }, 650);
 }
 
-window.cambiarCantidad = function(codigo, cambio) {
-    const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
-    const item = carrito.find(i => i.codigo === codigo);
-    if (!item || !prod) return;
-
-    if (cambio === 1) {
-        if (prod.stock > 0) { item.cantidad += 1; prod.stock -= 1; dispararAnimacionCarrito(); }
-        else alert("Lo sentimos, ya no quedan más unidades disponibles.");
-    } else if (cambio === -1) {
-        item.cantidad -= 1; prod.stock += 1;
-        if (item.cantidad <= 0) {
-            const idx = carrito.findIndex(i => i.codigo === codigo);
-            if (idx !== -1) carrito.splice(idx, 1);
-        }
-        dispararAnimacionCarrito();
-    }
-    localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
-    guardarCarritoEnLocalStorage();
-    actualizarCarritoVisual();
-    filtrarCatalogo();
-    renderizarDestacados();
-    renderizarWishlist();
-};
-
 function vaciarCarrito() {
     if (confirm("¿Estás seguro de vaciar el pedido?")) {
         carrito = [];
@@ -647,6 +677,10 @@ function actualizarCarritoVisual() {
         if (!prod) return;
         const subtotal = (parseFloat(prod.precio) || 0) * item.cantidad;
         totalGeneral += subtotal;
+        
+        // Deshabilitar botón '+' si se alcanzó el límite físico real en tienda sin mutar variables
+        const limiteAlcanzado = item.cantidad >= prod.stock;
+
         cont.innerHTML += `
         <div class="item-linea">
             <div class="item-info">
@@ -656,7 +690,7 @@ function actualizarCarritoVisual() {
             <div class="item-controles">
                 <button class="btn-qty" onclick="cambiarCantidad('${prod.codigo}', -1)">-</button>
                 <span class="item-cant">${item.cantidad}</span>
-                <button class="btn-qty" onclick="cambiarCantidad('${prod.codigo}', 1)" ${prod.stock <= 0 ? 'disabled' : ''}>+</button>
+                <button class="btn-qty" onclick="cambiarCantidad('${prod.codigo}', 1)" ${limiteAlcanzado ? 'disabled' : ''}>+</button>
             </div>
         </div>`;
     });
@@ -728,7 +762,7 @@ async function enviarPedidoFinal() {
             const itemNombre = prod.articulo.length > 40 ? prod.articulo.substring(0, 37) + "..." : prod.articulo;
             doc.text(itemNombre, 65, yPosition); doc.text(formatearDinero(subtotal), 172, yPosition);
             textoMensajeWhatsApp += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(subtotal)}_\n`;
-            productosParaAPI.push({ codigo: item.codigo, quantity: item.cantidad });
+            productosParaAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
             yPosition += 8;
         });
 
