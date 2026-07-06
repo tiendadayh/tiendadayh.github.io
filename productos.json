@@ -223,5 +223,77 @@
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d11_1783277106.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "d12",
+        "articulo": "Playera Azul",
+        "precio": 90.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d12_1783320056.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d13",
+        "articulo": "Playera Blanco",
+        "precio": 90.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d13_1783320101.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d14",
+        "articulo": "Playera Negro",
+        "precio": 90.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d14_1783320150.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d15",
+        "articulo": "Playera Rojo",
+        "precio": 90.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d15_1783320192.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d16",
+        "articulo": "Shorts deportivo",
+        "precio": 140.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d16_1783321076.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d17",
+        "articulo": "Shorts deportivo",
+        "precio": 140.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d17_1783321183.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d18",
+        "articulo": "Shorts deportivo",
+        "precio": 140.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d18_1783321224.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d19",
+        "articulo": "Shorts deportivo",
+        "precio": 140.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d19_1783321456.jpg",
+        "destacado": false
     }
 ]
