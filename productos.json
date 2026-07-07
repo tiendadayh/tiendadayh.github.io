@@ -295,5 +295,68 @@
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d19_1783321456.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "d20",
+        "articulo": "Playera Blanca",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d20_1783400520.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d21",
+        "articulo": "Playera Negra",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d21_1783400622.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d22",
+        "articulo": "Playera Gris",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d22_1783401826.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d23",
+        "articulo": "Playera Blanca",
+        "precio": 130.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d23_1783407444.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d24",
+        "articulo": "Playera Blanca",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d24_1783407522.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d25",
+        "articulo": "Playera Negro",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d25_1783407555.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d26",
+        "articulo": "Playera Gris",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d26_1783407586.jpg",
+        "destacado": false
     }
 ]
