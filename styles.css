@@ -302,3 +302,79 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
     .tarjeta-cant-num { font-size: 12px !important; }
     .btn { padding: 8px 10px !important; font-size: 11px !important; margin-top: 6px; }
 }
+
+/* DISEÑO DEL MÓDULO DE CROSS-SELLING EN EL CARRITO */
+.contenedor-cross-selling {
+    background: rgba(168, 85, 247, 0.06);
+    border: 1px dashed var(--primary-light);
+    border-radius: 12px;
+    padding: 12px;
+    margin: 15px 0;
+}
+
+.titulo-cross {
+    font-size: 13px;
+    color: var(--primary-light);
+    margin: 0 0 10px 0;
+    font-weight: 600;
+}
+
+.productos-cross-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tarjeta-cross {
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 8px;
+    justify-content: space-between;
+}
+
+.tarjeta-cross img {
+    width: 35px;
+    height: 35px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.info-cross {
+    flex-content: 1;
+    margin-left: 10px;
+    text-align: left;
+}
+
+.info-cross h4 {
+    font-size: 12px;
+    margin: 0;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.info-cross p {
+    font-size: 11px;
+    margin: 2px 0 0 0;
+    color: var(--primary-light);
+    font-weight: bold;
+}
+
+.btn-cross-add {
+    background: var(--primary);
+    border: none;
+    color: white;
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-cross-add:hover {
+    background: var(--primary-light);
+}
