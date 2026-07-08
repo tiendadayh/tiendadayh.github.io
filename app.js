@@ -10,6 +10,7 @@ let WISHLIST_GLOBAL = [];
 let carrito = [];
 let indicesCarrusel = {};
 
+// NOTA DE DESPLIEGUE: Reemplaza esta IP por la URL de tu servidor en la nube en producción
 const socket = typeof io !== 'undefined' ? io("http://127.0.0.1:5000") : null;
 
 const EVENTOS_CONFIG = [
@@ -73,7 +74,7 @@ window.addEventListener('load', () => {
 });
 
 // =========================================================================
-// PASO 4: OPTIMIZACIÓN DEL HANDLER DEL WEBSOCKET
+// HANDLER DEL WEBSOCKET
 // =========================================================================
 function configurarWebSockets() {
     if (!socket) return;
@@ -121,13 +122,12 @@ function configurarWebSockets() {
 }
 
 // =========================================================================
-// PASO 1: CORREGIR LA CARGA INICIAL DE PRODUCTOS
+// CARGA INICIAL DE PRODUCTOS
 // =========================================================================
 function cargarProductos() {
     fetch('productos.json?v=' + Date.now())
         .then(res => res.json())
         .then(json => {
-            // El stock se guarda tal cual viene del servidor (la fuente de verdad sin mutaciones en carga)
             INVENTARIO_GLOBAL = json.map(p => ({ 
                 ...p, 
                 stock: parseInt(p.stock) || 0, 
@@ -157,7 +157,7 @@ function cargarProductos() {
 }
 
 // =========================================================================
-// PASO 2: LOGICA DE DISPONIBILIDAD DINÁMICA EN LA TARJETA
+// LÓGICA DE DISPONIBILIDAD DINÁMICA EN LA TARJETA
 // =========================================================================
 function generarHTMLTarjeta(prod, esDestacada = false) {
     const itemEnCarrito = carrito.find(i => i.codigo === prod.codigo);
@@ -226,7 +226,7 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
 }
 
 // =========================================================================
-// PASO 3: QUITAR LA MUTACIÓN MANUAL EN GESTIÓN DE CARRITO
+// GESTIÓN DE CARRITO
 // =========================================================================
 window.agregarAlCarrito = function (codigo) {
     const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
@@ -237,7 +237,7 @@ window.agregarAlCarrito = function (codigo) {
     
     if (prod.stock > cantidadActual) {
         if (item) item.cantidad += 1;
-        else carrito.push({ codigo: codigo, bandwidth: 1, cantidad: 1 });
+        else carrito.push({ codigo: codigo, cantidad: 1 }); // <-- Limpieza aplicada aquí
         
         guardarCarritoEnLocalStorage();
         actualizarCarritoVisual();
@@ -394,6 +394,22 @@ function setupEventListeners() {
         button.addEventListener('click', (e) => {
             seleccionarCategoria(e.currentTarget.getAttribute('data-cat'), e.currentTarget);
         });
+    });
+
+    // CIERRES INTUITIVOS DE MODALES (TECLA ESC Y CLIC EXTERNO)
+    window.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") {
+            const modalDespacho = document.getElementById('modal-despacho');
+            if (modalDespacho) modalDespacho.style.display = 'none';
+            if (typeof cerrarLightbox === 'function') cerrarLightbox();
+        }
+    });
+
+    window.addEventListener('click', (e) => {
+        const modalDespacho = document.getElementById('modal-despacho');
+        if (e.target === modalDespacho) {
+            modalDespacho.style.display = 'none';
+        }
     });
 }
 
@@ -666,6 +682,10 @@ function actualizarCarritoVisual() {
         cont.innerHTML = '<p style="color: var(--text-light); text-align: center; margin: 20px 0;">El carrito está vacío.</p>';
         if (txtMonto) txtMonto.innerText = "$0.00";
         if (btnVaciar) btnVaciar.style.display = 'none';
+        
+        // Esconder contenedor de Cross-Selling si está vacío
+        const contenedorCross = document.querySelector('.contenedor-cross-selling');
+        if (contenedorCross) contenedorCross.style.display = 'none';
         return;
     }
 
@@ -678,7 +698,7 @@ function actualizarCarritoVisual() {
         const subtotal = (parseFloat(prod.precio) || 0) * item.cantidad;
         totalGeneral += subtotal;
         
-        // Deshabilitar botón '+' si se alcanzó el límite físico real en tienda sin mutar variables
+        // Deshabilitar botón '+' si se alcanzó el límite físico real
         const limiteAlcanzado = item.cantidad >= prod.stock;
 
         cont.innerHTML += `
@@ -695,6 +715,52 @@ function actualizarCarritoVisual() {
         </div>`;
     });
     if (txtMonto) txtMonto.innerText = formatearDinero(totalGeneral);
+    
+    // Ejecuta el módulo de recomendaciones dinámicas
+    renderizarCrossSelling();
+}
+
+// =========================================================================
+// MÓDULO INTELIGENTE DE CROSS-SELLING (VENTA CRUZADA)
+// =========================================================================
+function renderizarCrossSelling() {
+    let contenedorCross = document.querySelector('.contenedor-cross-selling');
+    if (!contenedorCross) return;
+
+    // Filtrar productos del inventario que tengan stock, no estén en el carrito
+    const codigosEnCarrito = carrito.map(item => item.codigo);
+    const sugeridos = INVENTARIO_GLOBAL.filter(p => p.stock > 0 && !codigosEnCarrito.includes(p.codigo))
+                                      .slice(0, 2); // Tomamos un máximo de 2 alternativas
+
+    if (sugeridos.length === 0) {
+        contenedorCross.style.display = 'none';
+        return;
+    }
+
+    contenedorCross.style.display = 'block';
+    contenedorCross.innerHTML = `
+        <h4 class="titulo-cross">✨ Te podría interesar para tu pedido:</h4>
+        <div class="productos-cross-grid">
+            ${sugeridos.map(p => {
+                const arrImg = obtenerArregloImagenes(p);
+                let imgN = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
+                let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/50x50?text=Prod';
+                
+                return `
+                <div class="tarjeta-cross">
+                    <img src="${rImg}" alt="${p.articulo}" onerror="this.src='https://placehold.co/50x50?text=Prod'">
+                    <div class="info-cross">
+                        <strong style="font-size: 12px; display: block;">${p.articulo}</strong>
+                        <span style="color: var(--primary-light); font-size: 11px;">$${p.precio.toFixed(2)}</span>
+                    </div>
+                    <button class="btn" style="padding: 4px 10px; font-size: 11px; margin: 0; width: auto;" 
+                            onclick="agregarAlCarrito('${p.codigo}')">
+                        + Añadir
+                    </button>
+                </div>`;
+            }).join('')}
+        </div>
+    `;
 }
 
 async function enviarPedidoFinal() {

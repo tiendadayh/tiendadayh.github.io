@@ -343,7 +343,7 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
 }
 
 .info-cross {
-    flex-content: 1;
+    flex-grow: 1; /* <-- Corregido para distribución adaptativa */
     margin-left: 10px;
     text-align: left;
 }
