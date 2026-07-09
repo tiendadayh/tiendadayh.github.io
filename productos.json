@@ -73,7 +73,7 @@
     },
     {
         "codigo": "d1",
-        "articulo": "Blusa Blanca S/M",
+        "articulo": "Blusa Blanca",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -82,7 +82,7 @@
     },
     {
         "codigo": "d2",
-        "articulo": "Blusa Rosa S/M",
+        "articulo": "Blusa Rosa",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -91,7 +91,7 @@
     },
     {
         "codigo": "d3",
-        "articulo": "Blusa Gris S/M",
+        "articulo": "Blusa Gris",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -100,7 +100,7 @@
     },
     {
         "codigo": "d4",
-        "articulo": "Falda Negro Unitalla",
+        "articulo": "Falda Negro",
         "precio": 140.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -109,7 +109,7 @@
     },
     {
         "codigo": "d5",
-        "articulo": "Falda Fucsia Unitalla",
+        "articulo": "Falda Fucsia",
         "precio": 140.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -118,7 +118,7 @@
     },
     {
         "codigo": "d6",
-        "articulo": "Falda Verde Unitalla",
+        "articulo": "Falda Verde",
         "precio": 140.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -127,7 +127,7 @@
     },
     {
         "codigo": "d7",
-        "articulo": "Falda Azul marino Unitalla",
+        "articulo": "Falda Azul marino",
         "precio": 140.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -136,7 +136,7 @@
     },
     {
         "codigo": "d8",
-        "articulo": "Conjuto Negro Unitalla",
+        "articulo": "Conjuto Negro",
         "precio": 250.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -145,47 +145,11 @@
     },
     {
         "codigo": "d9",
-        "articulo": "Conjunto Fiusha Unitalla",
+        "articulo": "Conjunto Fiusha",
         "precio": 250.0,
         "stock": 1,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d9_1783276656.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f1",
-        "articulo": "50 piezas, globos Oro",
-        "precio": 60.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f1_1783577572.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f2",
-        "articulo": "50 globos de látex metálicos Oro",
-        "precio": 75.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f2_1783577686.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f3",
-        "articulo": "50 globos de látex Negro",
-        "precio": 60.0,
-        "stock": 2,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f3_1783577786.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f4",
-        "articulo": "50 globos de látex Azul",
-        "precio": 60.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f4_1783580017.jpg",
         "destacado": false
     },
     {
@@ -244,7 +208,7 @@
     },
     {
         "codigo": "d10",
-        "articulo": "Conjunto Azul cielo Unitalla",
+        "articulo": "Conjunto Azul cielo",
         "precio": 250.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -253,7 +217,7 @@
     },
     {
         "codigo": "d11",
-        "articulo": "Vestido mini Rojo - S",
+        "articulo": "Vestido mini Rojo",
         "precio": 150.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -262,7 +226,7 @@
     },
     {
         "codigo": "d12",
-        "articulo": "Playera Azul - M",
+        "articulo": "Playera Azul",
         "precio": 90.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -271,7 +235,7 @@
     },
     {
         "codigo": "d13",
-        "articulo": "Playera Blanco  - M",
+        "articulo": "Playera Blanco",
         "precio": 90.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -280,7 +244,7 @@
     },
     {
         "codigo": "d14",
-        "articulo": "Playera Negro - M",
+        "articulo": "Playera Negro",
         "precio": 90.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -289,7 +253,7 @@
     },
     {
         "codigo": "d15",
-        "articulo": "Playera Rojo - M",
+        "articulo": "Playera Rojo",
         "precio": 90.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -298,7 +262,7 @@
     },
     {
         "codigo": "d16",
-        "articulo": "Shorts deportivo - XL",
+        "articulo": "Shorts deportivo",
         "precio": 140.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -307,7 +271,7 @@
     },
     {
         "codigo": "d17",
-        "articulo": "Shorts deportivo - XL",
+        "articulo": "Shorts deportivo",
         "precio": 140.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -316,7 +280,7 @@
     },
     {
         "codigo": "d18",
-        "articulo": "Shorts deportivo - XL",
+        "articulo": "Shorts deportivo",
         "precio": 140.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -325,7 +289,7 @@
     },
     {
         "codigo": "d19",
-        "articulo": "Shorts deportivo - XL",
+        "articulo": "Shorts deportivo",
         "precio": 140.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -334,7 +298,7 @@
     },
     {
         "codigo": "d20",
-        "articulo": "Playera Blanca - 14 año",
+        "articulo": "Playera Blanca",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -343,7 +307,7 @@
     },
     {
         "codigo": "d21",
-        "articulo": "Playera Negra - 14 año",
+        "articulo": "Playera Negra",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -352,7 +316,7 @@
     },
     {
         "codigo": "d22",
-        "articulo": "Playera Gris - 14 año",
+        "articulo": "Playera Gris",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -361,7 +325,7 @@
     },
     {
         "codigo": "d23",
-        "articulo": "Playera Blanca - 14 año",
+        "articulo": "Playera Blanca",
         "precio": 130.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -370,7 +334,7 @@
     },
     {
         "codigo": "d24",
-        "articulo": "Playera Blanca - 8 año",
+        "articulo": "Playera Blanca",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -379,7 +343,7 @@
     },
     {
         "codigo": "d25",
-        "articulo": "Playera Negro - 8 año",
+        "articulo": "Playera Negro",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -388,56 +352,11 @@
     },
     {
         "codigo": "d26",
-        "articulo": "Playera Gris - 8 año",
+        "articulo": "Playera Gris",
         "precio": 120.0,
         "stock": 1,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d26_1783407586.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "d27",
-        "articulo": "Playera Azul marino - L",
-        "precio": 90.0,
-        "stock": 1,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d27_1783489032.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "d28",
-        "articulo": "Playera Polo Negro - M",
-        "precio": 180.0,
-        "stock": 1,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d28_1783489296.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "d29",
-        "articulo": "Playera Manga Larga Beige - XL",
-        "precio": 140.0,
-        "stock": 1,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d29_1783489413.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "d30",
-        "articulo": "Playera Polo Negro - L",
-        "precio": 180.0,
-        "stock": 1,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d30_1783489853.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "d31",
-        "articulo": "Playera Gris Oscuro - M",
-        "precio": 90.0,
-        "stock": 1,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d31_1783489924.jpg",
         "destacado": false
     }
 ]
