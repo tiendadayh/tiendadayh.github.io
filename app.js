@@ -784,18 +784,20 @@ async function enviarPedidoFinal() {
     textoMensajeWhatsApp += `💳 *Forma de Pago:* ${metodoPago}\n\n`;
     textoMensajeWhatsApp += `📦 *DETALLE DEL PEDIDO:*\n`;
 
+    // 1. EXTRAER PRODUCTOS PRIMERO (Para evitar que dependa de si jspdf existe o no)
     const productosParaAPI = [];
-
-    if (!window.jspdf) {
-        carrito.forEach(item => {
-            const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
-            if (!prod) return;
-            const subtotal = prod.precio * item.cantidad; 
+    carrito.forEach(item => {
+        const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
+        if (prod) {
+            const subtotal = prod.precio * item.cantidad;
             total += subtotal;
             textoMensajeWhatsApp += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(subtotal)}_\n`;
             productosParaAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
-        });
-    } else {
+        }
+    });
+
+    // 2. GENERACIÓN DEL PDF SI LA LIBRERÍA ESTÁ DISPONIBLE
+    if (window.jspdf) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         doc.setFillColor(168, 85, 247); doc.rect(0, 0, 210, 35, "F");
@@ -813,10 +815,12 @@ async function enviarPedidoFinal() {
         doc.setDrawColor(229, 231, 235); doc.line(15, 108, 195, 108);
 
         let yPosition = 116; doc.setFont("helvetica", "normal");
+        
+        // Volvemos a recorrer solo para dibujar las líneas del PDF de forma segura
         carrito.forEach((item, index) => {
             const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
             if (!prod) return;
-            const subtotal = prod.precio * item.cantidad; total += subtotal;
+            const subtotal = prod.precio * item.cantidad;
             if (yPosition > 270) {
                 doc.addPage(); yPosition = 25; 
                 doc.setFont("helvetica", "bold"); doc.setFillColor(249, 250, 251); doc.rect(15, yPosition - 5, 180, 8, "F");
@@ -827,8 +831,6 @@ async function enviarPedidoFinal() {
             doc.text(`${item.cantidad}x`, 18, yPosition); doc.text(prod.codigo, 35, yPosition);
             const itemNombre = prod.articulo.length > 40 ? prod.articulo.substring(0, 37) + "..." : prod.articulo;
             doc.text(itemNombre, 65, yPosition); doc.text(formatearDinero(subtotal), 172, yPosition);
-            textoMensajeWhatsApp += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(subtotal)}_\n`;
-            productosParaAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
             yPosition += 8;
         });
 
@@ -845,14 +847,19 @@ async function enviarPedidoFinal() {
     textoMensajeWhatsApp += `\n💰 *TOTAL NETO A PAGAR: ${formatearDinero(total)}*\n\n`;
     if (window.jspdf) textoMensajeWhatsApp += `⚠️ _Nota: Ya he descargado mi comprobante oficial en formato PDF en mi dispositivo._`;
 
-    fetch('http://127.0.0.1:5000/', { 
+    // 3. ENVÍO DE DATOS AL BACKEND (Cambia la URL si ya lo subiste a un hosting)
+    const BACKEND_URL = "http://127.0.0.1:5000/"; // <-- Si está en la nube, cambia por la IP pública o dominio
+    
+    fetch(BACKEND_URL, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ cliente: cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosParaAPI, metodo_pago: metodoPago }) 
     })
     .then(res => res.json())
-    .catch(err => console.warn("Servidor Python offline, cambios guardados solo localmente.", err));
+    .then(data => console.log("Sincronizado con el servidor con éxito:", data))
+    .catch(err => console.warn("Servidor offline, cambios guardados solo localmente.", err));
 
+    // 4. LIMPIEZA DE CARRITO Y REDIRECCIÓN A WHATSAPP
     carrito = [];
     guardarCarritoEnLocalStorage();
     actualizarCarritoVisual();
