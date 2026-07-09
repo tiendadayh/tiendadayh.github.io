@@ -153,6 +153,33 @@
         "destacado": false
     },
     {
+        "codigo": "f1",
+        "articulo": "50 piezas, globos Oro",
+        "precio": 60.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f1_1783577572.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f2",
+        "articulo": "50 globos de látex metálicos Oro",
+        "precio": 75.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f2_1783577686.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f3",
+        "articulo": "50 globos de látex Negro",
+        "precio": 60.0,
+        "stock": 2,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f3_1783577786.jpg",
+        "destacado": false
+    },
+    {
         "codigo": "g1",
         "articulo": "Arreglo Graduacion",
         "precio": 350.0,
