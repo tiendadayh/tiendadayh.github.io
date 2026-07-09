@@ -180,6 +180,15 @@
         "destacado": false
     },
     {
+        "codigo": "f4",
+        "articulo": "50 globos de látex Azul",
+        "precio": 60.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f4_1783580017.jpg",
+        "destacado": false
+    },
+    {
         "codigo": "g1",
         "articulo": "Arreglo Graduacion",
         "precio": 350.0,
