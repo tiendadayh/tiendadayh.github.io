@@ -72,57 +72,12 @@
         "destacado": false
     },
     {
-        "codigo": "g1",
-        "articulo": "Arreglo Graduacion",
-        "precio": 350.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g1_1783214340.jpg",
-        "destacado": true
-    },
-    {
         "codigo": "g2",
         "articulo": "Arreglo Rosas",
         "precio": 450.0,
         "stock": 1,
         "categoria": "Manualidades",
         "imagen": "imagenes_productos/IMG_g2_1783214703.jpg",
-        "destacado": true
-    },
-    {
-        "codigo": "g3",
-        "articulo": "Arreglo Graduacion",
-        "precio": 480.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g3_1783214873.jpg",
-        "destacado": true
-    },
-    {
-        "codigo": "g4",
-        "articulo": "Arreglo Graduacion",
-        "precio": 420.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g4_1783214950.jpg",
-        "destacado": true
-    },
-    {
-        "codigo": "g5",
-        "articulo": "Arreglo Graduacion",
-        "precio": 380.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g5_1783215016.jpg",
-        "destacado": true
-    },
-    {
-        "codigo": "g6",
-        "articulo": "Arreglo Graduacion",
-        "precio": 280.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g6_1783215146.jpg",
         "destacado": true
     },
     {
