@@ -9,15 +9,6 @@
         "destacado": false
     },
     {
-        "codigo": "c2",
-        "articulo": "barra multicontacto",
-        "precio": 45.0,
-        "stock": 4,
-        "categoria": "Electronica",
-        "imagen": "imagenes_productos/IMG_c2_1782858645.jpg",
-        "destacado": false
-    },
-    {
         "codigo": "c3",
         "articulo": "Mini Bocina Azul",
         "precio": 120.0,
@@ -45,15 +36,6 @@
         "destacado": false
     },
     {
-        "codigo": "c6",
-        "articulo": "mini ventilador de escritorio",
-        "precio": 140.0,
-        "stock": 1,
-        "categoria": "Electronica",
-        "imagen": "imagenes_productos/IMG_c6_1782859899.jpg",
-        "destacado": false
-    },
-    {
         "codigo": "c7",
         "articulo": "lámpara de escritorio",
         "precio": 90.0,
@@ -70,6 +52,78 @@
         "categoria": "Electronica",
         "imagen": "imagenes_productos/IMG_c8_1782609658.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "c2",
+        "articulo": "barra multicontacto",
+        "precio": 45.0,
+        "stock": 4,
+        "categoria": "Electronica",
+        "imagen": "imagenes_productos/IMG_c2_1782858645.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "c6",
+        "articulo": "mini ventilador de escritorio",
+        "precio": 140.0,
+        "stock": 1,
+        "categoria": "Electronica",
+        "imagen": "imagenes_productos/IMG_c6_1782859899.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "g1",
+        "articulo": "Arreglo Graduacion",
+        "precio": 350.0,
+        "stock": 1,
+        "categoria": "Manualidades",
+        "imagen": "imagenes_productos/IMG_g1_1783214340.jpg",
+        "destacado": true
+    },
+    {
+        "codigo": "g2",
+        "articulo": "Arreglo Rosas",
+        "precio": 450.0,
+        "stock": 1,
+        "categoria": "Manualidades",
+        "imagen": "imagenes_productos/IMG_g2_1783214703.jpg",
+        "destacado": true
+    },
+    {
+        "codigo": "g3",
+        "articulo": "Arreglo Graduacion",
+        "precio": 480.0,
+        "stock": 1,
+        "categoria": "Manualidades",
+        "imagen": "imagenes_productos/IMG_g3_1783214873.jpg",
+        "destacado": true
+    },
+    {
+        "codigo": "g4",
+        "articulo": "Arreglo Graduacion",
+        "precio": 420.0,
+        "stock": 1,
+        "categoria": "Manualidades",
+        "imagen": "imagenes_productos/IMG_g4_1783214950.jpg",
+        "destacado": true
+    },
+    {
+        "codigo": "g5",
+        "articulo": "Arreglo Graduacion",
+        "precio": 380.0,
+        "stock": 1,
+        "categoria": "Manualidades",
+        "imagen": "imagenes_productos/IMG_g5_1783215016.jpg",
+        "destacado": true
+    },
+    {
+        "codigo": "g6",
+        "articulo": "Arreglo Graduacion",
+        "precio": 280.0,
+        "stock": 1,
+        "categoria": "Manualidades",
+        "imagen": "imagenes_productos/IMG_g6_1783215146.jpg",
+        "destacado": true
     },
     {
         "codigo": "d1",
@@ -153,141 +207,6 @@
         "destacado": false
     },
     {
-        "codigo": "f1",
-        "articulo": "50pz  globos de látex - Oro",
-        "precio": 60.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f1_1783585208.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f2",
-        "articulo": "50pz globos de látex - Oro",
-        "precio": 75.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f2_1783585303.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f3",
-        "articulo": "50pz globos de látex - Negro",
-        "precio": 60.0,
-        "stock": 2,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f3_1783585376.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f4",
-        "articulo": "50pz globos de látex - Azul",
-        "precio": 60.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f4_1783585576.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f5",
-        "articulo": "10pz Globos de confeti - Plata",
-        "precio": 30.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f5_1783585689.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f6",
-        "articulo": "10 Globos de confeti - Oro",
-        "precio": 30.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f6_1783585752.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f7",
-        "articulo": "50pz globos de látex - Azul",
-        "precio": 75.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f7_1783585836.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f8",
-        "articulo": "50 globos de látex - Plata",
-        "precio": 75.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f8_1783585900.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "f9",
-        "articulo": "50pz globos de látex - Mezcla",
-        "precio": 75.0,
-        "stock": 1,
-        "categoria": "Accesorios",
-        "imagen": "imagenes_productos/IMG_f9_1783586018.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "g1",
-        "articulo": "Arreglo Graduacion",
-        "precio": 350.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g1_1783214340.jpg",
-        "destacado": true
-    },
-    {
-        "codigo": "g2",
-        "articulo": "Arreglo Rosas",
-        "precio": 450.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g2_1783214703.jpg",
-        "destacado": true
-    },
-    {
-        "codigo": "g3",
-        "articulo": "Arreglo Graduacion",
-        "precio": 480.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g3_1783214873.jpg",
-        "destacado": true
-    },
-    {
-        "codigo": "g4",
-        "articulo": "Arreglo Graduacion",
-        "precio": 420.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g4_1783214950.jpg",
-        "destacado": true
-    },
-    {
-        "codigo": "g5",
-        "articulo": "Arreglo Graduacion",
-        "precio": 380.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g5_1783215016.jpg",
-        "destacado": true
-    },
-    {
-        "codigo": "g6",
-        "articulo": "Arreglo Graduacion",
-        "precio": 280.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g6_1783215146.jpg",
-        "destacado": true
-    },
-    {
         "codigo": "d10",
         "articulo": "Conjunto Azul cielo Unitalla",
         "precio": 250.0,
@@ -363,7 +282,7 @@
         "codigo": "d18",
         "articulo": "Shorts deportivo - XL",
         "precio": 140.0,
-        "stock": 1,
+        "stock": 0,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d18_1783321224.jpg",
         "destacado": false
@@ -381,7 +300,7 @@
         "codigo": "d20",
         "articulo": "Playera Blanca - 14 años",
         "precio": 120.0,
-        "stock": 1,
+        "stock": 0,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d20_1783400520.jpg",
         "destacado": false
@@ -390,7 +309,7 @@
         "codigo": "d21",
         "articulo": "Playera Negra - 14 años",
         "precio": 120.0,
-        "stock": 1,
+        "stock": 0,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d21_1783400622.jpg",
         "destacado": false
@@ -399,7 +318,7 @@
         "codigo": "d22",
         "articulo": "Playera Gris - 14 años",
         "precio": 120.0,
-        "stock": 1,
+        "stock": 0,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d22_1783401826.jpg",
         "destacado": false
@@ -483,6 +402,87 @@
         "stock": 1,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d31_1783584990.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f1",
+        "articulo": "50pz  globos de látex - Oro",
+        "precio": 60.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f1_1783585208.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f2",
+        "articulo": "50pz globos de látex - Oro",
+        "precio": 75.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f2_1783585303.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f3",
+        "articulo": "50pz globos de látex - Negro",
+        "precio": 60.0,
+        "stock": 2,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f3_1783585376.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f4",
+        "articulo": "50pz globos de látex - Azul",
+        "precio": 60.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f4_1783585576.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f5",
+        "articulo": "10pz Globos de confeti - Plata",
+        "precio": 30.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f5_1783585689.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f6",
+        "articulo": "10 Globos de confeti - Oro",
+        "precio": 30.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f6_1783585752.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f7",
+        "articulo": "50pz globos de látex - Azul",
+        "precio": 75.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f7_1783585836.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f8",
+        "articulo": "50 globos de látex - Plata",
+        "precio": 75.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f8_1783585900.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "f9",
+        "articulo": "50pz globos de látex - Mezcla",
+        "precio": 75.0,
+        "stock": 1,
+        "categoria": "Accesorios",
+        "imagen": "imagenes_productos/IMG_f9_1783586018.jpg",
         "destacado": false
     },
     {
