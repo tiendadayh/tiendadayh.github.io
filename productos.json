@@ -165,7 +165,7 @@
         "codigo": "d10",
         "articulo": "Conjunto Azul cielo Unitalla",
         "precio": 250.0,
-        "stock": 1,
+        "stock": 0,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d10_1783276772.jpg",
         "destacado": false
@@ -217,36 +217,36 @@
     },
     {
         "codigo": "d16",
-        "articulo": "Shorts deportivo - XL",
+        "articulo": "Shorts deportivo Azul- L",
         "precio": 140.0,
-        "stock": 1,
+        "stock": 2,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d16_1783321076.jpg",
         "destacado": false
     },
     {
         "codigo": "d17",
-        "articulo": "Shorts deportivo - XL",
+        "articulo": "Shorts deportivo Gris- L",
         "precio": 140.0,
-        "stock": 1,
+        "stock": 2,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d17_1783321183.jpg",
         "destacado": false
     },
     {
         "codigo": "d18",
-        "articulo": "Shorts deportivo - XL",
+        "articulo": "Shorts deportivo Negro - XL",
         "precio": 140.0,
-        "stock": 0,
+        "stock": 1,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d18_1783321224.jpg",
         "destacado": false
     },
     {
         "codigo": "d19",
-        "articulo": "Shorts deportivo - XL",
+        "articulo": "Shorts deportivo - L",
         "precio": 140.0,
-        "stock": 1,
+        "stock": 2,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d19_1783321456.jpg",
         "destacado": false
