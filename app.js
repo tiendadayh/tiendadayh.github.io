@@ -10,6 +10,17 @@ let WISHLIST_GLOBAL = [];
 let carrito = [];
 let indicesCarrusel = {};
 
+// NUEVAS VARIABLES PARA CUPONES Y LOGÍSTICA
+let descuentoPorcentaje = 0;
+let codigoCuponActivo = "";
+let cargoPorEnvio = 0;
+
+const CUPONES_VALIDOS = {
+    "BIENVENIDA10": 0.10, // 10% Descuento
+    "DAYH20": 0.20,       // 20% Descuento
+    "OFERTA15": 0.15      // 15% Descuento
+};
+
 // NOTA DE DESPLIEGUE: Reemplaza esta IP por la URL de tu servidor en la nube en producción
 const socket = typeof io !== 'undefined' ? io("http://127.0.0.1:5000") : null;
 
@@ -27,6 +38,7 @@ window.addEventListener('load', () => {
     recuperarCarritoDeLocalStorage();
     recuperarWishlistDeLocalStorage();
     inicializarBotónVolverArriba();
+    inicializarLogicaCuponesYEnvio();
 
     const clienteGuardado = localStorage.getItem('nombre_cliente_dayh');
     if (clienteGuardado && document.getElementById('cliente')) {
@@ -157,13 +169,60 @@ function cargarProductos() {
 }
 
 // =========================================================================
+// NUEVA LÓGICA DE CUPONES Y PUNTOS DE ENTREGA
+// =========================================================================
+function inicializarLogicaCuponesYEnvio() {
+    const btnCupon = document.getElementById('btn-aplicar-cupon');
+    const inputCupon = document.getElementById('input-cupon');
+    const msgCupon = document.getElementById('mensaje-cupon');
+    const selectEntrega = document.getElementById('select-punto-entrega');
+
+    if (btnCupon && inputCupon && msgCupon) {
+        btnCupon.addEventListener('click', () => {
+            const codigo = inputCupon.value.trim().toUpperCase();
+            if (!codigo) {
+                descuentoPorcentaje = 0;
+                codigoCuponActivo = "";
+                msgCupon.textContent = "";
+                actualizarCarritoVisual();
+                return;
+            }
+
+            if (CUPONES_VALIDOS.hasOwnProperty(codigo)) {
+                descuentoPorcentaje = CUPONES_VALIDOS[codigo];
+                codigoCuponActivo = codigo;
+                msgCupon.textContent = `🎟️ Cupón ${codigo} aplicado (-${descuentoPorcentaje * 100}%)`;
+                msgCupon.className = "mensaje-cupon exito";
+            } else {
+                descuentoPorcentaje = 0;
+                codigoCuponActivo = "";
+                msgCupon.textContent = "❌ Código de cupón inválido o vencido.";
+                msgCupon.className = "mensaje-cupon error";
+            }
+            actualizarCarritoVisual();
+        });
+    }
+
+    if (selectEntrega) {
+        selectEntrega.addEventListener('change', () => {
+            const contenedorDireccion = document.getElementById('contenedor-direccion-envio');
+            if (selectEntrega.value === "Envío a Domicilio (Zona Urbana)") {
+                if (contenedorDireccion) contenedorDireccion.style.display = "block";
+            } else {
+                if (contenedorDireccion) contenedorDireccion.style.display = "none";
+            }
+            actualizarCarritoVisual();
+        });
+    }
+}
+
+// =========================================================================
 // LÓGICA DE DISPONIBILIDAD DINÁMICA EN LA TARJETA
 // =========================================================================
 function generarHTMLTarjeta(prod, esDestacada = false) {
     const itemEnCarrito = carrito.find(i => i.codigo === prod.codigo);
     const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
     
-    // El stock disponible real calculado de forma reactiva restando el carrito local
     const stockDisponible = Math.max(0, prod.stock - cantidadEnCarrito);
     const esAgotado = stockDisponible <= 0;
     
@@ -237,7 +296,7 @@ window.agregarAlCarrito = function (codigo) {
     
     if (prod.stock > cantidadActual) {
         if (item) item.cantidad += 1;
-        else carrito.push({ codigo: codigo, cantidad: 1 }); // <-- Limpieza aplicada aquí
+        else carrito.push({ codigo: codigo, cantidad: 1 });
         
         guardarCarritoEnLocalStorage();
         actualizarCarritoVisual();
@@ -396,7 +455,6 @@ function setupEventListeners() {
         });
     });
 
-    // CIERRES INTUITIVOS DE MODALES (TECLA ESC Y CLIC EXTERNO)
     window.addEventListener('keydown', (e) => {
         if (e.key === "Escape") {
             const modalDespacho = document.getElementById('modal-despacho');
@@ -661,6 +719,13 @@ function crearEfectoVolador(elementoOrigen) {
 function vaciarCarrito() {
     if (confirm("¿Estás seguro de vaciar el pedido?")) {
         carrito = [];
+        descuentoPorcentaje = 0;
+        codigoCuponActivo = "";
+        const msgCupon = document.getElementById('mensaje-cupon');
+        const inputCupon = document.getElementById('input-cupon');
+        if(msgCupon) msgCupon.textContent = "";
+        if(inputCupon) inputCupon.value = "";
+        
         guardarCarritoEnLocalStorage();
         localStorage.removeItem('inventario_tienda_real');
         cargarProductos();
@@ -678,27 +743,44 @@ function actualizarCarritoVisual() {
     if (bContador) bContador.innerText = totalItems;
     if (bFlotante) bFlotante.innerText = totalItems;
 
+    // Elemento del mensaje e indicador dinámico de envío gratis
+    const infoEnvioGratis = document.getElementById('info-envio-gratis');
+    const contenedorDireccion = document.getElementById('contenedor-direccion-envio');
+    const campoFecha = document.getElementById('fecha');
+
     if (carrito.length === 0) {
         cont.innerHTML = '<p style="color: var(--text-light); text-align: center; margin: 20px 0;">El carrito está vacío.</p>';
         if (txtMonto) txtMonto.innerText = "$0.00";
         if (btnVaciar) btnVaciar.style.display = 'none';
         
-        // Esconder contenedor de Cross-Selling si está vacío
+        document.getElementById('resumen-subtotal').innerText = "$0.00";
+        document.getElementById('fila-descuento').style.display = "none";
+        document.getElementById('fila-envio').style.display = "none";
+        if (infoEnvioGratis) infoEnvioGratis.style.display = "none";
+        if (contenedorDireccion) contenedorDireccion.style.display = "none";
+        if (campoFecha) { campoFecha.disabled = false; campoFecha.style.opacity = "1"; }
+        
         const contenedorCross = document.querySelector('.contenedor-cross-selling');
         if (contenedorCross) contenedorCross.style.display = 'none';
+        
+        const puntoEntrega = document.getElementById('select-punto-entrega');
+        if (puntoEntrega) {
+            puntoEntrega.innerHTML = `<option value="" disabled selected>-- Selecciona dónde recibir --</option>
+                                      <option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
+        }
         return;
     }
 
     if (btnVaciar) btnVaciar.style.display = 'block';
-    cont.innerHTML = ''; let totalGeneral = 0;
+    cont.innerHTML = ''; 
+    let subtotalGeneral = 0;
 
     carrito.forEach(item => {
         const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
         if (!prod) return;
         const subtotal = (parseFloat(prod.precio) || 0) * item.cantidad;
-        totalGeneral += subtotal;
+        subtotalGeneral += subtotal;
         
-        // Deshabilitar botón '+' si se alcanzó el límite físico real
         const limiteAlcanzado = item.cantidad >= prod.stock;
 
         cont.innerHTML += `
@@ -714,9 +796,117 @@ function actualizarCarritoVisual() {
             </div>
         </div>`;
     });
-    if (txtMonto) txtMonto.innerText = formatearDinero(totalGeneral);
+
+    // ---- BLOQUE INYECTADO: VALIDACIÓN DE CUPÓN AUTOMÁTICO ----
+    // Validar cupón de fidelidad automático si supera los $500
+    if (subtotalGeneral >= 500 && !localStorage.getItem('cupon_recompensa_visto')) {
+        mostrarNotificacionFlotante("🎉 ¡Desbloqueaste el cupón EXTRA5! Aplícalo para obtener un 5% adicional.", 8000, '#10b981');
+        CUPONES_VALIDOS["EXTRA5"] = 0.05; // Lo inyectas dinámicamente al objeto de cupones
+        localStorage.setItem('cupon_recompensa_visto', 'true');
+    }
+    // ----------------------------------------------------------
     
-    // Ejecuta el módulo de recomendaciones dinámicas
+    // --- LÓGICA E INDICADOR DE ENVÍO GRATIS ---
+    let alcanzoEnvioGratis = false;
+    if (infoEnvioGratis) {
+        infoEnvioGratis.style.display = "block";
+        const metaEnvio = 150.00;
+        
+        if (subtotalGeneral >= metaEnvio) {
+            alcanzoEnvioGratis = true;
+            infoEnvioGratis.innerHTML = `
+                <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 15px; line-height: 1.4;">
+                    <strong>🎉 ¡Felicidades! Has alcanzado el envío gratis.</strong><br>
+                    <span style="font-size: 12px; opacity: 0.9;">Tu pedido se programará automáticamente para <strong>mañana de 4:00 PM a 5:00 PM</strong>.</span>
+                </div>`;
+        } else {
+            const cuantoFalta = metaEnvio - subtotalGeneral;
+            const porcentajeProgreso = Math.min((subtotalGeneral / metaEnvio) * 100, 100);
+            
+            infoEnvioGratis.innerHTML = `
+                <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--text-light);">
+                        <span>Te faltan <strong>${formatearDinero(cuantoFalta)}</strong> para envío gratis</span>
+                        <span style="font-weight: bold; color: var(--primary-light);">${porcentajeProgreso.toFixed(0)}%</span>
+                    </div>
+                    <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;">
+                        <div style="width: ${porcentajeProgreso}%; height: 100%; background: var(--primary-light); transition: width 0.3s ease;"></div>
+                    </div>
+                </div>`;
+        }
+    }
+
+    // --- CONTROL DINÁMICO DE OPCIONES DE ENVÍO Y ENTREGA ---
+    const puntoEntrega = document.getElementById('select-punto-entrega');
+    const campoHora = document.getElementById('hora');
+    
+    if (puntoEntrega) {
+        puntoEntrega.innerHTML = `<option value="" disabled>-- Selecciona dónde recibir --</option>`;
+        puntoEntrega.innerHTML += `<option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
+
+        if (alcanzoEnvioGratis) {
+            puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)" selected>Envío a Domicilio (¡GRATIS!)</option>`;
+            
+            if (contenedorDireccion) contenedorDireccion.style.display = "block";
+
+            // AUTO-PROGRAMACIÓN DE LA FECHA PARA MAÑANA
+            if (campoFecha) {
+                const mananaObj = new Date();
+                mananaObj.setDate(mananaObj.getDate() + 1);
+                
+                if (mananaObj.getDay() === 0) { // Si es Domingo, pasa a Lunes
+                    mananaObj.setDate(mananaObj.getDate() + 1);
+                } else if (mananaObj.getDay() === 6) { // Si es Sábado, pasa a Lunes
+                    mananaObj.setDate(mananaObj.getDate() + 2);
+                }
+
+                const mananaStr = `${mananaObj.getFullYear()}-${String(mananaObj.getMonth() + 1).padStart(2, '0')}-${String(mananaObj.getDate()).padStart(2, '0')}`;
+                campoFecha.value = mananaStr;
+                campoFecha.disabled = true; 
+                campoFecha.style.opacity = "0.7";
+            }
+
+            // AUTO-PROGRAMACIÓN DEL HORARIO FIJO (4:00 PM A 5:00 PM)
+            if (campoHora) {
+                campoHora.innerHTML = `<option value="04:00 PM a 05:00 PM" selected>04:00 PM a 05:00 PM</option>`;
+                campoHora.disabled = true;
+                campoHora.style.opacity = "0.7";
+            }
+        } else {
+            // Si no alcanza el envío gratis, se restablecen los controles manuales normales
+            if (contenedorDireccion) contenedorDireccion.style.display = "none";
+            if (campoFecha) { campoFecha.disabled = false; campoFecha.style.opacity = "1"; }
+            if (campoHora) { campoHora.disabled = false; campoHora.style.opacity = "1"; }
+            puntoEntrega.selectedIndex = 1; 
+            validarHorariosDisponibles(); // Regenera la lista de horas normal
+        }
+    }
+
+    cargoPorEnvio = 0; 
+
+    // Calcular descuentos y totales finales
+    let montoDescuento = subtotalGeneral * descuentoPorcentaje;
+    let totalFinal = subtotalGeneral - montoDescuento + cargoPorEnvio;
+
+    document.getElementById('resumen-subtotal').innerText = formatearDinero(subtotalGeneral);
+    
+    if (montoDescuento > 0) {
+        document.getElementById('fila-descuento').style.display = "flex";
+        document.getElementById('resumen-descuento').innerText = `-${formatearDinero(montoDescuento)}`;
+    } else {
+        document.getElementById('fila-descuento').style.display = "none";
+    }
+
+    if (puntoEntrega && puntoEntrega.value !== "") {
+        document.getElementById('fila-envio').style.display = "flex";
+        document.getElementById('resumen-envio').innerText = "¡Gratis! 🎉";
+        document.getElementById('resumen-envio').style.color = "var(--success)";
+    } else {
+        document.getElementById('fila-envio').style.display = "none";
+    }
+    
+    if (txtMonto) txtMonto.innerText = formatearDinero(totalFinal);
+    
     renderizarCrossSelling();
 }
 
@@ -727,10 +917,9 @@ function renderizarCrossSelling() {
     let contenedorCross = document.querySelector('.contenedor-cross-selling');
     if (!contenedorCross) return;
 
-    // Filtrar productos del inventario que tengan stock, no estén en el carrito
     const codigosEnCarrito = carrito.map(item => item.codigo);
     const sugeridos = INVENTARIO_GLOBAL.filter(p => p.stock > 0 && !codigosEnCarrito.includes(p.codigo))
-                                      .slice(0, 2); // Tomamos un máximo de 2 alternativas
+                                      .slice(0, 2);
 
     if (sugeridos.length === 0) {
         contenedorCross.style.display = 'none';
@@ -765,10 +954,26 @@ function renderizarCrossSelling() {
 
 async function enviarPedidoFinal() {
     if (carrito.length === 0) { alert("Tu carrito está vacío"); return; }
+    
+    const puntoEntrega = document.getElementById('select-punto-entrega');
+    const valorPuntoEntrega = puntoEntrega ? puntoEntrega.value : "";
+    
+    if (!valorPuntoEntrega) {
+        alert("Por favor, selecciona tu Punto de Entrega o Sucursal antes de continuar.");
+        return;
+    }
+
     const fecha = document.getElementById('fecha').value;
     const hora = document.getElementById('hora').value;
     const cliente = document.getElementById('cliente').value.trim();
     const metodoPago = document.getElementById('metodo-pago') ? document.getElementById('metodo-pago').value : "No especificado";
+    const direccionEnvio = document.getElementById('direccion-envio') ? document.getElementById('direccion-envio').value.trim() : "";
+
+    // Validar si es envío a domicilio y requiere dirección obligatoria
+    if (valorPuntoEntrega === "Envío a Domicilio (Zona Urbana)" && direccionEnvio.length < 5) {
+        alert("Por favor, escribe la dirección completa donde se realizará el envío.");
+        return;
+    }
 
     if (!fecha || !hora || cliente.length < 3) { 
         alert("Por favor completa los campos: Fecha, Hora y Nombre Completo."); 
@@ -776,27 +981,38 @@ async function enviarPedidoFinal() {
     }
 
     lanzarEfectoConfeti();
-    let total = 0;
+    let subtotalProductos = 0;
     let textoMensajeWhatsApp = `*¡Hola Tienda DAYH! Generé un nuevo pedido* 📄🛒\n\n`;
     textoMensajeWhatsApp += `👤 *Cliente:* ${cliente}\n`;
+    textoMensajeWhatsApp += `📍 *Punto/Entrega:* ${valorPuntoEntrega}\n`;
+    
+    if (valorPuntoEntrega === "Envío a Domicilio (Zona Urbana)") {
+        textoMensajeWhatsApp += `🏠 *Dirección de Envío:* ${direccionEnvio}\n`;
+        textoMensajeWhatsApp += `🚚 *Plazo de Entrega:* ¡Mañana garantizado en horario especial de 4:00 PM a 5:00 PM!\n`;
+    }
+
     textoMensajeWhatsApp += `📅 *Fecha de Entrega:* ${formatearFechaHumana(fecha)}\n`;
     textoMensajeWhatsApp += `⏰ *Hora Aproximada:* ${hora}\n`;
-    textoMensajeWhatsApp += `💳 *Forma de Pago:* ${metodoPago}\n\n`;
-    textoMensajeWhatsApp += `📦 *DETALLE DEL PEDIDO:*\n`;
+    textoMensajeWhatsApp += `💳 *Forma de Pago:* ${metodoPago}\n`;
+    if (codigoCuponActivo) {
+        textoMensajeWhatsApp += `🎟️ *Cupón Aplicado:* ${codigoCuponActivo}\n`;
+    }
+    textoMensajeWhatsApp += `\n📦 *DETALLE DEL PEDIDO:*\n`;
 
-    // 1. EXTRAER PRODUCTOS PRIMERO (Para evitar que dependa de si jspdf existe o no)
     const productosParaAPI = [];
     carrito.forEach(item => {
         const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
         if (prod) {
-            const subtotal = prod.precio * item.cantidad;
-            total += subtotal;
-            textoMensajeWhatsApp += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(subtotal)}_\n`;
+            const sub = prod.precio * item.cantidad;
+            subtotalProductos += sub;
+            textoMensajeWhatsApp += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(sub)}_\n`;
             productosParaAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
         }
     });
 
-    // 2. GENERACIÓN DEL PDF SI LA LIBRERÍA ESTÁ DISPONIBLE
+    let montoDescuento = subtotalProductos * descuentoPorcentaje;
+    let totalGeneral = subtotalProductos - montoDescuento + cargoPorEnvio;
+
     if (window.jspdf) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -806,17 +1022,25 @@ async function enviarPedidoFinal() {
         doc.setTextColor(17, 24, 39); doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.text("DATOS DEL CLIENTE Y LOGÍSTICA", 15, 48);
         doc.setDrawColor(192, 132, 252); doc.setLineWidth(0.5); doc.line(15, 51, 95, 51);
         doc.setFont("helvetica", "bold"); doc.text("Nombre Completo:", 15, 59); doc.setFont("helvetica", "normal"); doc.text(cliente, 55, 59);
-        doc.setFont("helvetica", "bold"); doc.text("Fecha de Entrega:", 15, 66); doc.setFont("helvetica", "normal"); doc.text(formatearFechaHumana(fecha), 55, 66);
-        doc.setFont("helvetica", "bold"); doc.text("Hora Aproximada:", 15, 73); doc.setFont("helvetica", "normal"); doc.text(hora, 55, 73);
-        doc.setFont("helvetica", "bold"); doc.text("Método de Pago:", 15, 80); doc.setFont("helvetica", "normal"); doc.text(metodoPago, 55, 80);
-        doc.setFont("helvetica", "bold"); doc.text("DETALLE DEL PEDIDO", 15, 93); doc.line(15, 96, 195, 96);
-        doc.setFillColor(249, 250, 251); doc.rect(15, 100, 180, 8, "F");
-        doc.setFontSize(10); doc.text("Cant.", 18, 105); doc.text("Código", 35, 105); doc.text("Descripción del Artículo", 65, 105); doc.text("Subtotal", 172, 105);
-        doc.setDrawColor(229, 231, 235); doc.line(15, 108, 195, 108);
-
-        let yPosition = 116; doc.setFont("helvetica", "normal");
+        doc.setFont("helvetica", "bold"); doc.text("Punto Entrega:", 15, 66); doc.setFont("helvetica", "normal"); doc.text(valorPuntoEntrega, 55, 66);
         
-        // Volvemos a recorrer solo para dibujar las líneas del PDF de forma segura
+        let compensacionY = 0;
+        if (valorPuntoEntrega === "Envío a Domicilio (Zona Urbana)") {
+            doc.setFont("helvetica", "bold"); doc.text("Dirección Envío:", 15, 73); doc.setFont("helvetica", "normal"); doc.text(direccionEnvio, 55, 73);
+            doc.setFont("helvetica", "bold"); doc.text("Plazo Promesa:", 15, 80); doc.setFont("helvetica", "bold"); doc.setFillColor(16, 185, 129); doc.text("¡Mañana a más tardar!", 55, 80);
+            compensacionY = 14;
+        }
+
+        doc.setFont("helvetica", "bold"); doc.text("Fecha de Entrega:", 15, 73 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(formatearFechaHumana(fecha), 55, 73 + compensacionY);
+        doc.setFont("helvetica", "bold"); doc.text("Hora Aproximada:", 15, 80 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(hora, 55, 80 + compensacionY);
+        doc.setFont("helvetica", "bold"); doc.text("Método de Pago:", 15, 87 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(metodoPago, 55, 87 + compensacionY);
+        doc.setFont("helvetica", "bold"); doc.text("DETALLE DEL PEDIDO", 15, 100 + compensacionY); doc.line(15, 103 + compensacionY, 195, 103 + compensacionY);
+        doc.setFillColor(249, 250, 251); doc.rect(15, 107 + compensacionY, 180, 8, "F");
+        doc.setFontSize(10); doc.text("Cant.", 18, 112 + compensacionY); doc.text("Código", 35, 112 + compensacionY); doc.text("Descripción del Artículo", 65, 112 + compensacionY); doc.text("Subtotal", 172, 112 + compensacionY);
+        doc.setDrawColor(229, 231, 235); doc.line(15, 115 + compensacionY, 195, 115 + compensacionY);
+
+        let yPosition = 123 + compensacionY; doc.setFont("helvetica", "normal");
+        
         carrito.forEach((item, index) => {
             const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
             if (!prod) return;
@@ -835,32 +1059,62 @@ async function enviarPedidoFinal() {
         });
 
         doc.setDrawColor(168, 85, 247); doc.setLineWidth(1); doc.line(15, yPosition, 195, yPosition);
-        yPosition += 12; doc.setFillColor(243, 232, 255); doc.rect(120, yPosition - 6, 75, 10, "F");
+        
+        yPosition += 8;
+        if (montoDescuento > 0 || cargoPorEnvio > 0) {
+            doc.setFontSize(10);
+            doc.text("Subtotal:", 145, yPosition); doc.text(formatearDinero(subtotalProductos), 172, yPosition);
+            yPosition += 6;
+            if (montoDescuento > 0) {
+                doc.text("Descuento:", 145, yPosition); doc.text(`-${formatearDinero(montoDescuento)}`, 172, yPosition);
+                yPosition += 6;
+            }
+            if (cargoPorEnvio > 0) {
+                doc.text("Envío:", 145, yPosition); doc.text(`+${formatearDinero(cargoPorEnvio)}`, 172, yPosition);
+                yPosition += 6;
+            }
+            yPosition += 2;
+        }
+
+        doc.setFillColor(243, 232, 255); doc.rect(120, yPosition - 6, 75, 10, "F");
         doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(107, 33, 168); 
-        doc.text("TOTAL A PAGAR:", 125, yPosition); doc.text(formatearDinero(total), 172, yPosition);
+        doc.text("TOTAL A PAGAR:", 125, yPosition); doc.text(formatearDinero(totalGeneral), 172, yPosition);
         doc.setTextColor(156, 163, 175); doc.setFontSize(9); doc.setFont("helvetica", "italic");
         doc.text("Gracias por tu preferencia. Conserva este PDF como tu comprobante de compra.", 15, yPosition + 15);
         const safeName = cliente.replace(/[^a-z0-9]/gi, '_').toLowerCase();
         doc.save(`Pedido_${safeName}_${fecha}.pdf`);
     }
 
-    textoMensajeWhatsApp += `\n💰 *TOTAL NETO A PAGAR: ${formatearDinero(total)}*\n\n`;
+    textoMensajeWhatsApp += `\n--------------------------------------\n`;
+    textoMensajeWhatsApp += `💰 *Subtotal:* ${formatearDinero(subtotalProductos)}\n`;
+    if (montoDescuento > 0) {
+        textoMensajeWhatsApp += `📉 *Descuento:* -${formatearDinero(montoDescuento)}\n`;
+    }
+    if (cargoPorEnvio > 0) {
+        textoMensajeWhatsApp += `📦 *Costo de Envío:* +${formatearDinero(cargoPorEnvio)}\n`;
+    }
+    textoMensajeWhatsApp += `💵 *TOTAL NETO A PAGAR: ${formatearDinero(totalGeneral)}*\n\n`;
+    
     if (window.jspdf) textoMensajeWhatsApp += `⚠️ _Nota: Ya he descargado mi comprobante oficial en formato PDF en mi dispositivo._`;
 
-    // 3. ENVÍO DE DATOS AL BACKEND (Cambia la URL si ya lo subiste a un hosting)
-    const BACKEND_URL = "http://127.0.0.1:5000/"; // <-- Si está en la nube, cambia por la IP pública o dominio
+    const BACKEND_URL = "http://127.0.0.1:5000/";
     
     fetch(BACKEND_URL, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ cliente: cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosParaAPI, metodo_pago: metodoPago }) 
+        body: JSON.stringify({ cliente: cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosParaAPI, metodo_pago: metodoPago, direccion: direccionEnvio }) 
     })
     .then(res => res.json())
     .then(data => console.log("Sincronizado con el servidor con éxito:", data))
     .catch(err => console.warn("Servidor offline, cambios guardados solo localmente.", err));
 
-    // 4. LIMPIEZA DE CARRITO Y REDIRECCIÓN A WHATSAPP
     carrito = [];
+    descuentoPorcentaje = 0;
+    codigoCuponActivo = "";
+    if(document.getElementById('input-cupon')) document.getElementById('input-cupon').value = "";
+    if(document.getElementById('mensaje-cupon')) document.getElementById('mensaje-cupon').textContent = "";
+    if(document.getElementById('direccion-envio')) document.getElementById('direccion-envio').value = "";
+    
     guardarCarritoEnLocalStorage();
     actualizarCarritoVisual();
 
