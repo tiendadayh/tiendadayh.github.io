@@ -1,6 +1,7 @@
 // =========================================================================
 // VARIABLES GLOBALES Y ESTADO DE LA APLICACIÓN
 // =========================================================================
+const BACKEND_URL = "http://127.0.0.1:5000"; // URL centralizada. Cambia esta por tu IP de producción
 const TELEFONO_WHATSAPP = "527442411773";
 let categorySeleccionada = "todas";
 let urlGlobalWhatsApp = "";
@@ -10,19 +11,20 @@ let WISHLIST_GLOBAL = [];
 let carrito = [];
 let indicesCarrusel = {};
 
-// NUEVAS VARIABLES PARA CUPONES Y LOGÍSTICA
-let descuentoPorcentaje = 0;
+// VARIABLES PARA CUPONES Y LOGÍSTICA
 let codigoCuponActivo = "";
 let cargoPorEnvio = 0;
 
-const CUPONES_VALIDOS = {
-    "BIENVENIDA10": 0.10, // 10% Descuento
-    "DAYH20": 0.20,       // 20% Descuento
-    "OFERTA15": 0.15      // 15% Descuento
+// SISTEMA DE CUPONES AVANZADO (Por categorías o globales)
+const CUPONES_CONFIG = {
+    "BIENVENIDA10": { descuento: 0.10, categoriaRestringida: null },
+    "DAYH20": { descuento: 0.20, categoriaRestringida: null },
+    "OFERTA15": { descuento: 0.15, categoriaRestringida: null },
+    "KIDS20": { descuento: 0.20, categoriaRestringida: "jugueteria" },
+    "MANUAL10": { descuento: 0.10, categoriaRestringida: "manualidades" }
 };
 
-// NOTA DE DESPLIEGUE: Reemplaza esta IP por la URL de tu servidor en la nube en producción
-const socket = typeof io !== 'undefined' ? io("http://127.0.0.1:5000") : null;
+const socket = typeof io !== 'undefined' ? io(BACKEND_URL) : null;
 
 const EVENTOS_CONFIG = [
     { titulo: "🎓 Graduaciones (Manualidades)", fecha: "Mes de Julio", descripcion: "Termina una etapa llena de aprendizajes.", categoriaVinculada: "manualidades", imagen: "imagenes_eventos/graduaciones.jpg" },
@@ -62,10 +64,10 @@ window.addEventListener('load', () => {
     }
 
     mostrarSkeletons();
-    setTimeout(() => {
-        cargarProductos(); 
-        verificarCarritoGuardadoAlEntrar();
-    }, 700); 
+    
+    // CORRECCIÓN: Se elimina el setTimeout artificial para evitar desfases visuales
+    cargarProductos(); 
+    verificarCarritoGuardadoAlEntrar();
     
     renderizarEventos();
     setupEventListeners();
@@ -148,6 +150,7 @@ function cargarProductos() {
             
             localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
             
+            // Al llamar a filtrarCatalogo, los esqueletos se sobreescriben automáticamente de forma inmediata
             actualizarContadoresCategorias();
             filtrarCatalogo();
             renderizarDestacados();
@@ -169,7 +172,7 @@ function cargarProductos() {
 }
 
 // =========================================================================
-// NUEVA LÓGICA DE CUPONES Y PUNTOS DE ENTREGA
+// LÓGICA DE CUPONES Y PUNTOS DE ENTREGA
 // =========================================================================
 function inicializarLogicaCuponesYEnvio() {
     const btnCupon = document.getElementById('btn-aplicar-cupon');
@@ -181,20 +184,19 @@ function inicializarLogicaCuponesYEnvio() {
         btnCupon.addEventListener('click', () => {
             const codigo = inputCupon.value.trim().toUpperCase();
             if (!codigo) {
-                descuentoPorcentaje = 0;
                 codigoCuponActivo = "";
                 msgCupon.textContent = "";
                 actualizarCarritoVisual();
                 return;
             }
 
-            if (CUPONES_VALIDOS.hasOwnProperty(codigo)) {
-                descuentoPorcentaje = CUPONES_VALIDOS[codigo];
+            if (CUPONES_CONFIG.hasOwnProperty(codigo)) {
                 codigoCuponActivo = codigo;
-                msgCupon.textContent = `🎟️ Cupón ${codigo} aplicado (-${descuentoPorcentaje * 100}%)`;
+                const conf = CUPONES_CONFIG[codigo];
+                const textCategoria = conf.categoriaRestringida ? ` (Solo en ${conf.categoriaRestringida})` : ``;
+                msgCupon.textContent = `🎟️ Cupón ${codigo} aplicado (-${conf.descuento * 100}%${textCategoria})`;
                 msgCupon.className = "mensaje-cupon exito";
             } else {
-                descuentoPorcentaje = 0;
                 codigoCuponActivo = "";
                 msgCupon.textContent = "❌ Código de cupón inválido o vencido.";
                 msgCupon.className = "mensaje-cupon error";
@@ -338,7 +340,7 @@ window.cambiarCantidad = function(codigo, cambio) {
 };
 
 // =========================================================================
-// FUNCIONES AUXILIARES DE UI, FACHADA Y HELPERS INTERNOS
+// FUNCIONES AUXILIARES DE UI Y HELPERS INTERNOS
 // =========================================================================
 function mostrarNotificacionFlotante(mensaje, duracion = 4000, colorFondo = '#2e1065') {
     const miniNotif = document.createElement('div');
@@ -719,7 +721,6 @@ function crearEfectoVolador(elementoOrigen) {
 function vaciarCarrito() {
     if (confirm("¿Estás seguro de vaciar el pedido?")) {
         carrito = [];
-        descuentoPorcentaje = 0;
         codigoCuponActivo = "";
         const msgCupon = document.getElementById('mensaje-cupon');
         const inputCupon = document.getElementById('input-cupon');
@@ -743,7 +744,6 @@ function actualizarCarritoVisual() {
     if (bContador) bContador.innerText = totalItems;
     if (bFlotante) bFlotante.innerText = totalItems;
 
-    // Elemento del mensaje e indicador dinámico de envío gratis
     const infoEnvioGratis = document.getElementById('info-envio-gratis');
     const contenedorDireccion = document.getElementById('contenedor-direccion-envio');
     const campoFecha = document.getElementById('fecha');
@@ -773,7 +773,10 @@ function actualizarCarritoVisual() {
 
     if (btnVaciar) btnVaciar.style.display = 'block';
     cont.innerHTML = ''; 
+    
     let subtotalGeneral = 0;
+    let montoDescuento = 0;
+    const configCupon = CUPONES_CONFIG[codigoCuponActivo] || null;
 
     carrito.forEach(item => {
         const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
@@ -781,6 +784,14 @@ function actualizarCarritoVisual() {
         const subtotal = (parseFloat(prod.precio) || 0) * item.cantidad;
         subtotalGeneral += subtotal;
         
+        // CALCULO DEL CUPÓN POR CATEGORIA
+        if (configCupon) {
+            const catProd = prod.categoria ? prod.categoria.toLowerCase() : "general";
+            if (!configCupon.categoriaRestringida || catProd === configCupon.categoriaRestringida.toLowerCase()) {
+                montoDescuento += subtotal * configCupon.descuento;
+            }
+        }
+
         const limiteAlcanzado = item.cantidad >= prod.stock;
 
         cont.innerHTML += `
@@ -797,16 +808,12 @@ function actualizarCarritoVisual() {
         </div>`;
     });
 
-    // ---- BLOQUE INYECTADO: VALIDACIÓN DE CUPÓN AUTOMÁTICO ----
-    // Validar cupón de fidelidad automático si supera los $500
     if (subtotalGeneral >= 500 && !localStorage.getItem('cupon_recompensa_visto')) {
         mostrarNotificacionFlotante("🎉 ¡Desbloqueaste el cupón EXTRA5! Aplícalo para obtener un 5% adicional.", 8000, '#10b981');
-        CUPONES_VALIDOS["EXTRA5"] = 0.05; // Lo inyectas dinámicamente al objeto de cupones
+        CUPONES_CONFIG["EXTRA5"] = { descuento: 0.05, categoriaRestringida: null };
         localStorage.setItem('cupon_recompensa_visto', 'true');
     }
-    // ----------------------------------------------------------
     
-    // --- LÓGICA E INDICADOR DE ENVÍO GRATIS ---
     let alcanzoEnvioGratis = false;
     if (infoEnvioGratis) {
         infoEnvioGratis.style.display = "block";
@@ -836,7 +843,6 @@ function actualizarCarritoVisual() {
         }
     }
 
-    // --- CONTROL DINÁMICO DE OPCIONES DE ENVÍO Y ENTREGA ---
     const puntoEntrega = document.getElementById('select-punto-entrega');
     const campoHora = document.getElementById('hora');
     
@@ -849,16 +855,12 @@ function actualizarCarritoVisual() {
             
             if (contenedorDireccion) contenedorDireccion.style.display = "block";
 
-            // AUTO-PROGRAMACIÓN DE LA FECHA PARA MAÑANA
             if (campoFecha) {
                 const mananaObj = new Date();
                 mananaObj.setDate(mananaObj.getDate() + 1);
                 
-                if (mananaObj.getDay() === 0) { // Si es Domingo, pasa a Lunes
-                    mananaObj.setDate(mananaObj.getDate() + 1);
-                } else if (mananaObj.getDay() === 6) { // Si es Sábado, pasa a Lunes
-                    mananaObj.setDate(mananaObj.getDate() + 2);
-                }
+                if (mananaObj.getDay() === 0) mananaObj.setDate(mananaObj.getDate() + 1);
+                else if (mananaObj.getDay() === 6) mananaObj.setDate(mananaObj.getDate() + 2);
 
                 const mananaStr = `${mananaObj.getFullYear()}-${String(mananaObj.getMonth() + 1).padStart(2, '0')}-${String(mananaObj.getDate()).padStart(2, '0')}`;
                 campoFecha.value = mananaStr;
@@ -866,26 +868,21 @@ function actualizarCarritoVisual() {
                 campoFecha.style.opacity = "0.7";
             }
 
-            // AUTO-PROGRAMACIÓN DEL HORARIO FIJO (4:00 PM A 5:00 PM)
             if (campoHora) {
                 campoHora.innerHTML = `<option value="04:00 PM a 05:00 PM" selected>04:00 PM a 05:00 PM</option>`;
                 campoHora.disabled = true;
                 campoHora.style.opacity = "0.7";
             }
         } else {
-            // Si no alcanza el envío gratis, se restablecen los controles manuales normales
             if (contenedorDireccion) contenedorDireccion.style.display = "none";
             if (campoFecha) { campoFecha.disabled = false; campoFecha.style.opacity = "1"; }
             if (campoHora) { campoHora.disabled = false; campoHora.style.opacity = "1"; }
             puntoEntrega.selectedIndex = 1; 
-            validarHorariosDisponibles(); // Regenera la lista de horas normal
+            validarHorariosDisponibles(); 
         }
     }
 
     cargoPorEnvio = 0; 
-
-    // Calcular descuentos y totales finales
-    let montoDescuento = subtotalGeneral * descuentoPorcentaje;
     let totalFinal = subtotalGeneral - montoDescuento + cargoPorEnvio;
 
     document.getElementById('resumen-subtotal').innerText = formatearDinero(subtotalGeneral);
@@ -899,7 +896,7 @@ function actualizarCarritoVisual() {
 
     if (puntoEntrega && puntoEntrega.value !== "") {
         document.getElementById('fila-envio').style.display = "flex";
-        document.getElementById('resumen-envio').innerText = "¡Gratis! 🎉";
+        document.getElementById('resumen-envio').innerText = "¡Gratis comprando 150 de productos!🎉";
         document.getElementById('resumen-envio').style.color = "var(--success)";
     } else {
         document.getElementById('fila-envio').style.display = "none";
@@ -911,7 +908,7 @@ function actualizarCarritoVisual() {
 }
 
 // =========================================================================
-// MÓDULO INTELIGENTE DE CROSS-SELLING (VENTA CRUZADA)
+// MÓDULO INTELIGENTE DE CROSS-SELLING (CORREGIDO XSS)
 // =========================================================================
 function renderizarCrossSelling() {
     let contenedorCross = document.querySelector('.contenedor-cross-selling');
@@ -934,12 +931,13 @@ function renderizarCrossSelling() {
                 const arrImg = obtenerArregloImagenes(p);
                 let imgN = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
                 let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/50x50?text=Prod';
+                const artLimpio = p.articulo.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // XSS Fix
                 
                 return `
                 <div class="tarjeta-cross">
-                    <img src="${rImg}" alt="${p.articulo}" onerror="this.src='https://placehold.co/50x50?text=Prod'">
+                    <img src="${rImg}" alt="${artLimpio}" onerror="this.src='https://placehold.co/50x50?text=Prod'">
                     <div class="info-cross">
-                        <strong style="font-size: 12px; display: block;">${p.articulo}</strong>
+                        <strong style="font-size: 12px; display: block;" title="${artLimpio}">${artLimpio}</strong>
                         <span style="color: var(--primary-light); font-size: 11px;">$${p.precio.toFixed(2)}</span>
                     </div>
                     <button class="btn" style="padding: 4px 10px; font-size: 11px; margin: 0; width: auto;" 
@@ -952,6 +950,9 @@ function renderizarCrossSelling() {
     `;
 }
 
+// =========================================================================
+// PROCESAMIENTO ASÍNCRONO DEL PEDIDO FINAL Y GENERACIÓN DE PDF
+// =========================================================================
 async function enviarPedidoFinal() {
     if (carrito.length === 0) { alert("Tu carrito está vacío"); return; }
     
@@ -969,7 +970,6 @@ async function enviarPedidoFinal() {
     const metodoPago = document.getElementById('metodo-pago') ? document.getElementById('metodo-pago').value : "No especificado";
     const direccionEnvio = document.getElementById('direccion-envio') ? document.getElementById('direccion-envio').value.trim() : "";
 
-    // Validar si es envío a domicilio y requiere dirección obligatoria
     if (valorPuntoEntrega === "Envío a Domicilio (Zona Urbana)" && direccionEnvio.length < 5) {
         alert("Por favor, escribe la dirección completa donde se realizará el envío.");
         return;
@@ -980,161 +980,184 @@ async function enviarPedidoFinal() {
         return; 
     }
 
-    lanzarEfectoConfeti();
-    let subtotalProductos = 0;
-    let textoMensajeWhatsApp = `*¡Hola Tienda DAYH! Generé un nuevo pedido* 📄🛒\n\n`;
-    textoMensajeWhatsApp += `👤 *Cliente:* ${cliente}\n`;
-    textoMensajeWhatsApp += `📍 *Punto/Entrega:* ${valorPuntoEntrega}\n`;
-    
-    if (valorPuntoEntrega === "Envío a Domicilio (Zona Urbana)") {
-        textoMensajeWhatsApp += `🏠 *Dirección de Envío:* ${direccionEnvio}\n`;
-        textoMensajeWhatsApp += `🚚 *Plazo de Entrega:* ¡Mañana garantizado en horario especial de 4:00 PM a 5:00 PM!\n`;
-    }
+    const btnEnviar = document.getElementById('btn-enviar-pedido');
+    const textoOriginal = btnEnviar.innerText;
+    btnEnviar.innerText = "Procesando pedido...";
+    btnEnviar.disabled = true;
 
-    textoMensajeWhatsApp += `📅 *Fecha de Entrega:* ${formatearFechaHumana(fecha)}\n`;
-    textoMensajeWhatsApp += `⏰ *Hora Aproximada:* ${hora}\n`;
-    textoMensajeWhatsApp += `💳 *Forma de Pago:* ${metodoPago}\n`;
-    if (codigoCuponActivo) {
-        textoMensajeWhatsApp += `🎟️ *Cupón Aplicado:* ${codigoCuponActivo}\n`;
-    }
-    textoMensajeWhatsApp += `\n📦 *DETALLE DEL PEDIDO:*\n`;
+    try {
+        let subtotalProductos = 0;
+        let montoDescuento = 0;
+        const configCupon = CUPONES_CONFIG[codigoCuponActivo] || null;
+        const productosParaAPI = [];
 
-    const productosParaAPI = [];
-    carrito.forEach(item => {
-        const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
-        if (prod) {
-            const sub = prod.precio * item.cantidad;
-            subtotalProductos += sub;
-            textoMensajeWhatsApp += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(sub)}_\n`;
-            productosParaAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
-        }
-    });
-
-    let montoDescuento = subtotalProductos * descuentoPorcentaje;
-    let totalGeneral = subtotalProductos - montoDescuento + cargoPorEnvio;
-
-    if (window.jspdf) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFillColor(168, 85, 247); doc.rect(0, 0, 210, 35, "F");
-        doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.text("TIENDA DAYH", 15, 18);
-        doc.setFont("helvetica", "italic"); doc.setFontSize(10); doc.text("Tu catálogo de confianza — Comprobante Oficial de Pedido", 15, 26);
-        doc.setTextColor(17, 24, 39); doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.text("DATOS DEL CLIENTE Y LOGÍSTICA", 15, 48);
-        doc.setDrawColor(192, 132, 252); doc.setLineWidth(0.5); doc.line(15, 51, 95, 51);
-        doc.setFont("helvetica", "bold"); doc.text("Nombre Completo:", 15, 59); doc.setFont("helvetica", "normal"); doc.text(cliente, 55, 59);
-        doc.setFont("helvetica", "bold"); doc.text("Punto Entrega:", 15, 66); doc.setFont("helvetica", "normal"); doc.text(valorPuntoEntrega, 55, 66);
+        let textoMensajeWhatsApp = `*¡Hola Tienda DAYH! Generé un nuevo pedido* 📄🛒\n\n`;
+        textoMensajeWhatsApp += `👤 *Cliente:* ${cliente}\n`;
+        textoMensajeWhatsApp += `📍 *Punto/Entrega:* ${valorPuntoEntrega}\n`;
         
-        let compensacionY = 0;
         if (valorPuntoEntrega === "Envío a Domicilio (Zona Urbana)") {
-            doc.setFont("helvetica", "bold"); doc.text("Dirección Envío:", 15, 73); doc.setFont("helvetica", "normal"); doc.text(direccionEnvio, 55, 73);
-            doc.setFont("helvetica", "bold"); doc.text("Plazo Promesa:", 15, 80); doc.setFont("helvetica", "bold"); doc.setFillColor(16, 185, 129); doc.text("¡Mañana a más tardar!", 55, 80);
-            compensacionY = 14;
+            textoMensajeWhatsApp += `🏠 *Dirección de Envío:* ${direccionEnvio}\n`;
+            textoMensajeWhatsApp += `🚚 *Plazo de Entrega:* ¡Mañana garantizado en horario especial de 4:00 PM a 5:00 PM!\n`;
         }
 
-        doc.setFont("helvetica", "bold"); doc.text("Fecha de Entrega:", 15, 73 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(formatearFechaHumana(fecha), 55, 73 + compensacionY);
-        doc.setFont("helvetica", "bold"); doc.text("Hora Aproximada:", 15, 80 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(hora, 55, 80 + compensacionY);
-        doc.setFont("helvetica", "bold"); doc.text("Método de Pago:", 15, 87 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(metodoPago, 55, 87 + compensacionY);
-        doc.setFont("helvetica", "bold"); doc.text("DETALLE DEL PEDIDO", 15, 100 + compensacionY); doc.line(15, 103 + compensacionY, 195, 103 + compensacionY);
-        doc.setFillColor(249, 250, 251); doc.rect(15, 107 + compensacionY, 180, 8, "F");
-        doc.setFontSize(10); doc.text("Cant.", 18, 112 + compensacionY); doc.text("Código", 35, 112 + compensacionY); doc.text("Descripción del Artículo", 65, 112 + compensacionY); doc.text("Subtotal", 172, 112 + compensacionY);
-        doc.setDrawColor(229, 231, 235); doc.line(15, 115 + compensacionY, 195, 115 + compensacionY);
+        textoMensajeWhatsApp += `📅 *Fecha de Entrega:* ${formatearFechaHumana(fecha)}\n`;
+        textoMensajeWhatsApp += `⏰ *Hora Aproximada:* ${hora}\n`;
+        textoMensajeWhatsApp += `💳 *Forma de Pago:* ${metodoPago}\n`;
+        if (codigoCuponActivo) {
+            textoMensajeWhatsApp += `🎟️ *Cupón Aplicado:* ${codigoCuponActivo}\n`;
+        }
+        textoMensajeWhatsApp += `\n📦 *DETALLE DEL PEDIDO:*\n`;
 
-        let yPosition = 123 + compensacionY; doc.setFont("helvetica", "normal");
-        
-        carrito.forEach((item, index) => {
+        carrito.forEach(item => {
             const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
-            if (!prod) return;
-            const subtotal = prod.precio * item.cantidad;
-            if (yPosition > 270) {
-                doc.addPage(); yPosition = 25; 
-                doc.setFont("helvetica", "bold"); doc.setFillColor(249, 250, 251); doc.rect(15, yPosition - 5, 180, 8, "F");
-                doc.text("Cant.", 18, yPosition); doc.text("Código", 35, yPosition); doc.text("Descripción del Artículo", 65, yPosition); doc.text("Subtotal", 172, yPosition);
-                yPosition += 12; doc.setFont("helvetica", "normal");
+            if (prod) {
+                const sub = prod.precio * item.cantidad;
+                subtotalProductos += sub;
+                
+                if (configCupon) {
+                    const catProd = prod.categoria ? prod.categoria.toLowerCase() : "general";
+                    if (!configCupon.categoriaRestringida || catProd === configCupon.categoriaRestringida.toLowerCase()) {
+                        montoDescuento += sub * configCupon.descuento;
+                    }
+                }
+
+                textoMensajeWhatsApp += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(sub)}_\n`;
+                productosParaAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
             }
-            if (index % 2 === 0) { doc.setFillColor(253, 244, 255); doc.rect(15, yPosition - 5, 180, 8, "F"); }
-            doc.text(`${item.cantidad}x`, 18, yPosition); doc.text(prod.codigo, 35, yPosition);
-            const itemNombre = prod.articulo.length > 40 ? prod.articulo.substring(0, 37) + "..." : prod.articulo;
-            doc.text(itemNombre, 65, yPosition); doc.text(formatearDinero(subtotal), 172, yPosition);
-            yPosition += 8;
         });
 
-        doc.setDrawColor(168, 85, 247); doc.setLineWidth(1); doc.line(15, yPosition, 195, yPosition);
-        
-        yPosition += 8;
-        if (montoDescuento > 0 || cargoPorEnvio > 0) {
-            doc.setFontSize(10);
-            doc.text("Subtotal:", 145, yPosition); doc.text(formatearDinero(subtotalProductos), 172, yPosition);
-            yPosition += 6;
-            if (montoDescuento > 0) {
-                doc.text("Descuento:", 145, yPosition); doc.text(`-${formatearDinero(montoDescuento)}`, 172, yPosition);
-                yPosition += 6;
+        let totalGeneral = subtotalProductos - montoDescuento + cargoPorEnvio;
+
+        // Generación del PDF
+        if (window.jspdf) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFillColor(168, 85, 247); doc.rect(0, 0, 210, 35, "F");
+            doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.text("TIENDA DAYH", 15, 18);
+            doc.setFont("helvetica", "italic"); doc.setFontSize(10); doc.text("Tu catálogo de confianza — Comprobante Oficial de Pedido", 15, 26);
+            doc.setTextColor(17, 24, 39); doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.text("DATOS DEL CLIENTE Y LOGÍSTICA", 15, 48);
+            doc.setDrawColor(192, 132, 252); doc.setLineWidth(0.5); doc.line(15, 51, 95, 51);
+            doc.setFont("helvetica", "bold"); doc.text("Nombre Completo:", 15, 59); doc.setFont("helvetica", "normal"); doc.text(cliente, 55, 59);
+            doc.setFont("helvetica", "bold"); doc.text("Punto Entrega:", 15, 66); doc.setFont("helvetica", "normal"); doc.text(valorPuntoEntrega, 55, 66);
+            
+            let compensacionY = 0;
+            if (valorPuntoEntrega === "Envío a Domicilio (Zona Urbana)") {
+                doc.setFont("helvetica", "bold"); doc.text("Dirección Envío:", 15, 73); doc.setFont("helvetica", "normal"); doc.text(direccionEnvio, 55, 73);
+                doc.setFont("helvetica", "bold"); doc.text("Plazo Promesa:", 15, 80); doc.setFont("helvetica", "bold"); doc.setFillColor(16, 185, 129); doc.text("¡Mañana a más tardar!", 55, 80);
+                compensacionY = 14;
             }
-            if (cargoPorEnvio > 0) {
-                doc.text("Envío:", 145, yPosition); doc.text(`+${formatearDinero(cargoPorEnvio)}`, 172, yPosition);
+
+            doc.setFont("helvetica", "bold"); doc.text("Fecha de Entrega:", 15, 73 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(formatearFechaHumana(fecha), 55, 73 + compensacionY);
+            doc.setFont("helvetica", "bold"); doc.text("Hora Aproximada:", 15, 80 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(hora, 55, 80 + compensacionY);
+            doc.setFont("helvetica", "bold"); doc.text("Método de Pago:", 15, 87 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(metodoPago, 55, 87 + compensacionY);
+            doc.setFont("helvetica", "bold"); doc.text("DETALLE DEL PEDIDO", 15, 100 + compensacionY); doc.line(15, 103 + compensacionY, 195, 103 + compensacionY);
+            doc.setFillColor(249, 250, 251); doc.rect(15, 107 + compensacionY, 180, 8, "F");
+            doc.setFontSize(10); doc.text("Cant.", 18, 112 + compensacionY); doc.text("Código", 35, 112 + compensacionY); doc.text("Descripción del Artículo", 65, 112 + compensacionY); doc.text("Subtotal", 172, 112 + compensacionY);
+            doc.setDrawColor(229, 231, 235); doc.line(15, 115 + compensacionY, 195, 115 + compensacionY);
+
+            let yPosition = 123 + compensacionY; doc.setFont("helvetica", "normal");
+            
+            carrito.forEach((item, index) => {
+                const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
+                if (!prod) return;
+                const subtotal = prod.precio * item.cantidad;
+                if (yPosition > 270) {
+                    doc.addPage(); yPosition = 25; 
+                    doc.setFont("helvetica", "bold"); doc.setFillColor(249, 250, 251); doc.rect(15, yPosition - 5, 180, 8, "F");
+                    doc.text("Cant.", 18, yPosition); doc.text("Código", 35, yPosition); doc.text("Descripción del Artículo", 65, yPosition); doc.text("Subtotal", 172, yPosition);
+                    yPosition += 12; doc.setFont("helvetica", "normal");
+                }
+                if (index % 2 === 0) { doc.setFillColor(253, 244, 255); doc.rect(15, yPosition - 5, 180, 8, "F"); }
+                doc.text(`${item.cantidad}x`, 18, yPosition); doc.text(prod.codigo, 35, yPosition);
+                const itemNombre = prod.articulo.length > 40 ? prod.articulo.substring(0, 37) + "..." : prod.articulo;
+                doc.text(itemNombre, 65, yPosition); doc.text(formatearDinero(subtotal), 172, yPosition);
+                yPosition += 8;
+            });
+
+            doc.setDrawColor(168, 85, 247); doc.setLineWidth(1); doc.line(15, yPosition, 195, yPosition);
+            
+            yPosition += 8;
+            if (montoDescuento > 0 || cargoPorEnvio > 0) {
+                doc.setFontSize(10);
+                doc.text("Subtotal:", 145, yPosition); doc.text(formatearDinero(subtotalProductos), 172, yPosition);
                 yPosition += 6;
+                if (montoDescuento > 0) {
+                    doc.text("Descuento:", 145, yPosition); doc.text(`-${formatearDinero(montoDescuento)}`, 172, yPosition);
+                    yPosition += 6;
+                }
+                if (cargoPorEnvio > 0) {
+                    doc.text("Envío:", 145, yPosition); doc.text(`+${formatearDinero(cargoPorEnvio)}`, 172, yPosition);
+                    yPosition += 6;
+                }
+                yPosition += 2;
             }
-            yPosition += 2;
+
+            doc.setFillColor(243, 232, 255); doc.rect(120, yPosition - 6, 75, 10, "F");
+            doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(107, 33, 168); 
+            doc.text("TOTAL A PAGAR:", 125, yPosition); doc.text(formatearDinero(totalGeneral), 172, yPosition);
+            doc.setTextColor(156, 163, 175); doc.setFontSize(9); doc.setFont("helvetica", "italic");
+            doc.text("Gracias por tu preferencia. Conserva este PDF como tu comprobante de compra.", 15, yPosition + 15);
+            const safeName = cliente.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            doc.save(`Pedido_${safeName}_${fecha}.pdf`);
         }
 
-        doc.setFillColor(243, 232, 255); doc.rect(120, yPosition - 6, 75, 10, "F");
-        doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(107, 33, 168); 
-        doc.text("TOTAL A PAGAR:", 125, yPosition); doc.text(formatearDinero(totalGeneral), 172, yPosition);
-        doc.setTextColor(156, 163, 175); doc.setFontSize(9); doc.setFont("helvetica", "italic");
-        doc.text("Gracias por tu preferencia. Conserva este PDF como tu comprobante de compra.", 15, yPosition + 15);
-        const safeName = cliente.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        doc.save(`Pedido_${safeName}_${fecha}.pdf`);
+        textoMensajeWhatsApp += `\n--------------------------------------\n`;
+        textoMensajeWhatsApp += `💰 *Subtotal:* ${formatearDinero(subtotalProductos)}\n`;
+        if (montoDescuento > 0) {
+            textoMensajeWhatsApp += `📉 *Descuento:* -${formatearDinero(montoDescuento)}\n`;
+        }
+        if (cargoPorEnvio > 0) {
+            textoMensajeWhatsApp += `📦 *Costo de Envío:* +${formatearDinero(cargoPorEnvio)}\n`;
+        }
+        textoMensajeWhatsApp += `💵 *TOTAL NETO A PAGAR: ${formatearDinero(totalGeneral)}*\n\n`;
+        
+        if (window.jspdf) textoMensajeWhatsApp += `⚠️ _Nota: Ya he descargado mi comprobante oficial en formato PDF en mi dispositivo._`;
+
+        // Petición al servidor (Asíncrona)
+        const response = await fetch(`${BACKEND_URL}/api/pedidos`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ cliente: cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosParaAPI, metodo_pago: metodoPago, direccion: direccionEnvio }) 
+        });
+
+        // Opcional: Manejar errores del servidor si quieres que no avance si el servidor falla
+        // if (!response.ok) throw new Error("Servidor no pudo procesar.");
+
+        // Limpiar el estado y la UI si tuvo éxito
+        lanzarEfectoConfeti();
+        carrito = [];
+        codigoCuponActivo = "";
+        if(document.getElementById('input-cupon')) document.getElementById('input-cupon').value = "";
+        if(document.getElementById('mensaje-cupon')) document.getElementById('mensaje-cupon').textContent = "";
+        if(document.getElementById('direccion-envio')) document.getElementById('direccion-envio').value = "";
+        
+        guardarCarritoEnLocalStorage();
+        actualizarCarritoVisual();
+        actualizarContadoresCategorias();
+        filtrarCatalogo(); 
+        renderizarDestacados();
+        renderizarWishlist();
+
+        localStorage.setItem("nombre_cliente_dayh", cliente);
+        if (document.getElementById("fecha")) document.getElementById("fecha").value = "";
+        if (document.getElementById("hora")) document.getElementById("hora").value = "";
+
+        const numeroDestino = typeof TELEFONO_WHATSAPP !== 'undefined' ? TELEFONO_WHATSAPP : "527442411773";
+        window.open(`https://wa.me/${numeroDestino}?text=${encodeURIComponent(textoMensajeWhatsApp)}`, '_blank');
+
+        if (document.getElementById('alerta-copiado')) {
+            const alerta = document.getElementById('alerta-copiado');
+            alerta.innerText = "¡PDF generado y pedido sincronizado! 📄📱";
+            alerta.style.display = 'block';
+        }
+
+    } catch (err) {
+        console.error("Error al sincronizar el pedido:", err);
+        alert("Hubo un problema al registrar el pedido en el servidor. Por favor, reintenta.");
+    } finally {
+        btnEnviar.innerText = textoOriginal;
+        btnEnviar.disabled = false;
     }
-
-    textoMensajeWhatsApp += `\n--------------------------------------\n`;
-    textoMensajeWhatsApp += `💰 *Subtotal:* ${formatearDinero(subtotalProductos)}\n`;
-    if (montoDescuento > 0) {
-        textoMensajeWhatsApp += `📉 *Descuento:* -${formatearDinero(montoDescuento)}\n`;
-    }
-    if (cargoPorEnvio > 0) {
-        textoMensajeWhatsApp += `📦 *Costo de Envío:* +${formatearDinero(cargoPorEnvio)}\n`;
-    }
-    textoMensajeWhatsApp += `💵 *TOTAL NETO A PAGAR: ${formatearDinero(totalGeneral)}*\n\n`;
-    
-    if (window.jspdf) textoMensajeWhatsApp += `⚠️ _Nota: Ya he descargado mi comprobante oficial en formato PDF en mi dispositivo._`;
-
-    const BACKEND_URL = "http://127.0.0.1:5000/";
-    
-    fetch(BACKEND_URL, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ cliente: cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosParaAPI, metodo_pago: metodoPago, direccion: direccionEnvio }) 
-    })
-    .then(res => res.json())
-    .then(data => console.log("Sincronizado con el servidor con éxito:", data))
-    .catch(err => console.warn("Servidor offline, cambios guardados solo localmente.", err));
-
-    carrito = [];
-    descuentoPorcentaje = 0;
-    codigoCuponActivo = "";
-    if(document.getElementById('input-cupon')) document.getElementById('input-cupon').value = "";
-    if(document.getElementById('mensaje-cupon')) document.getElementById('mensaje-cupon').textContent = "";
-    if(document.getElementById('direccion-envio')) document.getElementById('direccion-envio').value = "";
-    
-    guardarCarritoEnLocalStorage();
-    actualizarCarritoVisual();
-
-    const numeroDestino = typeof TELEFONO_WHATSAPP !== 'undefined' ? TELEFONO_WHATSAPP : "527442411773";
-    window.open(`https://wa.me/${numeroDestino}?text=${encodeURIComponent(textoMensajeWhatsApp)}`, '_blank');
-
-    if (document.getElementById('alerta-copiado')) {
-        const alerta = document.getElementById('alerta-copiado');
-        alerta.innerText = "¡PDF generado y pedido enviado a WhatsApp! 📄📱";
-        alerta.style.display = 'block';
-    }
-
-    localStorage.setItem("nombre_cliente_dayh", cliente);
-    if (document.getElementById("fecha")) document.getElementById("fecha").value = "";
-    if (document.getElementById("hora")) document.getElementById("hora").value = "";
-    
-    actualizarContadoresCategorias();
-    filtrarCatalogo(); 
-    renderizarDestacados();
-    renderizarWishlist();
 }
 
 function abrirChatManual() { if (urlGlobalWhatsApp) window.open(urlGlobalWhatsApp, '_blank'); }
