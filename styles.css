@@ -261,7 +261,7 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
 @keyframes pop-carrito { 0% { transform: scale(1); } 50% { transform: scale(1.25) rotate(-10deg); } 100% { transform: scale(1); } }
 .animar-pop { animation: pop-carrito 0.4s ease-in-out; }
 
-/* ---- NUEVOS ESTILOS CYBERPUNK PARA SKELETONS INYECTADOS AQUÍ ---- */
+/* ---- NUEVOS ESTILOS CYBERPUNK PARA SKELETONS ---- */
 @keyframes skeleton-glow { 0% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 .skeleton-card { 
     background: linear-gradient(135deg, rgba(31, 41, 55, 0.6) 0%, rgba(17, 24, 39, 0.4) 100%);
@@ -281,7 +281,6 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
     height: 130px; 
     border-radius: 10px; 
 }
-/* ----------------------------------------------------------------- */
 
 .btn-compartir { position: absolute; top: 8px; right: 8px; background: rgba(31, 41, 55, 0.8); border: 1px solid var(--border); color: var(--text-light); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; z-index: 3; transition: all 0.2s; }
 .btn-compartir:hover { background: var(--primary); color: white; border-color: var(--primary-light); transform: scale(1.1); }
@@ -360,12 +359,12 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
 }
 
 .info-cross {
-    flex-grow: 1; /* <-- Corregido para distribución adaptativa */
+    flex-grow: 1; 
     margin-left: 10px;
     text-align: left;
 }
 
-.info-cross h4 {
+.info-cross strong {
     font-size: 12px;
     margin: 0;
     color: var(--text);
@@ -375,7 +374,7 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
     max-width: 150px;
 }
 
-.info-cross p {
+.info-cross span {
     font-size: 11px;
     margin: 2px 0 0 0;
     color: var(--primary-light);

@@ -32,6 +32,30 @@ const EVENTOS_CONFIG = [
 ];
 
 // =========================================================================
+// SISTEMA DE AUDIO-FEEDBACK
+// =========================================================================
+const EFECTOS_SONIDO = {
+    agregar: "https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav",
+    eliminar: "https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav",
+    cupon: "https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav",
+    error: "https://assets.mixkit.co/active_storage/sfx/2573/2573-84.wav",
+    pedido: "https://assets.mixkit.co/active_storage/sfx/1435/1435-84.wav"
+};
+
+function reproducirSonido(tipo) {
+    if (!EFECTOS_SONIDO[tipo]) return;
+    try {
+        const audio = new Audio(EFECTOS_SONIDO[tipo]);
+        audio.volume = 0.15; // 15% de volumen para ser sutil
+        audio.play().catch(error => {
+            console.log("El navegador requiere interacción previa para el audio:", error);
+        });
+    } catch (e) {
+        console.error("Error al reproducir audio:", e);
+    }
+}
+
+// =========================================================================
 // INICIALIZACIÓN DE LA APLICACIÓN
 // =========================================================================
 window.addEventListener('load', () => {
@@ -64,11 +88,8 @@ window.addEventListener('load', () => {
     }
 
     mostrarSkeletons();
-    
-    // CORRECCIÓN: Se elimina el setTimeout artificial para evitar desfases visuales
     cargarProductos(); 
     verificarCarritoGuardadoAlEntrar();
-    
     renderizarEventos();
     setupEventListeners();
     configurarWebSockets();
@@ -99,7 +120,6 @@ function configurarWebSockets() {
         if (producto) {
             producto.stock = parseInt(nuevo_stock) || 0;
             
-            // Validar si el cliente web excedió el nuevo stock real con su carrito
             const itemEnCarrito = carrito.find(i => i.codigo === codigo);
             if (itemEnCarrito && itemEnCarrito.cantidad > producto.stock) {
                 itemEnCarrito.cantidad = producto.stock;
@@ -150,7 +170,6 @@ function cargarProductos() {
             
             localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
             
-            // Al llamar a filtrarCatalogo, los esqueletos se sobreescriben automáticamente de forma inmediata
             actualizarContadoresCategorias();
             filtrarCatalogo();
             renderizarDestacados();
@@ -191,12 +210,14 @@ function inicializarLogicaCuponesYEnvio() {
             }
 
             if (CUPONES_CONFIG.hasOwnProperty(codigo)) {
+                reproducirSonido('cupon');
                 codigoCuponActivo = codigo;
                 const conf = CUPONES_CONFIG[codigo];
                 const textCategoria = conf.categoriaRestringida ? ` (Solo en ${conf.categoriaRestringida})` : ``;
                 msgCupon.textContent = `🎟️ Cupón ${codigo} aplicado (-${conf.descuento * 100}%${textCategoria})`;
                 msgCupon.className = "mensaje-cupon exito";
             } else {
+                reproducirSonido('error');
                 codigoCuponActivo = "";
                 msgCupon.textContent = "❌ Código de cupón inválido o vencido.";
                 msgCupon.className = "mensaje-cupon error";
@@ -214,6 +235,7 @@ function inicializarLogicaCuponesYEnvio() {
                 if (contenedorDireccion) contenedorDireccion.style.display = "none";
             }
             actualizarCarritoVisual();
+            validarHorariosDisponibles();
         });
     }
 }
@@ -297,6 +319,7 @@ window.agregarAlCarrito = function (codigo) {
     const cantidadActual = item ? item.cantidad : 0;
     
     if (prod.stock > cantidadActual) {
+        reproducirSonido('agregar');
         if (item) item.cantidad += 1;
         else carrito.push({ codigo: codigo, cantidad: 1 });
         
@@ -307,6 +330,7 @@ window.agregarAlCarrito = function (codigo) {
         renderizarWishlist();
         dispararAnimacionCarrito();
     } else {
+        reproducirSonido('error');
         alert("Lo sentimos, ya no quedan más unidades disponibles en el inventario.");
     }
 };
@@ -318,12 +342,15 @@ window.cambiarCantidad = function(codigo, cambio) {
 
     if (cambio === 1) {
         if (prod.stock > item.cantidad) { 
+            reproducirSonido('agregar');
             item.cantidad += 1; 
             dispararAnimacionCarrito(); 
         } else {
+            reproducirSonido('error');
             alert("Lo sentimos, ya no quedan más unidades disponibles.");
         }
     } else if (cambio === -1) {
+        reproducirSonido('eliminar');
         item.cantidad -= 1;
         if (item.cantidad <= 0) {
             const idx = carrito.findIndex(i => i.codigo === codigo);
@@ -484,12 +511,14 @@ function configuringCamposFecha() {
             const fechaSeleccionada = e.target.value;
             if (!fechaSeleccionada) return;
             if (DIAS_FESTIVOS.includes(fechaSeleccionada)) {
+                reproducirSonido('error');
                 alert("⚠️ Los días festivos oficiales no realizamos entregas. Por favor selecciona otro día.");
                 e.target.value = '';
                 return;
             }
             const fechaObj = new Date(fechaSeleccionada + 'T00:00:00');
             if (fechaObj.getDay() === 0 || fechaObj.getDay() === 6) {
+                reproducirSonido('error');
                 alert("⚠️ Los fines de semana no realizamos entregas. Selecciona de Lunes a Viernes.");
                 e.target.value = '';
                 return;
@@ -501,15 +530,46 @@ function configuringCamposFecha() {
     if(campoHora) campoHora.addEventListener('focus', validarHorariosDisponibles);
 }
 
+// =========================================================================
+// VALIDAR HORARIOS DISPONIBLES
+// =========================================================================
 function validarHorariosDisponibles() {
     const campoFecha = document.getElementById('fecha');
     const campoHora = document.getElementById('hora');
+    const selectEntrega = document.getElementById('select-punto-entrega');
     if (!campoFecha || !campoHora) return;
 
     const fechaSeleccionada = campoFecha.value;
     const ahora = new Date();
     const hoyStr = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
-    const valorPreselección = campoHora.value;
+    const valorPreseleccion = campoHora.value;
+    const esEnvio = selectEntrega && selectEntrega.value === "Envío a Domicilio (Zona Urbana)";
+
+    campoHora.innerHTML = '';
+
+    if (esEnvio) {
+        let incluirEnvio = true;
+        if (fechaSeleccionada === hoyStr) {
+            const horaActual = ahora.getHours();
+            const minActual = ahora.getMinutes();
+            if (horaActual > 16 || (horaActual === 16 && minActual > 15)) {
+                incluirEnvio = false;
+            }
+        }
+        
+        if (incluirEnvio) {
+            const opt = document.createElement('option');
+            opt.value = "04:00 PM";
+            opt.innerText = "04:00 p. m. a 05:00 p. m. (Rango único de entrega)";
+            campoHora.appendChild(opt);
+        } else {
+            const opt = document.createElement('option');
+            opt.value = "";
+            opt.innerText = "❌ Horario fuera de límite por hoy (Solicitar para mañana)";
+            campoHora.appendChild(opt);
+        }
+        return;
+    }
 
     const mapeoHorasFijas = [
         { v: "09:00 AM", t: "09:00 a. m." }, { v: "10:00 AM", t: "10:00 a. m." },
@@ -518,8 +578,6 @@ function validarHorariosDisponibles() {
         { v: "03:00 PM", t: "03:00 p. m." }, { v: "04:00 PM", t: "04:00 p. m." },
         { v: "05:00 PM", t: "05:00 p. m." }
     ];
-
-    campoHora.innerHTML = '';
 
     mapeoHorasFijas.forEach(opcion => {
         let incluir = true;
@@ -539,7 +597,9 @@ function validarHorariosDisponibles() {
         }
     });
 
-    if (Array.from(campoHora.options).some(o => o.value === valorPreselección)) campoHora.value = valorPreselección;
+    if (Array.from(campoHora.options).some(o => o.value === valorPreseleccion)) {
+        campoHora.value = valorPreseleccion;
+    }
 }
 
 function formatearDinero(numero) {
@@ -720,6 +780,7 @@ function crearEfectoVolador(elementoOrigen) {
 
 function vaciarCarrito() {
     if (confirm("¿Estás seguro de vaciar el pedido?")) {
+        reproducirSonido('eliminar');
         carrito = [];
         codigoCuponActivo = "";
         const msgCupon = document.getElementById('mensaje-cupon');
@@ -733,6 +794,9 @@ function vaciarCarrito() {
     }
 }
 
+// =========================================================================
+// ACTUALIZAR CARRITO VISUAL 
+// =========================================================================
 function actualizarCarritoVisual() {
     const cont = document.getElementById('items-carrito');
     const txtMonto = document.getElementById('total-monto');
@@ -747,6 +811,8 @@ function actualizarCarritoVisual() {
     const infoEnvioGratis = document.getElementById('info-envio-gratis');
     const contenedorDireccion = document.getElementById('contenedor-direccion-envio');
     const campoFecha = document.getElementById('fecha');
+    const campoHora = document.getElementById('hora');
+    const puntoEntrega = document.getElementById('select-punto-entrega');
 
     if (carrito.length === 0) {
         cont.innerHTML = '<p style="color: var(--text-light); text-align: center; margin: 20px 0;">El carrito está vacío.</p>';
@@ -758,12 +824,20 @@ function actualizarCarritoVisual() {
         document.getElementById('fila-envio').style.display = "none";
         if (infoEnvioGratis) infoEnvioGratis.style.display = "none";
         if (contenedorDireccion) contenedorDireccion.style.display = "none";
-        if (campoFecha) { campoFecha.disabled = false; campoFecha.style.opacity = "1"; }
+        
+        if (campoFecha) { 
+            campoFecha.disabled = false; 
+            campoFecha.style.opacity = "1"; 
+            campoFecha.value = "";
+        }
+        if (campoHora) {
+            campoHora.disabled = false;
+            campoHora.style.opacity = "1";
+        }
         
         const contenedorCross = document.querySelector('.contenedor-cross-selling');
         if (contenedorCross) contenedorCross.style.display = 'none';
         
-        const puntoEntrega = document.getElementById('select-punto-entrega');
         if (puntoEntrega) {
             puntoEntrega.innerHTML = `<option value="" disabled selected>-- Selecciona dónde recibir --</option>
                                       <option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
@@ -784,7 +858,6 @@ function actualizarCarritoVisual() {
         const subtotal = (parseFloat(prod.precio) || 0) * item.cantidad;
         subtotalGeneral += subtotal;
         
-        // CALCULO DEL CUPÓN POR CATEGORIA
         if (configCupon) {
             const catProd = prod.categoria ? prod.categoria.toLowerCase() : "general";
             if (!configCupon.categoriaRestringida || catProd === configCupon.categoriaRestringida.toLowerCase()) {
@@ -815,16 +888,19 @@ function actualizarCarritoVisual() {
     }
     
     let alcanzoEnvioGratis = false;
+    const metaEnvio = 150.00;
+
+    if (subtotalGeneral >= metaEnvio) {
+        alcanzoEnvioGratis = true;
+    }
+
     if (infoEnvioGratis) {
         infoEnvioGratis.style.display = "block";
-        const metaEnvio = 150.00;
-        
-        if (subtotalGeneral >= metaEnvio) {
-            alcanzoEnvioGratis = true;
+        if (alcanzoEnvioGratis) {
             infoEnvioGratis.innerHTML = `
                 <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 15px; line-height: 1.4;">
-                    <strong>🎉 ¡Felicidades! Has alcanzado el envío gratis.</strong><br>
-                    <span style="font-size: 12px; opacity: 0.9;">Tu pedido se programará automáticamente para <strong>mañana de 4:00 PM a 5:00 PM</strong>.</span>
+                    <strong>🎉 ¡Felicidades! Tienes envío a domicilio GRATUITO.</strong><br>
+                    <span style="font-size: 12px; opacity: 0.9;">Selecciona tu preferencia de entrega en el panel inferior.</span>
                 </div>`;
         } else {
             const cuantoFalta = metaEnvio - subtotalGeneral;
@@ -843,46 +919,37 @@ function actualizarCarritoVisual() {
         }
     }
 
-    const puntoEntrega = document.getElementById('select-punto-entrega');
-    const campoHora = document.getElementById('hora');
+    const valorSeleccionadoPrevio = puntoEntrega ? puntoEntrega.value : "";
     
     if (puntoEntrega) {
         puntoEntrega.innerHTML = `<option value="" disabled>-- Selecciona dónde recibir --</option>`;
         puntoEntrega.innerHTML += `<option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
 
         if (alcanzoEnvioGratis) {
-            puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)" selected>Envío a Domicilio (¡GRATIS!)</option>`;
-            
-            if (contenedorDireccion) contenedorDireccion.style.display = "block";
-
-            if (campoFecha) {
-                const mananaObj = new Date();
-                mananaObj.setDate(mananaObj.getDate() + 1);
-                
-                if (mananaObj.getDay() === 0) mananaObj.setDate(mananaObj.getDate() + 1);
-                else if (mananaObj.getDay() === 6) mananaObj.setDate(mananaObj.getDate() + 2);
-
-                const mananaStr = `${mananaObj.getFullYear()}-${String(mananaObj.getMonth() + 1).padStart(2, '0')}-${String(mananaObj.getDate()).padStart(2, '0')}`;
-                campoFecha.value = mananaStr;
-                campoFecha.disabled = true; 
-                campoFecha.style.opacity = "0.7";
-            }
-
-            if (campoHora) {
-                campoHora.innerHTML = `<option value="04:00 PM a 05:00 PM" selected>04:00 PM a 05:00 PM</option>`;
-                campoHora.disabled = true;
-                campoHora.style.opacity = "0.7";
-            }
+            puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)">Envío a Domicilio (¡GRATIS!)</option>`;
         } else {
-            if (contenedorDireccion) contenedorDireccion.style.display = "none";
-            if (campoFecha) { campoFecha.disabled = false; campoFecha.style.opacity = "1"; }
-            if (campoHora) { campoHora.disabled = false; campoHora.style.opacity = "1"; }
-            puntoEntrega.selectedIndex = 1; 
-            validarHorariosDisponibles(); 
+            puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)">Envío a Domicilio (+$50.00 pesos)</option>`;
+        }
+
+        if (valorSeleccionadoPrevio && Array.from(puntoEntrega.options).some(o => o.value === valorSeleccionadoPrevio)) {
+            puntoEntrega.value = valorSeleccionadoPrevio;
+        } else {
+            puntoEntrega.selectedIndex = 1;
         }
     }
 
-    cargoPorEnvio = 0; 
+    const opcionElegida = puntoEntrega ? puntoEntrega.value : "";
+    if (opcionElegida === "Envío a Domicilio (Zona Urbana)") {
+        if (contenedorDireccion) contenedorDireccion.style.display = "block";
+        cargoPorEnvio = alcanzoEnvioGratis ? 0 : 50.00; 
+    } else {
+        if (contenedorDireccion) contenedorDireccion.style.display = "none";
+        cargoPorEnvio = 0;
+    }
+
+    if (campoFecha) { campoFecha.disabled = false; campoFecha.style.opacity = "1"; }
+    if (campoHora) { campoHora.disabled = false; campoHora.style.opacity = "1"; }
+
     let totalFinal = subtotalGeneral - montoDescuento + cargoPorEnvio;
 
     document.getElementById('resumen-subtotal').innerText = formatearDinero(subtotalGeneral);
@@ -894,9 +961,18 @@ function actualizarCarritoVisual() {
         document.getElementById('fila-descuento').style.display = "none";
     }
 
-    if (puntoEntrega && puntoEntrega.value !== "") {
+    if (opcionElegida === "Envío a Domicilio (Zona Urbana)") {
         document.getElementById('fila-envio').style.display = "flex";
-        document.getElementById('resumen-envio').innerText = "¡Gratis comprando 150 de productos!🎉";
+        if (alcanzoEnvioGratis) {
+            document.getElementById('resumen-envio').innerText = "¡Gratis! 🎉";
+            document.getElementById('resumen-envio').style.color = "var(--success)";
+        } else {
+            document.getElementById('resumen-envio').innerText = `+${formatearDinero(cargoPorEnvio)}`;
+            document.getElementById('resumen-envio').style.color = "var(--primary-light)";
+        }
+    } else if (opcionElegida === "TIENDA DAHY (Entrega Física)") {
+        document.getElementById('fila-envio').style.display = "flex";
+        document.getElementById('resumen-envio').innerText = "Gratis (Entrega física)";
         document.getElementById('resumen-envio').style.color = "var(--success)";
     } else {
         document.getElementById('fila-envio').style.display = "none";
@@ -907,9 +983,6 @@ function actualizarCarritoVisual() {
     renderizarCrossSelling();
 }
 
-// =========================================================================
-// MÓDULO INTELIGENTE DE CROSS-SELLING (CORREGIDO XSS)
-// =========================================================================
 function renderizarCrossSelling() {
     let contenedorCross = document.querySelector('.contenedor-cross-selling');
     if (!contenedorCross) return;
@@ -931,7 +1004,7 @@ function renderizarCrossSelling() {
                 const arrImg = obtenerArregloImagenes(p);
                 let imgN = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
                 let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/50x50?text=Prod';
-                const artLimpio = p.articulo.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // XSS Fix
+                const artLimpio = p.articulo.replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 
                 return `
                 <div class="tarjeta-cross">
@@ -950,16 +1023,18 @@ function renderizarCrossSelling() {
     `;
 }
 
-// =========================================================================
-// PROCESAMIENTO ASÍNCRONO DEL PEDIDO FINAL Y GENERACIÓN DE PDF
-// =========================================================================
 async function enviarPedidoFinal() {
-    if (carrito.length === 0) { alert("Tu carrito está vacío"); return; }
+    if (carrito.length === 0) { 
+        reproducirSonido('error');
+        alert("Tu carrito está vacío"); 
+        return; 
+    }
     
     const puntoEntrega = document.getElementById('select-punto-entrega');
     const valorPuntoEntrega = puntoEntrega ? puntoEntrega.value : "";
     
     if (!valorPuntoEntrega) {
+        reproducirSonido('error');
         alert("Por favor, selecciona tu Punto de Entrega o Sucursal antes de continuar.");
         return;
     }
@@ -971,11 +1046,13 @@ async function enviarPedidoFinal() {
     const direccionEnvio = document.getElementById('direccion-envio') ? document.getElementById('direccion-envio').value.trim() : "";
 
     if (valorPuntoEntrega === "Envío a Domicilio (Zona Urbana)" && direccionEnvio.length < 5) {
+        reproducirSonido('error');
         alert("Por favor, escribe la dirección completa donde se realizará el envío.");
         return;
     }
 
     if (!fecha || !hora || cliente.length < 3) { 
+        reproducirSonido('error');
         alert("Por favor completa los campos: Fecha, Hora y Nombre Completo."); 
         return; 
     }
@@ -997,7 +1074,6 @@ async function enviarPedidoFinal() {
         
         if (valorPuntoEntrega === "Envío a Domicilio (Zona Urbana)") {
             textoMensajeWhatsApp += `🏠 *Dirección de Envío:* ${direccionEnvio}\n`;
-            textoMensajeWhatsApp += `🚚 *Plazo de Entrega:* ¡Mañana garantizado en horario especial de 4:00 PM a 5:00 PM!\n`;
         }
 
         textoMensajeWhatsApp += `📅 *Fecha de Entrega:* ${formatearFechaHumana(fecha)}\n`;
@@ -1028,7 +1104,6 @@ async function enviarPedidoFinal() {
 
         let totalGeneral = subtotalProductos - montoDescuento + cargoPorEnvio;
 
-        // Generación del PDF
         if (window.jspdf) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -1043,8 +1118,7 @@ async function enviarPedidoFinal() {
             let compensacionY = 0;
             if (valorPuntoEntrega === "Envío a Domicilio (Zona Urbana)") {
                 doc.setFont("helvetica", "bold"); doc.text("Dirección Envío:", 15, 73); doc.setFont("helvetica", "normal"); doc.text(direccionEnvio, 55, 73);
-                doc.setFont("helvetica", "bold"); doc.text("Plazo Promesa:", 15, 80); doc.setFont("helvetica", "bold"); doc.setFillColor(16, 185, 129); doc.text("¡Mañana a más tardar!", 55, 80);
-                compensacionY = 14;
+                compensacionY = 7;
             }
 
             doc.setFont("helvetica", "bold"); doc.text("Fecha de Entrega:", 15, 73 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(formatearFechaHumana(fecha), 55, 73 + compensacionY);
@@ -1113,17 +1187,14 @@ async function enviarPedidoFinal() {
         
         if (window.jspdf) textoMensajeWhatsApp += `⚠️ _Nota: Ya he descargado mi comprobante oficial en formato PDF en mi dispositivo._`;
 
-        // Petición al servidor (Asíncrona)
         const response = await fetch(`${BACKEND_URL}/api/pedidos`, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ cliente: cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosParaAPI, metodo_pago: metodoPago, direccion: direccionEnvio }) 
         });
 
-        // Opcional: Manejar errores del servidor si quieres que no avance si el servidor falla
-        // if (!response.ok) throw new Error("Servidor no pudo procesar.");
-
-        // Limpiar el estado y la UI si tuvo éxito
+        // ¡Aquí disparamos el sonido de éxito final!
+        reproducirSonido('pedido');
         lanzarEfectoConfeti();
         carrito = [];
         codigoCuponActivo = "";
@@ -1153,6 +1224,7 @@ async function enviarPedidoFinal() {
 
     } catch (err) {
         console.error("Error al sincronizar el pedido:", err);
+        reproducirSonido('error');
         alert("Hubo un problema al registrar el pedido en el servidor. Por favor, reintenta.");
     } finally {
         btnEnviar.innerText = textoOriginal;
