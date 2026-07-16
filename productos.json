@@ -252,15 +252,6 @@
         "destacado": false
     },
     {
-        "codigo": "d20",
-        "articulo": "Playera Blanca - 14 años",
-        "precio": 120.0,
-        "stock": 0,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d20_1783400520.jpg",
-        "destacado": false
-    },
-    {
         "codigo": "d21",
         "articulo": "Playera Negra - 14 años",
         "precio": 120.0,

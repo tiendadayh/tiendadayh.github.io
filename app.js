@@ -13,7 +13,8 @@ let indicesCarrusel = {};
 
 // VARIABLES PARA CUPONES Y LOGÍSTICA
 let codigoCuponActivo = "";
-let cargoPorEnvio = 0;
+let cargoPorEnvio = 0; // Siempre será 0 ya que quitamos los cargos por envío
+let yaExplotoConfettiEnvio = false; // Control de disparo de confetti único
 
 // SISTEMA DE CUPONES AVANZADO (Por categorías o globales)
 const CUPONES_CONFIG = {
@@ -56,7 +57,7 @@ function reproducirSonido(tipo) {
 }
 
 // =========================================================================
-// INICIALIZACIÓN DE LA APLICACIÓN
+// INICIALIZACIÓN DE LA APLICACIÓN Y PWA REGISTRO
 // =========================================================================
 window.addEventListener('load', () => {
     configurarTema();
@@ -65,6 +66,13 @@ window.addEventListener('load', () => {
     recuperarWishlistDeLocalStorage();
     inicializarBotónVolverArriba();
     inicializarLogicaCuponesYEnvio();
+
+    // REGISTRO DE SERVICE WORKER (PWA)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('PWA Service Worker registrado con éxito', reg))
+            .catch(err => console.warn('Error al registrar el Service Worker de la PWA', err));
+    }
 
     const clienteGuardado = localStorage.getItem('nombre_cliente_dayh');
     if (clienteGuardado && document.getElementById('cliente')) {
@@ -442,7 +450,7 @@ function renderizarEventos() {
 
 function filtrarPorEvento(categoria) {
     if (!categoria) return;
-    categorySeleccionada = categoria;
+    categorySeleccionada = category;
     document.querySelectorAll('.btn-categoria').forEach(btn => btn.classList.remove('activo'));
     document.querySelectorAll('.btn-categoria').forEach(btn => {
         if(btn.getAttribute('data-cat') && btn.getAttribute('data-cat').toLowerCase() === categoria.toLowerCase()) btn.classList.add('activo');
@@ -783,6 +791,7 @@ function vaciarCarrito() {
         reproducirSonido('eliminar');
         carrito = [];
         codigoCuponActivo = "";
+        yaExplotoConfettiEnvio = false; // Reiniciar control de confetti
         const msgCupon = document.getElementById('mensaje-cupon');
         const inputCupon = document.getElementById('input-cupon');
         if(msgCupon) msgCupon.textContent = "";
@@ -795,7 +804,7 @@ function vaciarCarrito() {
 }
 
 // =========================================================================
-// ACTUALIZAR CARRITO VISUAL 
+// ACTUALIZAR CARRITO VISUAL (CON EXCLUSIVIDAD DE ENVÍO GRATIS A PARTIR DE 150)
 // =========================================================================
 function actualizarCarritoVisual() {
     const cont = document.getElementById('items-carrito');
@@ -803,7 +812,7 @@ function actualizarCarritoVisual() {
     const btnVaciar = document.getElementById('btn-vaciar');
     const bContador = document.getElementById('badge-contador');
     const bFlotante = document.getElementById('badge-flotante');
-
+    
     const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
     if (bContador) bContador.innerText = totalItems;
     if (bFlotante) bFlotante.innerText = totalItems;
@@ -815,7 +824,10 @@ function actualizarCarritoVisual() {
     const puntoEntrega = document.getElementById('select-punto-entrega');
 
     if (carrito.length === 0) {
-        cont.innerHTML = '<p style="color: var(--text-light); text-align: center; margin: 20px 0;">El carrito está vacío.</p>';
+        yaExplotoConfettiEnvio = false; // Resetear cuando se vacía completamente
+        if (cont) {
+            cont.innerHTML = '<p style="color: var(--text-light); text-align: center; margin: 20px 0; font-size: 14px;">Tu carrito está vacío.</p>';
+        }
         if (txtMonto) txtMonto.innerText = "$0.00";
         if (btnVaciar) btnVaciar.style.display = 'none';
         
@@ -846,52 +858,81 @@ function actualizarCarritoVisual() {
     }
 
     if (btnVaciar) btnVaciar.style.display = 'block';
-    cont.innerHTML = ''; 
-    
+
+    // Inicialización de cálculos de totales y cupones
     let subtotalGeneral = 0;
     let montoDescuento = 0;
-    const configCupon = CUPONES_CONFIG[codigoCuponActivo] || null;
+    let configCupon = codigoCuponActivo ? CUPONES_CONFIG[codigoCuponActivo] : null;
+
+    if (cont) cont.innerHTML = '';
 
     carrito.forEach(item => {
         const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
         if (!prod) return;
-        const subtotal = (parseFloat(prod.precio) || 0) * item.cantidad;
-        subtotalGeneral += subtotal;
-        
+
+        const subtotalProducto = prod.precio * item.cantidad;
+        subtotalGeneral += subtotalProducto;
+
+        // Aplicación del descuento del cupón si cumple restricciones
         if (configCupon) {
             const catProd = prod.categoria ? prod.categoria.toLowerCase() : "general";
             if (!configCupon.categoriaRestringida || catProd === configCupon.categoriaRestringida.toLowerCase()) {
-                montoDescuento += subtotal * configCupon.descuento;
+                montoDescuento += subtotalProducto * configCupon.descuento;
             }
         }
 
-        const limiteAlcanzado = item.cantidad >= prod.stock;
+        // --- EXTRACCIÓN Y LIMPIEZA DE LA RUTA DE LA IMAGEN ---
+        const arrImg = obtenerArregloImagenes(prod);
+        let imgNombre = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
+        let rutaImagen = imgNombre ? `imagenes_productos/${imgNombre}` : 'https://placehold.co/50x50?text=Prod';
+        const artLimpio = prod.articulo.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-        cont.innerHTML += `
-        <div class="item-linea">
-            <div class="item-info">
-                <span class="item-nombre">[${prod.codigo}] ${prod.articulo}</span>
-                <span class="item-precio">${formatearDinero(prod.precio)} c/u</span>
+        // Construcción del HTML inyectando la imagen en miniatura
+        const itemHTML = `
+            <div class="item-carrito" style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+                
+                <img src="${rutaImagen}" alt="${artLimpio}" 
+                     style="width: 50px; height: 50px; object-fit: contain; border-radius: 8px; background: #fff; border: 1px solid var(--border); padding: 2px;"
+                     onerror="this.onerror=null; this.src='https://placehold.co/50x50?text=DAYH';">
+                
+                <div class="info-item-carrito" style="flex: 1; min-width: 0;">
+                    <h4 style="margin: 0 0 3px 0; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: var(--text);">${artLimpio}</h4>
+                    <span style="font-size: 12px; color: var(--primary-light); font-weight: bold;">${formatearDinero(prod.precio)}</span>
+                    
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 5px;">
+                        <button onclick="cambiarCantidad('${prod.codigo}', -1)" style="padding: 1px 6px; cursor: pointer; background: var(--card-bg); border: 1px solid var(--border); color: white; border-radius: 4px; font-weight: bold;">-</button>
+                        <span style="font-size: 12px; font-weight: 600; color: var(--text); min-width: 14px; text-align: center;">${item.cantidad}</span>
+                        <button onclick="cambiarCantidad('${prod.codigo}', 1)" style="padding: 1px 6px; cursor: pointer; background: var(--card-bg); border: 1px solid var(--border); color: white; border-radius: 4px; font-weight: bold;">+</button>
+                    </div>
+                </div>
+
+                <div style="text-align: right; min-width: 70px;">
+                    <div style="font-size: 13px; font-weight: bold; color: var(--text); margin-bottom: 4px;">${formatearDinero(subtotalProducto)}</div>
+                    <button onclick="eliminarDelCarritoVisual('${prod.codigo}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 13px; padding: 2px;" title="Eliminar artículo">🗑️</button>
+                </div>
             </div>
-            <div class="item-controles">
-                <button class="btn-qty" onclick="cambiarCantidad('${prod.codigo}', -1)">-</button>
-                <span class="item-cant">${item.cantidad}</span>
-                <button class="btn-qty" onclick="cambiarCantidad('${prod.codigo}', 1)" ${limiteAlcanzado ? 'disabled' : ''}>+</button>
-            </div>
-        </div>`;
+        `;
+        
+        if (cont) cont.innerHTML += itemHTML;
     });
 
+    // --- RECOMPENSA POR MONTO DE COMPRA ---
     if (subtotalGeneral >= 500 && !localStorage.getItem('cupon_recompensa_visto')) {
         mostrarNotificacionFlotante("🎉 ¡Desbloqueaste el cupón EXTRA5! Aplícalo para obtener un 5% adicional.", 8000, '#10b981');
         CUPONES_CONFIG["EXTRA5"] = { descuento: 0.05, categoriaRestringida: null };
         localStorage.setItem('cupon_recompensa_visto', 'true');
     }
-    
-    let alcanzoEnvioGratis = false;
-    const metaEnvio = 150.00;
 
-    if (subtotalGeneral >= metaEnvio) {
-        alcanzoEnvioGratis = true;
+    // --- LÓGICA DE ENVÍO GRATUITO DESDE $150.00 (CON SISTEMA DE CONFETTI ÚNICO) ---
+    const metaEnvio = 150.00;
+    const alcanzoEnvioGratis = subtotalGeneral >= metaEnvio;
+
+    // SISTEMA DE CONFETTI AL ALCANZAR LOS $150
+    if (alcanzoEnvioGratis && !yaExplotoConfettiEnvio) {
+        lanzarEfectoConfeti();
+        yaExplotoConfettiEnvio = true; // Evitar que vuelva a dispararse repetidamente en cada cambio menor de cantidad
+    } else if (!alcanzoEnvioGratis) {
+        yaExplotoConfettiEnvio = false; // Resetear bandera si baja de los $150 para que pueda volver a celebrarse si sube
     }
 
     if (infoEnvioGratis) {
@@ -899,88 +940,123 @@ function actualizarCarritoVisual() {
         if (alcanzoEnvioGratis) {
             infoEnvioGratis.innerHTML = `
                 <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 15px; line-height: 1.4;">
-                    <strong>🎉 ¡Felicidades! Tienes envío a domicilio GRATUITO.</strong><br>
-                    <span style="font-size: 12px; opacity: 0.9;">Selecciona tu preferencia de entrega en el panel inferior.</span>
+                    <strong>🎉 ¡Felicidades! Desbloqueaste la opción de Envío a Domicilio GRATIS.</strong><br>
+                    <span style="font-size: 12px; opacity: 0.9;">Ya puedes seleccionar "Envío a Domicilio" en el menú inferior.</span>
                 </div>`;
         } else {
             const cuantoFalta = metaEnvio - subtotalGeneral;
             const porcentajeProgreso = Math.min((subtotalGeneral / metaEnvio) * 100, 100);
             
+            // CONSTRUCCIÓN DEL "EMPUJONCITO": Sugerir complementos de bajo costo que estén en stock y que no estén en el carrito
+            const complementosDisponibles = INVENTARIO_GLOBAL.filter(p => p.stock > 0 && p.precio <= 50 && !carrito.some(item => item.codigo === p.codigo));
+            let htmlEmpujoncito = '';
+
+            if (complementosDisponibles.length > 0) {
+                const sugerido = complementosDisponibles[0]; // Tomamos el producto más óptimo
+                const arrImgSugerido = obtenerArregloImagenes(sugerido);
+                let imgSugeridoName = arrImgSugerido[0] ? arrImgSugerido[0].split(/[/\\\\]/).pop() : '';
+                let rImgSugerido = imgSugeridoName ? `imagenes_productos/${imgSugeridoName}` : 'https://placehold.co/35x35?text=DAYH';
+
+                htmlEmpujoncito = `
+                <div style="margin-top: 10px; background: rgba(168, 85, 247, 0.08); border: 1px dashed rgba(168, 85, 247, 0.3); border-radius: 6px; padding: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <img src="${rImgSugerido}" alt="${sugerido.articulo}" style="width: 30px; height: 30px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid var(--border);">
+                        <div style="font-size: 11px; line-height: 1.2;">
+                            <span style="color: var(--text-light); display: block;">💡 Agrega esto para completar el envío:</span>
+                            <strong style="color: var(--text);">${sugerido.articulo.substring(0, 22)}... (${formatearDinero(sugerido.precio)})</strong>
+                        </div>
+                    </div>
+                    <button class="btn" style="padding: 4px 8px; font-size: 10px; margin: 0; width: auto;" onclick="agregarAlCarrito('${sugerido.codigo}')">+ Añadir</button>
+                </div>`;
+            }
+
             infoEnvioGratis.innerHTML = `
-                <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--text-light);">
-                        <span>Te faltan <strong>${formatearDinero(cuantoFalta)}</strong> para envío gratis</span>
-                        <span style="font-weight: bold; color: var(--primary-light);">${porcentajeProgreso.toFixed(0)}%</span>
+                <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-size: 12px; color: var(--text-light); margin-bottom: 6px; display: flex; justify-content: space-between;">
+                        <span>Compra <strong>${formatearDinero(cuantoFalta)}</strong> más para habilitar Envío a Domicilio GRATIS</span>
+                        <span>${porcentajeProgreso.toFixed(0)}%</span>
                     </div>
-                    <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;">
-                        <div style="width: ${porcentajeProgreso}%; height: 100%; background: var(--primary-light); transition: width 0.3s ease;"></div>
+                    <div style="background: var(--border); height: 6px; border-radius: 4px; overflow: hidden;">
+                        <div style="background: var(--primary); width: ${porcentajeProgreso}%; height: 100%; transition: width 0.3s ease;"></div>
                     </div>
+                    ${htmlEmpujoncito}
                 </div>`;
         }
     }
 
     const valorSeleccionadoPrevio = puntoEntrega ? puntoEntrega.value : "";
     
+    // RENDERIZAR OPCIONES DE ENTREGA SEGÚN EL REQUISITO MÍNIMO DE $150
     if (puntoEntrega) {
         puntoEntrega.innerHTML = `<option value="" disabled>-- Selecciona dónde recibir --</option>`;
         puntoEntrega.innerHTML += `<option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
 
         if (alcanzoEnvioGratis) {
             puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)">Envío a Domicilio (¡GRATIS!)</option>`;
-        } else {
-            puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)">Envío a Domicilio (+$50.00 pesos)</option>`;
         }
 
+        // Si antes tenía seleccionado "Envío a domicilio" pero bajó de $150, se regresa automáticamente a "TIENDA DAHY"
         if (valorSeleccionadoPrevio && Array.from(puntoEntrega.options).some(o => o.value === valorSeleccionadoPrevio)) {
             puntoEntrega.value = valorSeleccionadoPrevio;
         } else {
-            puntoEntrega.selectedIndex = 1;
+            puntoEntrega.value = "TIENDA DAHY (Entrega Física)";
         }
     }
+
+    // El cargo por envío se fija permanentemente en $0
+    cargoPorEnvio = 0;
 
     const opcionElegida = puntoEntrega ? puntoEntrega.value : "";
     if (opcionElegida === "Envío a Domicilio (Zona Urbana)") {
         if (contenedorDireccion) contenedorDireccion.style.display = "block";
-        cargoPorEnvio = alcanzoEnvioGratis ? 0 : 50.00; 
     } else {
         if (contenedorDireccion) contenedorDireccion.style.display = "none";
-        cargoPorEnvio = 0;
     }
 
     if (campoFecha) { campoFecha.disabled = false; campoFecha.style.opacity = "1"; }
     if (campoHora) { campoHora.disabled = false; campoHora.style.opacity = "1"; }
 
-    let totalFinal = subtotalGeneral - montoDescuento + cargoPorEnvio;
+    let totalFinal = Math.max(0, subtotalGeneral - montoDescuento);
 
     document.getElementById('resumen-subtotal').innerText = formatearDinero(subtotalGeneral);
-    
-    if (montoDescuento > 0) {
-        document.getElementById('fila-descuento').style.display = "flex";
-        document.getElementById('resumen-descuento').innerText = `-${formatearDinero(montoDescuento)}`;
-    } else {
-        document.getElementById('fila-descuento').style.display = "none";
+
+    // Ajustes visuales en el desglose final
+    const filaDescuento = document.getElementById('fila-descuento');
+    const resumenDescuento = document.getElementById('resumen-descuento');
+    if (filaDescuento && resumenDescuento) {
+        if (montoDescuento > 0) {
+            filaDescuento.style.display = "flex";
+            resumenDescuento.innerText = `-${formatearDinero(montoDescuento)}`;
+        } else {
+            filaDescuento.style.display = "none";
+        }
     }
 
-    if (opcionElegida === "Envío a Domicilio (Zona Urbana)") {
-        document.getElementById('fila-envio').style.display = "flex";
-        if (alcanzoEnvioGratis) {
-            document.getElementById('resumen-envio').innerText = "¡Gratis! 🎉";
-            document.getElementById('resumen-envio').style.color = "var(--success)";
-        } else {
-            document.getElementById('resumen-envio').innerText = `+${formatearDinero(cargoPorEnvio)}`;
-            document.getElementById('resumen-envio').style.color = "var(--primary-light)";
-        }
-    } else if (opcionElegida === "TIENDA DAHY (Entrega Física)") {
-        document.getElementById('fila-envio').style.display = "flex";
-        document.getElementById('resumen-envio').innerText = "Gratis (Entrega física)";
-        document.getElementById('resumen-envio').style.color = "var(--success)";
-    } else {
-        document.getElementById('fila-envio').style.display = "none";
+    const filaEnvio = document.getElementById('fila-envio');
+    const resumenEnvio = document.getElementById('resumen-envio');
+    if (filaEnvio && resumenEnvio) {
+        filaEnvio.style.display = "flex";
+        resumenEnvio.innerText = "¡Gratis! 🎉";
+        resumenEnvio.style.color = "var(--success)";
     }
-    
+
     if (txtMonto) txtMonto.innerText = formatearDinero(totalFinal);
     
+    // Recomendaciones dinámicas complementarias
     renderizarCrossSelling();
+}
+
+// =========================================================================
+// ACCIÓN AUXILIAR: ELIMINAR DIRECTAMENTE DEL CARRITO EN LA FILA
+// =========================================================================
+function eliminarDelCarritoVisual(codigo) {
+    reproducirSonido('eliminar');
+    carrito = carrito.filter(item => item.codigo !== codigo);
+    guardarCarritoEnLocalStorage();
+    actualizarCarritoVisual();
+    filtrarCatalogo();
+    renderizarDestacados();
+    renderizarWishlist();
 }
 
 function renderizarCrossSelling() {
@@ -1102,7 +1178,7 @@ async function enviarPedidoFinal() {
             }
         });
 
-        let totalGeneral = subtotalProductos - montoDescuento + cargoPorEnvio;
+        let totalGeneral = subtotalProductos - montoDescuento;
 
         if (window.jspdf) {
             const { jsPDF } = window.jspdf;
@@ -1151,19 +1227,12 @@ async function enviarPedidoFinal() {
             doc.setDrawColor(168, 85, 247); doc.setLineWidth(1); doc.line(15, yPosition, 195, yPosition);
             
             yPosition += 8;
-            if (montoDescuento > 0 || cargoPorEnvio > 0) {
+            if (montoDescuento > 0) {
                 doc.setFontSize(10);
                 doc.text("Subtotal:", 145, yPosition); doc.text(formatearDinero(subtotalProductos), 172, yPosition);
                 yPosition += 6;
-                if (montoDescuento > 0) {
-                    doc.text("Descuento:", 145, yPosition); doc.text(`-${formatearDinero(montoDescuento)}`, 172, yPosition);
-                    yPosition += 6;
-                }
-                if (cargoPorEnvio > 0) {
-                    doc.text("Envío:", 145, yPosition); doc.text(`+${formatearDinero(cargoPorEnvio)}`, 172, yPosition);
-                    yPosition += 6;
-                }
-                yPosition += 2;
+                doc.text("Descuento:", 145, yPosition); doc.text(`-${formatearDinero(montoDescuento)}`, 172, yPosition);
+                yPosition += 8;
             }
 
             doc.setFillColor(243, 232, 255); doc.rect(120, yPosition - 6, 75, 10, "F");
@@ -1180,9 +1249,7 @@ async function enviarPedidoFinal() {
         if (montoDescuento > 0) {
             textoMensajeWhatsApp += `📉 *Descuento:* -${formatearDinero(montoDescuento)}\n`;
         }
-        if (cargoPorEnvio > 0) {
-            textoMensajeWhatsApp += `📦 *Costo de Envío:* +${formatearDinero(cargoPorEnvio)}\n`;
-        }
+        textoMensajeWhatsApp += `📦 *Costo de Envío:* ¡GRATIS! 🎉\n`;
         textoMensajeWhatsApp += `💵 *TOTAL NETO A PAGAR: ${formatearDinero(totalGeneral)}*\n\n`;
         
         if (window.jspdf) textoMensajeWhatsApp += `⚠️ _Nota: Ya he descargado mi comprobante oficial en formato PDF en mi dispositivo._`;
@@ -1193,11 +1260,11 @@ async function enviarPedidoFinal() {
             body: JSON.stringify({ cliente: cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosParaAPI, metodo_pago: metodoPago, direccion: direccionEnvio }) 
         });
 
-        // ¡Aquí disparamos el sonido de éxito final!
         reproducirSonido('pedido');
         lanzarEfectoConfeti();
         carrito = [];
         codigoCuponActivo = "";
+        yaExplotoConfettiEnvio = false; // Resetear tras el envío
         if(document.getElementById('input-cupon')) document.getElementById('input-cupon').value = "";
         if(document.getElementById('mensaje-cupon')) document.getElementById('mensaje-cupon').textContent = "";
         if(document.getElementById('direccion-envio')) document.getElementById('direccion-envio').value = "";

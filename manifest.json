@@ -1,0 +1,21 @@
+{
+  "short_name": "DAYH",
+  "name": "TIENDA DAYH",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/a855f7/ffffff?text=DAYH",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://placehold.co/512x512/a855f7/ffffff?text=DAYH",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/index.html",
+  "background_color": "#0f172a",
+  "theme_color": "#a855f7",
+  "display": "standalone",
+  "orientation": "portrait"
+}
