@@ -7,9 +7,11 @@
     <title>TIENDA DAYH - Catálogo Oficial</title>
     <link rel="stylesheet" href="styles.css">
     
+    <!-- Librerías de soporte e integración externa -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.socketio.cloud/4.7.5/socketio.min.js"></script>
+    <link rel="manifest" href="manifest.json">
     
     <script src="app.js" defer></script>
 </head>
@@ -118,8 +120,7 @@
             <div class="input-group">
                 <label for="hora">Hora aproximada:</label>
                 <select id="hora" onfocus="validarHorariosDisponibles()">
-                    <option value="04:00 PM">04:00 p. m.</option>
-                    <option value="05:00 PM">05:00 p. m.</option>
+                    <option value="04:00 PM">04:00 p. m. a 05:00 p. m.</option>
                 </select>
             </div>
 

@@ -1,3 +1,16 @@
+// === REGISTRO DEL SERVICE WORKER (Para que la app sea instalable) ===
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+                console.log('Service Worker registrado con éxito:', registration.scope);
+            })
+            .catch(error => {
+                console.error('Error al registrar el Service Worker:', error);
+            });
+    });
+}
+
 // =========================================================================
 // VARIABLES GLOBALES Y ESTADO DE LA APLICACIÓN
 // =========================================================================
@@ -57,7 +70,7 @@ function reproducirSonido(tipo) {
 }
 
 // =========================================================================
-// INICIALIZACIÓN DE LA APLICACIÓN Y PWA REGISTRO
+// INICIALIZACIÓN DE LA APLICACIÓN
 // =========================================================================
 window.addEventListener('load', () => {
     configurarTema();
@@ -66,13 +79,6 @@ window.addEventListener('load', () => {
     recuperarWishlistDeLocalStorage();
     inicializarBotónVolverArriba();
     inicializarLogicaCuponesYEnvio();
-
-    // REGISTRO DE SERVICE WORKER (PWA)
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('PWA Service Worker registrado con éxito', reg))
-            .catch(err => console.warn('Error al registrar el Service Worker de la PWA', err));
-    }
 
     const clienteGuardado = localStorage.getItem('nombre_cliente_dayh');
     if (clienteGuardado && document.getElementById('cliente')) {
@@ -450,7 +456,7 @@ function renderizarEventos() {
 
 function filtrarPorEvento(categoria) {
     if (!categoria) return;
-    categorySeleccionada = category;
+    categorySeleccionada = categoria;
     document.querySelectorAll('.btn-categoria').forEach(btn => btn.classList.remove('activo'));
     document.querySelectorAll('.btn-categoria').forEach(btn => {
         if(btn.getAttribute('data-cat') && btn.getAttribute('data-cat').toLowerCase() === categoria.toLowerCase()) btn.classList.add('activo');
@@ -791,7 +797,7 @@ function vaciarCarrito() {
         reproducirSonido('eliminar');
         carrito = [];
         codigoCuponActivo = "";
-        yaExplotoConfettiEnvio = false; // Reiniciar control de confetti
+        yaExplotoConfettiEnvio = false; 
         const msgCupon = document.getElementById('mensaje-cupon');
         const inputCupon = document.getElementById('input-cupon');
         if(msgCupon) msgCupon.textContent = "";
@@ -824,7 +830,7 @@ function actualizarCarritoVisual() {
     const puntoEntrega = document.getElementById('select-punto-entrega');
 
     if (carrito.length === 0) {
-        yaExplotoConfettiEnvio = false; // Resetear cuando se vacía completamente
+        yaExplotoConfettiEnvio = false; 
         if (cont) {
             cont.innerHTML = '<p style="color: var(--text-light); text-align: center; margin: 20px 0; font-size: 14px;">Tu carrito está vacío.</p>';
         }
@@ -852,14 +858,13 @@ function actualizarCarritoVisual() {
         
         if (puntoEntrega) {
             puntoEntrega.innerHTML = `<option value="" disabled selected>-- Selecciona dónde recibir --</option>
-                                      <option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
+                                      <option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>`;
         }
         return;
     }
 
     if (btnVaciar) btnVaciar.style.display = 'block';
 
-    // Inicialización de cálculos de totales y cupones
     let subtotalGeneral = 0;
     let montoDescuento = 0;
     let configCupon = codigoCuponActivo ? CUPONES_CONFIG[codigoCuponActivo] : null;
@@ -873,7 +878,6 @@ function actualizarCarritoVisual() {
         const subtotalProducto = prod.precio * item.cantidad;
         subtotalGeneral += subtotalProducto;
 
-        // Aplicación del descuento del cupón si cumple restricciones
         if (configCupon) {
             const catProd = prod.categoria ? prod.categoria.toLowerCase() : "general";
             if (!configCupon.categoriaRestringida || catProd === configCupon.categoriaRestringida.toLowerCase()) {
@@ -881,16 +885,13 @@ function actualizarCarritoVisual() {
             }
         }
 
-        // --- EXTRACCIÓN Y LIMPIEZA DE LA RUTA DE LA IMAGEN ---
         const arrImg = obtenerArregloImagenes(prod);
         let imgNombre = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
         let rutaImagen = imgNombre ? `imagenes_productos/${imgNombre}` : 'https://placehold.co/50x50?text=Prod';
         const artLimpio = prod.articulo.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-        // Construcción del HTML inyectando la imagen en miniatura
         const itemHTML = `
             <div class="item-carrito" style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
-                
                 <img src="${rutaImagen}" alt="${artLimpio}" 
                      style="width: 50px; height: 50px; object-fit: contain; border-radius: 8px; background: #fff; border: 1px solid var(--border); padding: 2px;"
                      onerror="this.onerror=null; this.src='https://placehold.co/50x50?text=DAYH';">
@@ -916,23 +917,20 @@ function actualizarCarritoVisual() {
         if (cont) cont.innerHTML += itemHTML;
     });
 
-    // --- RECOMPENSA POR MONTO DE COMPRA ---
     if (subtotalGeneral >= 500 && !localStorage.getItem('cupon_recompensa_visto')) {
         mostrarNotificacionFlotante("🎉 ¡Desbloqueaste el cupón EXTRA5! Aplícalo para obtener un 5% adicional.", 8000, '#10b981');
         CUPONES_CONFIG["EXTRA5"] = { descuento: 0.05, categoriaRestringida: null };
         localStorage.setItem('cupon_recompensa_visto', 'true');
     }
 
-    // --- LÓGICA DE ENVÍO GRATUITO DESDE $150.00 (CON SISTEMA DE CONFETTI ÚNICO) ---
     const metaEnvio = 150.00;
     const alcanzoEnvioGratis = subtotalGeneral >= metaEnvio;
 
-    // SISTEMA DE CONFETTI AL ALCANZAR LOS $150
     if (alcanzoEnvioGratis && !yaExplotoConfettiEnvio) {
         lanzarEfectoConfeti();
-        yaExplotoConfettiEnvio = true; // Evitar que vuelva a dispararse repetidamente en cada cambio menor de cantidad
+        yaExplotoConfettiEnvio = true; 
     } else if (!alcanzoEnvioGratis) {
-        yaExplotoConfettiEnvio = false; // Resetear bandera si baja de los $150 para que pueda volver a celebrarse si sube
+        yaExplotoConfettiEnvio = false; 
     }
 
     if (infoEnvioGratis) {
@@ -947,12 +945,11 @@ function actualizarCarritoVisual() {
             const cuantoFalta = metaEnvio - subtotalGeneral;
             const porcentajeProgreso = Math.min((subtotalGeneral / metaEnvio) * 100, 100);
             
-            // CONSTRUCCIÓN DEL "EMPUJONCITO": Sugerir complementos de bajo costo que estén en stock y que no estén en el carrito
             const complementosDisponibles = INVENTARIO_GLOBAL.filter(p => p.stock > 0 && p.precio <= 50 && !carrito.some(item => item.codigo === p.codigo));
             let htmlEmpujoncito = '';
 
             if (complementosDisponibles.length > 0) {
-                const sugerido = complementosDisponibles[0]; // Tomamos el producto más óptimo
+                const sugerido = complementosDisponibles[0]; 
                 const arrImgSugerido = obtenerArregloImagenes(sugerido);
                 let imgSugeridoName = arrImgSugerido[0] ? arrImgSugerido[0].split(/[/\\\\]/).pop() : '';
                 let rImgSugerido = imgSugeridoName ? `imagenes_productos/${imgSugeridoName}` : 'https://placehold.co/35x35?text=DAYH';
@@ -986,24 +983,21 @@ function actualizarCarritoVisual() {
 
     const valorSeleccionadoPrevio = puntoEntrega ? puntoEntrega.value : "";
     
-    // RENDERIZAR OPCIONES DE ENTREGA SEGÚN EL REQUISITO MÍNIMO DE $150
     if (puntoEntrega) {
         puntoEntrega.innerHTML = `<option value="" disabled>-- Selecciona dónde recibir --</option>`;
-        puntoEntrega.innerHTML += `<option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
+        puntoEntrega.innerHTML += `<option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>`;
 
         if (alcanzoEnvioGratis) {
             puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)">Envío a Domicilio (¡GRATIS!)</option>`;
         }
 
-        // Si antes tenía seleccionado "Envío a domicilio" pero bajó de $150, se regresa automáticamente a "TIENDA DAHY"
         if (valorSeleccionadoPrevio && Array.from(puntoEntrega.options).some(o => o.value === valorSeleccionadoPrevio)) {
             puntoEntrega.value = valorSeleccionadoPrevio;
         } else {
-            puntoEntrega.value = "TIENDA DAHY (Entrega Física)";
+            puntoEntrega.value = "TIENDA DAYH (Entrega Física)";
         }
     }
 
-    // El cargo por envío se fija permanentemente en $0
     cargoPorEnvio = 0;
 
     const opcionElegida = puntoEntrega ? puntoEntrega.value : "";
@@ -1020,7 +1014,6 @@ function actualizarCarritoVisual() {
 
     document.getElementById('resumen-subtotal').innerText = formatearDinero(subtotalGeneral);
 
-    // Ajustes visuales en el desglose final
     const filaDescuento = document.getElementById('fila-descuento');
     const resumenDescuento = document.getElementById('resumen-descuento');
     if (filaDescuento && resumenDescuento) {
@@ -1041,8 +1034,6 @@ function actualizarCarritoVisual() {
     }
 
     if (txtMonto) txtMonto.innerText = formatearDinero(totalFinal);
-    
-    // Recomendaciones dinámicas complementarias
     renderizarCrossSelling();
 }
 
@@ -1264,7 +1255,7 @@ async function enviarPedidoFinal() {
         lanzarEfectoConfeti();
         carrito = [];
         codigoCuponActivo = "";
-        yaExplotoConfettiEnvio = false; // Resetear tras el envío
+        yaExplotoConfettiEnvio = false; 
         if(document.getElementById('input-cupon')) document.getElementById('input-cupon').value = "";
         if(document.getElementById('mensaje-cupon')) document.getElementById('mensaje-cupon').textContent = "";
         if(document.getElementById('direccion-envio')) document.getElementById('direccion-envio').value = "";
