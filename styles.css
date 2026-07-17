@@ -381,8 +381,9 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
 .btn-compartir { position: absolute; top: 8px; right: 8px; background: rgba(31, 41, 55, 0.8); border: 1px solid var(--border); color: var(--text-light); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; z-index: 3; transition: all 0.2s; }
 .btn-compartir:hover { background: var(--primary); color: white; border-color: var(--primary-light); transform: scale(1.1); }
 
-.notificacion-carrito-guardado { position: fixed; bottom: 95px; right: 25px; background: #2e1065; color: #f3e8ff; border: 1px solid #6b21a8; padding: 12px 18px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); z-index: 9999; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-.notificacion-carrito-guardado .btn-cerrar-notif { background: none; border: none; color: var(--text-light); cursor: pointer; }
+.notificacion-carrito-guardado { position: fixed; bottom: 95px; right: 25px; left: auto; max-width: min(340px, calc(100vw - 30px)); background: #2e1065; color: #f3e8ff; border: 1px solid #6b21a8; padding: 12px 18px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); z-index: 9999; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.notificacion-carrito-guardado span { flex: 1; word-break: break-word; }
+.notificacion-carrito-guardado .btn-cerrar-notif { background: none; border: none; color: var(--text-light); cursor: pointer; flex-shrink: 0; }
 
 /* NUEVOS ESTILOS INTEGRADOS */
 .btn-limpiar-busqueda { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-light); font-size: 18px; cursor: pointer; padding: 5px; z-index: 5; transition: color 0.2s; }
@@ -413,11 +414,37 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
     .tarjeta-btn-qty { width: 28px !important; font-size: 14px !important; }
     .tarjeta-cant-num { font-size: 12px !important; }
     .btn { padding: 8px 10px !important; font-size: 11px !important; margin-top: 6px; }
+
+    /* Evita el zoom automático de iOS al enfocar inputs/selects (requiere font-size >= 16px) */
+    .input-group input, .input-group select, .buscador-contenedor input, #input-cupon { font-size: 16px !important; }
+
+    /* Botón flotante del carrito y volver arriba más compactos para no tapar contenido */
+    .carrito-flotante { width: 48px; height: 48px; font-size: 20px; bottom: 18px; right: 18px; }
+    .btn-back-to-top { width: 40px; height: 40px; bottom: 78px; right: 18px; }
+    .notificacion-carrito-guardado, .notificacion-promo { right: 15px !important; bottom: 85px !important; }
+
+    /* Modal de despacho más cómodo en pantallas angostas */
+    .modal-contenido { padding: 18px; width: 94%; }
+    .fila-despacho { gap: 12px; padding: 10px; }
+    .img-despacho { width: 55px; height: 55px; }
     
     /* Responsividad del Anuncio */
     .anuncio-titulo { font-size: 1.2rem; }
     .anuncio-subtitulo { font-size: 0.85rem; }
     .badge-live { font-size: 0.7rem; padding: 4px 10px; }
+}
+
+@media (max-width: 480px) {
+    .header-tienda { flex-direction: column; gap: 10px; padding-top: 45px; }
+    .btn-tema { top: 8px; right: 8px; width: 36px; height: 36px; font-size: 15px; }
+    .img-header-inicio { max-height: 130px; }
+    .anuncio-footer { padding: 14px; }
+    .anuncio-titulo { font-size: 1.05rem; }
+    .carrito-header h2 { font-size: 18px; }
+    .btn-categoria { min-width: 72px; height: 66px; font-size: 10px; }
+    .productos { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important; }
+    .lightbox-close { top: 12px; right: 18px; font-size: 32px; }
+    .notificacion-carrito-guardado, .notificacion-promo { left: 15px !important; right: 15px !important; max-width: none !important; }
 }
 
 /* CROSS-SELLING EN EL CARRITO */

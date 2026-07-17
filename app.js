@@ -15,11 +15,19 @@ let yaExplotoConfettiEnvio = false;
 
 const CUPONES_CONFIG = {
     "BIENVENIDA10": { descuento: 0.10, categoriaRestringida: null },
-    "DAYH20": { descuento: 0.20, categoriaRestringida: null },
-    "OFERTA15": { descuento: 0.15, categoriaRestringida: null },
-    "KIDS20": { descuento: 0.20, categoriaRestringida: "jugueteria" },
+    "DAYH20": { descuento: 0.10, categoriaRestringida: null },
+    "OFERTA15": { descuento: 0.10, categoriaRestringida: null },
+    "KIDS20": { descuento: 0.10, categoriaRestringida: "jugueteria" },
     "MANUAL10": { descuento: 0.10, categoriaRestringida: "manualidades" }
 };
+
+// PROMOCIONES AUTOMÁTICAS: se muestran solas cada cierto tiempo mientras el cliente navega
+const PROMOS_AUTOMATICAS = [
+    { mensaje: "🎉 Usa el cupón <strong>BIENVENIDA10</strong> y obtén 10% de descuento en tu primer pedido.", color: "#7c3aed" },
+    { mensaje: "🧸 ¿Comprando para los peques? Cupón <strong>KIDS20</strong>: 10% de descuento en Juguetería.", color: "#0891b2" },
+    { mensaje: "🎨 Cupón <strong>MANUAL10</strong>: 10% de descuento en Manualidades.", color: "#059669" },
+    { mensaje: "🔥 Aprovecha <strong>OFERTA15</strong>: 10% de descuento en toda la tienda.", color: "#ea580c" }
+];
 
 const socket = typeof io !== 'undefined' ? io(BACKEND_URL) : null;
 
@@ -83,6 +91,7 @@ window.addEventListener('load', () => {
     renderizarEventos();
     setupEventListeners();
     configurarWebSockets();
+    inicializarPromosAutomaticas();
 
     setTimeout(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -272,7 +281,7 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
             <div class="producto-codigo">CÓDIGO: ${prod.codigo}</div>
             <div class="img-wrapper" style="cursor: zoom-in;" onclick="abrirLightbox('${rImg}', '${artLimpio}')">
                 ${bIzq} 
-                <img id="${idImg}" src="${rImg}" alt="${artLimpio}" 
+                <img id="${idImg}" src="${rImg}" alt="${artLimpio}" loading="lazy" decoding="async"
                      onmouseover="if('${rImg2}' !== '${rImg}') this.src='${rImg2}'"
                      onmouseout="this.src='${rImg}'"
                      onerror="this.onerror=null; this.src='https://placehold.co/300?text=${encodeURIComponent(artLimpio)}'"> 
@@ -359,6 +368,48 @@ function verificarCarritoGuardadoAlEntrar() {
         const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
         mostrarNotificacionFlotante(`🛒 ¡Hola! Conservamos las <strong>${totalItems} pzs</strong> que dejaste en tu carrito anterior.`, 6000, '#2e1065');
     }
+}
+
+function inicializarPromosAutomaticas() {
+    if (!PROMOS_AUTOMATICAS.length) return;
+
+    const MAX_PROMOS_POR_SESION = 3;
+    const INTERVALO_MS = 90000;   // 90 segundos entre cada promo
+    const RETRASO_INICIAL_MS = 9000; // espera antes de la primera promo
+
+    let mostradas = parseInt(sessionStorage.getItem('promos_mostradas_dayh') || '0', 10);
+    let indice = parseInt(localStorage.getItem('promo_indice_dayh') || '0', 10);
+
+    function mostrarSiguientePromo() {
+        if (mostradas >= MAX_PROMOS_POR_SESION) return;
+        if (codigoCuponActivo) return; // no molestar si el cliente ya aplicó un cupón
+        if (document.hidden) return;   // no interrumpir si la pestaña no está visible
+
+        const promo = PROMOS_AUTOMATICAS[indice % PROMOS_AUTOMATICAS.length];
+        const notif = document.createElement('div');
+        notif.className = 'notificacion-carrito-guardado notificacion-promo';
+        notif.style.bottom = '160px';
+        notif.style.background = promo.color;
+        notif.style.color = '#fff';
+        notif.style.border = '1px solid rgba(255,255,255,0.2)';
+        notif.style.zIndex = '9999';
+        notif.innerHTML = `<span>${promo.mensaje}</span> <button class="btn-cerrar-notif" onclick="this.parentElement.remove()" style="color:white;">✕</button>`;
+        document.body.appendChild(notif);
+        setTimeout(() => { if (notif) notif.remove(); }, 8000);
+
+        indice++;
+        mostradas++;
+        sessionStorage.setItem('promos_mostradas_dayh', String(mostradas));
+        localStorage.setItem('promo_indice_dayh', String(indice));
+    }
+
+    setTimeout(() => {
+        mostrarSiguientePromo();
+        const intervalo = setInterval(() => {
+            if (mostradas >= MAX_PROMOS_POR_SESION) { clearInterval(intervalo); return; }
+            mostrarSiguientePromo();
+        }, INTERVALO_MS);
+    }, RETRASO_INICIAL_MS);
 }
 
 function lanzarEfectoConfeti() {
@@ -502,38 +553,43 @@ function configuringCamposFecha() {
     if(campoHora) campoHora.addEventListener('focus', validarHorariosDisponibles);
 }
 
-// HORARIO DE ENTREGA FIJADO EXCLUSIVAMENTE A 4 PM - 5 PM
+// HORARIOS DE ENTREGA DISPONIBLES: 04:00 PM y 05:00 PM
+const HORARIOS_ENTREGA = [
+    { value: "04:00 PM", texto: "04:00 p. m.", limiteHora: 15, limiteMin: 45 }, // se oculta 15 min antes de la franja
+    { value: "05:00 PM", texto: "05:00 p. m.", limiteHora: 16, limiteMin: 45 }
+];
+
 function validarHorariosDisponibles() {
     const campoFecha = document.getElementById('fecha');
     const campoHora = document.getElementById('hora');
-    const selectEntrega = document.getElementById('select-punto-entrega');
     if (!campoFecha || !campoHora) return;
 
     const fechaSeleccionada = campoFecha.value;
     const ahora = new Date();
     const hoyStr = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
     const valorPreseleccion = campoHora.value;
+    const esHoy = fechaSeleccionada === hoyStr;
+    const horaActual = ahora.getHours();
+    const minActual = ahora.getMinutes();
 
     campoHora.innerHTML = '';
 
-    let incluirEnvio = true;
-    if (fechaSeleccionada === hoyStr) {
-        const horaActual = ahora.getHours();
-        const minActual = ahora.getMinutes();
-        if (horaActual > 16 || (horaActual === 16 && minActual > 15)) {
-            incluirEnvio = false;
+    let hayHorarioDisponible = false;
+    HORARIOS_ENTREGA.forEach(h => {
+        const yaPaso = esHoy && (horaActual > h.limiteHora || (horaActual === h.limiteHora && minActual > h.limiteMin));
+        if (!yaPaso) {
+            const opt = document.createElement('option');
+            opt.value = h.value;
+            opt.innerText = h.texto;
+            campoHora.appendChild(opt);
+            hayHorarioDisponible = true;
         }
-    }
-    
-    if (incluirEnvio) {
-        const opt = document.createElement('option');
-        opt.value = "4 pm a 5 pm";
-        opt.innerText = "4 pm a 5 pm";
-        campoHora.appendChild(opt);
-    } else {
+    });
+
+    if (!hayHorarioDisponible) {
         const opt = document.createElement('option');
         opt.value = "";
-        opt.innerText = "❌ Horario fuera de límite por hoy (Solicitar para mañana)";
+        opt.innerText = "❌ Sin horarios disponibles por hoy (elige otra fecha)";
         campoHora.appendChild(opt);
     }
 
@@ -619,11 +675,12 @@ function renderizarWishlist() {
     if (!cont || !sec) return;
     if (badge) badge.innerText = WISHLIST_GLOBAL.length;
     if (WISHLIST_GLOBAL.length === 0) { sec.style.display = 'none'; return; }
-    sec.style.display = 'block'; cont.innerHTML = '';
-    WISHLIST_GLOBAL.forEach(codigo => {
-        const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
-        if (prod) cont.innerHTML += generarHTMLTarjeta(prod, true);
-    });
+    sec.style.display = 'block';
+    cont.innerHTML = WISHLIST_GLOBAL
+        .map(codigo => INVENTARIO_GLOBAL.find(p => p.codigo === codigo))
+        .filter(Boolean)
+        .map(prod => generarHTMLTarjeta(prod, true))
+        .join('');
 }
 
 function recuperarWishlistDeLocalStorage() {
@@ -637,8 +694,8 @@ function renderizarDestacados() {
     if (!cont || !sec) return;
     const dest = INVENTARIO_GLOBAL.filter(p => p.destacado === true);
     if (dest.length === 0) { sec.style.display = 'none'; return; }
-    sec.style.display = 'block'; cont.innerHTML = '';
-    dest.forEach(p => { cont.innerHTML += generarHTMLTarjeta(p, true); });
+    sec.style.display = 'block';
+    cont.innerHTML = dest.map(p => generarHTMLTarjeta(p, true)).join('');
 }
 
 function filtrarCatalogo() {
@@ -651,9 +708,9 @@ function filtrarCatalogo() {
         return (nom.includes(buscar) || cod.includes(buscar)) && (categorySeleccionada === "todas" || cat === categorySeleccionada.toLowerCase());
     });
     const cont = document.getElementById('lista-productos');
-    if (!cont) return; cont.innerHTML = '';
+    if (!cont) return;
     if (filtrados.length === 0) { cont.innerHTML = '<p class="sin-resultados">No encontramos productos.</p>'; return; }
-    filtrados.forEach(p => { cont.innerHTML += generarHTMLTarjeta(p, false); });
+    cont.innerHTML = filtrados.map(p => generarHTMLTarjeta(p, false)).join('');
 }
 
 function seleccionarCategoria(cat, elemento) {
