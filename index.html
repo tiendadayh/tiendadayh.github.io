@@ -7,9 +7,9 @@
     <title>TIENDA DAYH - Catálogo Oficial</title>
     <link rel="stylesheet" href="styles.css">
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
-    <script src="https://cdn.socketio.cloud/4.7.5/socketio.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.socketio.cloud/4.7.5/socketio.min.js"></script>
     
     <script src="app.js" defer></script>
 </head>
@@ -23,19 +23,6 @@
 
     <div class="container">
         <div class="productos-seccion">
-
-            <div class="anuncio-container">
-                <div class="anuncio-card">
-                    <span class="badge-live">Gran Final</span>
-                    <div class="anuncio-img-wrapper">
-                        <img src="imagenes_eventos/argentina_vs_españa.jpg" alt="Gran Final Argentina vs España" class="anuncio-img" onerror="this.onerror=null; this.src='https://placehold.co/1200x400/1f2937/f9fafb?text=GRAN+FINAL:+ARGENTINA+VS+ESPAÑA'">
-                    </div>
-                    <div class="anuncio-footer">
-                        <h3 class="anuncio-titulo">ARGENTINA vs ESPAÑA</h3>
-                        <p class="anuncio-subtitulo">LA GRAN FINAL DEL MUNDIAL DOMINGO 19 DE JULIO 2026 A LA 1:00 PM</p>
-                    </div>
-                </div>
-            </div>
 
             <div class="eventos-seccion" id="seccion-eventos" style="display: none;">
                 <h2>📅 Próximos Eventos y Fechas Especiales</h2>
@@ -82,27 +69,11 @@
 
             <div id="items-carrito"></div>
             
-            <div id="info-envio-gratis" style="display: none;"></div>
-            
             <div class="contenedor-cross-selling" style="display: none;"></div>
 
-            <div class="resumen-totales-checkout" style="margin-top: 15px; font-size: 14px; display: flex; flex-direction: column; gap: 6px;">
-                <div style="display: flex; justify-content: space-between; color: var(--text-light);">
-                    <span>Subtotal:</span>
-                    <span id="resumen-subtotal">$0.00</span>
-                </div>
-                <div id="fila-descuento" style="display: none; justify-content: space-between; color: var(--success); font-weight: 600;">
-                    <span>Descuento aplicado:</span>
-                    <span id="resumen-descuento">-$0.00</span>
-                </div>
-                <div id="fila-envio" style="display: none; justify-content: space-between; color: var(--primary-light); font-weight: 600;">
-                    <span>Cargo por Envío:</span>
-                    <span id="resumen-envio">+$0.00</span>
-                </div>
-                <h3 id="total-carrito" style="font-size: 20px; margin-top: 5px; display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 10px;">
-                    <span>Total a Pagar:</span> <span id="total-monto">$0.00</span>
-                </h3>
-            </div>
+            <h3 id="total-carrito" style="font-size: 20px; margin-top: 15px; display: flex; justify-content: space-between;">
+                <span>Total:</span> <span id="total-monto">$0.00</span>
+            </h3>
             <hr>
 
             <h3>AGENDAR PEDIDO</h3>
@@ -118,22 +89,16 @@
             <div class="input-group">
                 <label for="hora">Hora aproximada:</label>
                 <select id="hora" onfocus="validarHorariosDisponibles()">
+                    <option value="09:00 AM">09:00 a. m.</option>
+                    <option value="10:00 AM">10:00 a. m.</option>
+                    <option value="11:00 AM">11:00 a. m.</option>
+                    <option value="12:00 PM">12:00 p. m.</option>
+                    <option value="01:00 PM">01:00 p. m.</option>
+                    <option value="02:00 PM">02:00 p. m.</option>
+                    <option value="03:00 PM">03:00 p. m.</option>
                     <option value="04:00 PM">04:00 p. m.</option>
                     <option value="05:00 PM">05:00 p. m.</option>
                 </select>
-            </div>
-
-            <div class="input-group">
-                <label for="select-punto-entrega">📍 Punto de Entrega:</label>
-                <select id="select-punto-entrega">
-                    <option value="" disabled selected>-- Selecciona dónde recibir --</option>
-                    <option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>
-                </select>
-            </div>
-
-            <div class="input-group" id="contenedor-direccion-envio" style="display: none;">
-                <label for="direccion-envio" style="color: var(--success); font-weight: bold;">🏠 Dirección Completa de Envío:</label>
-                <input type="text" id="direccion-envio" placeholder="Colonia, Referencias.">
             </div>
 
             <div class="input-group">
@@ -147,15 +112,6 @@
                     <option value="Efectivo al entregar">💵 Efectivo al entregar</option>
                     <option value="Transferencia Bancaria">📱 Transferencia Bancaria</option>
                 </select>
-            </div>
-
-            <div class="input-group">
-                <label for="input-cupon">🎟️ ¿Tienes un cupón de descuento?</label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="input-cupon" placeholder="Ej: BIENVENIDA10" style="text-transform: uppercase;">
-                    <button id="btn-aplicar-cupon" class="btn" style="margin-top: 0; width: auto; white-space: nowrap; padding: 0 15px;">Aplicar</button>
-                </div>
-                <div id="mensaje-cupon" class="mensaje-cupon"></div>
             </div>
 
             <button id="btn-enviar-pedido" class="btn">Enviar Pedido por WhatsApp</button>
