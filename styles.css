@@ -57,6 +57,95 @@ body {
 .productos-seccion { flex: 2; min-width: 320px; }
 .productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 185px), 1fr)); gap: 15px; }
 
+/* ==========================================================================
+   ESTILOS ADAPTADOS DEL BANNER DE ANUNCIO (ARG VS ESP)
+   ========================================================================== */
+.anuncio-container {
+    max-width: 100%;
+    margin: 0 0 25px 0;
+    padding: 0;
+}
+
+.anuncio-link {
+    text-decoration: none;
+    display: block;
+}
+
+.anuncio-card {
+    position: relative;
+    background-color: var(--card-bg);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.anuncio-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-light);
+    box-shadow: 0 0 15px rgba(192, 132, 252, 0.4), 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.anuncio-img-wrapper {
+    position: relative;
+    width: 100%;
+    height: auto;
+    line-height: 0;
+}
+
+.anuncio-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+.badge-live {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background-color: var(--danger);
+    color: #ffffff;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.5);
+    z-index: 10;
+}
+
+.anuncio-footer {
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.95));
+    color: var(--text);
+    text-align: center;
+    border-top: 1px solid var(--border);
+}
+
+.anuncio-titulo {
+    margin: 0 0 8px 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: var(--text);
+}
+
+.anuncio-subtitulo {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--text-light);
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+/* ==========================================================================
+   PRODUCTOS Y DETALLES DE TIENDA DAHY
+   ========================================================================== */
 .producto-card { 
     background: rgba(31, 41, 55, 0.65) !important;
     backdrop-filter: blur(10px);
@@ -230,7 +319,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
 .modal-acciones { margin-top: 25px; text-align: right; }
 .btn-modal-print { background-color: #0288d1; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 
-/* MODO CLARO OPTIMIZADO */
+/* MODO CLARO OPTIMIZADO Y BANNER EN MODO CLARO */
 body.light-mode { --bg: #f3f4f6; --card-bg: #ffffff; --text: #1f2937; --text-light: #4b5563; --border: #d1d5db; --shadow: rgba(0, 0, 0, 0.08); --primary-light: #9333ea; }
 body.light-mode .producto-card { background: rgba(255, 255, 255, 0.65) !important; border: 1px solid rgba(0, 0, 0, 0.05) !important; box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08) !important; }
 body.light-mode .producto-card:hover { border-color: var(--primary) !important; box-shadow: 0 0 15px rgba(168, 85, 247, 0.3) !important; }
@@ -239,6 +328,13 @@ body.light-mode .btn-qty { background: #e5e7eb; color: #1f2937; }
 body.light-mode .btn-qty:disabled { background: #f3f4f6; color: #d1d5db; }
 body.light-mode .tarjeta-controles-qty { background: #f9fafb; border-color: #d1d5db; }
 body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
+
+/* Ajustes del anuncio para Light-mode */
+body.light-mode .anuncio-card { background-color: var(--card-bg); border-color: var(--border); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08); }
+body.light-mode .anuncio-card:hover { border-color: var(--primary); box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
+body.light-mode .anuncio-footer { background: linear-gradient(135deg, #f9fafb, #f3f4f6); border-top: 1px solid var(--border); }
+body.light-mode .anuncio-titulo { color: var(--text); }
+body.light-mode .anuncio-subtitulo { color: var(--text-light); }
 
 .btn-tema { position: absolute; top: 20px; right: 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px var(--shadow); transition: all 0.3s ease; z-index: 10; }
 .btn-tema:hover { transform: scale(1.1) rotate(15deg); border-color: var(--primary-light); }
@@ -261,16 +357,33 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
 @keyframes pop-carrito { 0% { transform: scale(1); } 50% { transform: scale(1.25) rotate(-10deg); } 100% { transform: scale(1); } }
 .animar-pop { animation: pop-carrito 0.4s ease-in-out; }
 
+/* SKELETONS */
 @keyframes skeleton-glow { 0% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-.skeleton-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+.skeleton-card { 
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.6) 0%, rgba(17, 24, 39, 0.4) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    border-radius: 14px; 
+    padding: 15px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+}
 .skeleton-item { background: linear-gradient(90deg, var(--border) 25%, rgba(168,85,247,0.1) 50%, var(--border) 75%); background-size: 200% 100%; animation: skeleton-glow 1.5s infinite linear; border-radius: 6px; }
-.skeleton-img { width: 100%; height: 130px; border-radius: 10px; }
+.skeleton-img { 
+    background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+    background-size: 200% 100%;
+    width: 100%; 
+    height: 130px; 
+    border-radius: 10px; 
+}
 
 .btn-compartir { position: absolute; top: 8px; right: 8px; background: rgba(31, 41, 55, 0.8); border: 1px solid var(--border); color: var(--text-light); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; z-index: 3; transition: all 0.2s; }
 .btn-compartir:hover { background: var(--primary); color: white; border-color: var(--primary-light); transform: scale(1.1); }
 
-.notificacion-carrito-guardado { position: fixed; bottom: 95px; right: 25px; background: #2e1065; color: #f3e8ff; border: 1px solid #6b21a8; padding: 12px 18px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); z-index: 9999; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-.notificacion-carrito-guardado .btn-cerrar-notif { background: none; border: none; color: var(--text-light); cursor: pointer; }
+.notificacion-carrito-guardado { position: fixed; bottom: 95px; right: 25px; left: auto; max-width: min(340px, calc(100vw - 30px)); background: #2e1065; color: #f3e8ff; border: 1px solid #6b21a8; padding: 12px 18px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); z-index: 9999; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.notificacion-carrito-guardado span { flex: 1; word-break: break-word; }
+.notificacion-carrito-guardado .btn-cerrar-notif { background: none; border: none; color: var(--text-light); cursor: pointer; flex-shrink: 0; }
 
 /* NUEVOS ESTILOS INTEGRADOS */
 .btn-limpiar-busqueda { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-light); font-size: 18px; cursor: pointer; padding: 5px; z-index: 5; transition: color 0.2s; }
@@ -301,9 +414,40 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
     .tarjeta-btn-qty { width: 28px !important; font-size: 14px !important; }
     .tarjeta-cant-num { font-size: 12px !important; }
     .btn { padding: 8px 10px !important; font-size: 11px !important; margin-top: 6px; }
+
+    /* Evita el zoom automático de iOS al enfocar inputs/selects (requiere font-size >= 16px) */
+    .input-group input, .input-group select, .buscador-contenedor input, #input-cupon { font-size: 16px !important; }
+
+    /* Botón flotante del carrito y volver arriba más compactos para no tapar contenido */
+    .carrito-flotante { width: 48px; height: 48px; font-size: 20px; bottom: 18px; right: 18px; }
+    .btn-back-to-top { width: 40px; height: 40px; bottom: 78px; right: 18px; }
+    .notificacion-carrito-guardado, .notificacion-promo { right: 15px !important; bottom: 85px !important; }
+
+    /* Modal de despacho más cómodo en pantallas angostas */
+    .modal-contenido { padding: 18px; width: 94%; }
+    .fila-despacho { gap: 12px; padding: 10px; }
+    .img-despacho { width: 55px; height: 55px; }
+    
+    /* Responsividad del Anuncio */
+    .anuncio-titulo { font-size: 1.2rem; }
+    .anuncio-subtitulo { font-size: 0.85rem; }
+    .badge-live { font-size: 0.7rem; padding: 4px 10px; }
 }
 
-/* DISEÑO DEL MÓDULO DE CROSS-SELLING EN EL CARRITO */
+@media (max-width: 480px) {
+    .header-tienda { flex-direction: column; gap: 10px; padding-top: 45px; }
+    .btn-tema { top: 8px; right: 8px; width: 36px; height: 36px; font-size: 15px; }
+    .img-header-inicio { max-height: 130px; }
+    .anuncio-footer { padding: 14px; }
+    .anuncio-titulo { font-size: 1.05rem; }
+    .carrito-header h2 { font-size: 18px; }
+    .btn-categoria { min-width: 72px; height: 66px; font-size: 10px; }
+    .productos { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important; }
+    .lightbox-close { top: 12px; right: 18px; font-size: 32px; }
+    .notificacion-carrito-guardado, .notificacion-promo { left: 15px !important; right: 15px !important; max-width: none !important; }
+}
+
+/* CROSS-SELLING EN EL CARRITO */
 .contenedor-cross-selling {
     background: rgba(168, 85, 247, 0.06);
     border: 1px dashed var(--primary-light);
@@ -343,12 +487,12 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
 }
 
 .info-cross {
-    flex-grow: 1; /* <-- Corregido para distribución adaptativa */
+    flex-grow: 1; 
     margin-left: 10px;
     text-align: left;
 }
 
-.info-cross h4 {
+.info-cross strong {
     font-size: 12px;
     margin: 0;
     color: var(--text);
@@ -358,7 +502,7 @@ body.light-mode .producto-codigo { color: #6b21a8; font-weight: 800; }
     max-width: 150px;
 }
 
-.info-cross p {
+.info-cross span {
     font-size: 11px;
     margin: 2px 0 0 0;
     color: var(--primary-light);
