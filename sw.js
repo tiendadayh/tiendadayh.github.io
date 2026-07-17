@@ -1,13 +1,14 @@
-const CACHE_NAME = 'tienda-dayh-v1';
+const CACHE_NAME = 'tienda-dayh-cache-v1';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './manifest.json'
+  './manifest.json',
+  './imagenes_eventos/logo_inicio.png'
 ];
 
-// Instalar el Service Worker y almacenar archivos en caché
+// Instalar Service Worker y almacenar en caché los recursos estáticos
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -31,7 +32,7 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Responder con los archivos en caché o buscar en la red
+// Estrategia de respuesta: Cache First / Network Fallback
 self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {

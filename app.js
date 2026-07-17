@@ -1,7 +1,7 @@
 // === REGISTRO DEL SERVICE WORKER (Para que la app sea instalable) ===
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
+        navigator.serviceWorker.register('/sw.js')
             .then(registration => {
                 console.log('Service Worker registrado con éxito:', registration.scope);
             })
@@ -60,7 +60,7 @@ function reproducirSonido(tipo) {
     if (!EFECTOS_SONIDO[tipo]) return;
     try {
         const audio = new Audio(EFECTOS_SONIDO[tipo]);
-        audio.volume = 0.15; // 15% de volumen para ser sutil
+        audio.volume = 0.15;
         audio.play().catch(error => {
             console.log("El navegador requiere interacción previa para el audio:", error);
         });
@@ -85,7 +85,6 @@ window.addEventListener('load', () => {
         document.getElementById('cliente').value = clienteGuardado;
     }
 
-    // Buscador con botón de limpieza manual
     const btnLimpiar = document.getElementById('btn-limpiar-busqueda');
     const buscadorInput = document.getElementById('buscador');
     if (buscadorInput && btnLimpiar) {
@@ -254,9 +253,6 @@ function inicializarLogicaCuponesYEnvio() {
     }
 }
 
-// =========================================================================
-// LÓGICA DE DISPONIBILIDAD DINÁMICA EN LA TARJETA
-// =========================================================================
 function generarHTMLTarjeta(prod, esDestacada = false) {
     const itemEnCarrito = carrito.find(i => i.codigo === prod.codigo);
     const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
@@ -380,9 +376,6 @@ window.cambiarCantidad = function(codigo, cambio) {
     renderizarWishlist();
 };
 
-// =========================================================================
-// FUNCIONES AUXILIARES DE UI Y HELPERS INTERNOS
-// =========================================================================
 function mostrarNotificacionFlotante(mensaje, duracion = 4000, colorFondo = '#2e1065') {
     const miniNotif = document.createElement('div');
     miniNotif.className = 'notificacion-carrito-guardado';
@@ -573,8 +566,8 @@ function validarHorariosDisponibles() {
         
         if (incluirEnvio) {
             const opt = document.createElement('option');
-            opt.value = "04:00 PM";
-            opt.innerText = "04:00 p. m. a 05:00 p. m. (Rango único de entrega)";
+            opt.value = "16:00";
+            opt.innerText = "4 pm a 5 pm (Rango único de entrega)";
             campoHora.appendChild(opt);
         } else {
             const opt = document.createElement('option');
@@ -585,34 +578,25 @@ function validarHorariosDisponibles() {
         return;
     }
 
-    const mapeoHorasFijas = [
-        { v: "09:00 AM", t: "09:00 a. m." }, { v: "10:00 AM", t: "10:00 a. m." },
-        { v: "11:00 AM", t: "11:00 a. m." }, { v: "12:00 PM", t: "12:00 p. m." },
-        { v: "01:00 PM", t: "01:00 p. m." }, { v: "02:00 PM", t: "02:00 p. m." },
-        { v: "03:00 PM", t: "03:00 p. m." }, { v: "04:00 PM", t: "04:00 p. m." },
-        { v: "05:00 PM", t: "05:00 p. m." }
-    ];
-
-    mapeoHorasFijas.forEach(opcion => {
-        let incluir = true;
-        if (fechaSeleccionada === hoyStr) {
-            const horaActual = ahora.getHours();
-            const minActual = ahora.getMinutes();
-            let [hStr, periodo] = opcion.v.split(' ');
-            let [h, m] = hStr.split(':').map(Number);
-            if (periodo === "PM" && h !== 12) h += 12;
-            if (periodo === "AM" && h === 12) h = 0;
-            if (h < horaActual || (h === horaActual && minActual > 15)) incluir = false;
+    // Adaptación para mantener el horario ajustado 
+    let incluirEnvioFisica = true;
+    if (fechaSeleccionada === hoyStr) {
+        const horaActual = ahora.getHours();
+        const minActual = ahora.getMinutes();
+        if (horaActual > 16 || (horaActual === 16 && minActual > 15)) {
+            incluirEnvioFisica = false;
         }
-        if (incluir) {
-            const opt = document.createElement('option');
-            opt.value = opcion.v; opt.innerText = opcion.t;
-            campoHora.appendChild(opt);
-        }
-    });
-
-    if (Array.from(campoHora.options).some(o => o.value === valorPreseleccion)) {
-        campoHora.value = valorPreseleccion;
+    }
+    if (incluirEnvioFisica) {
+        const opt = document.createElement('option');
+        opt.value = "16:00";
+        opt.innerText = "4 pm a 5 pm (Rango único de entrega)";
+        campoHora.appendChild(opt);
+    } else {
+        const opt = document.createElement('option');
+        opt.value = "";
+        opt.innerText = "❌ Horario fuera de límite por hoy (Solicitar para mañana)";
+        campoHora.appendChild(opt);
     }
 }
 
@@ -810,7 +794,7 @@ function vaciarCarrito() {
 }
 
 // =========================================================================
-// ACTUALIZAR CARRITO VISUAL (CON EXCLUSIVIDAD DE ENVÍO GRATIS A PARTIR DE 150)
+// ACTUALIZAR CARRITO VISUAL
 // =========================================================================
 function actualizarCarritoVisual() {
     const cont = document.getElementById('items-carrito');
@@ -858,7 +842,7 @@ function actualizarCarritoVisual() {
         
         if (puntoEntrega) {
             puntoEntrega.innerHTML = `<option value="" disabled selected>-- Selecciona dónde recibir --</option>
-                                      <option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>`;
+                                      <option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
         }
         return;
     }
@@ -892,6 +876,7 @@ function actualizarCarritoVisual() {
 
         const itemHTML = `
             <div class="item-carrito" style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+                
                 <img src="${rutaImagen}" alt="${artLimpio}" 
                      style="width: 50px; height: 50px; object-fit: contain; border-radius: 8px; background: #fff; border: 1px solid var(--border); padding: 2px;"
                      onerror="this.onerror=null; this.src='https://placehold.co/50x50?text=DAYH';">
@@ -949,7 +934,7 @@ function actualizarCarritoVisual() {
             let htmlEmpujoncito = '';
 
             if (complementosDisponibles.length > 0) {
-                const sugerido = complementosDisponibles[0]; 
+                const sugerido = complementosDisponibles[0];
                 const arrImgSugerido = obtenerArregloImagenes(sugerido);
                 let imgSugeridoName = arrImgSugerido[0] ? arrImgSugerido[0].split(/[/\\\\]/).pop() : '';
                 let rImgSugerido = imgSugeridoName ? `imagenes_productos/${imgSugeridoName}` : 'https://placehold.co/35x35?text=DAYH';
@@ -985,7 +970,7 @@ function actualizarCarritoVisual() {
     
     if (puntoEntrega) {
         puntoEntrega.innerHTML = `<option value="" disabled>-- Selecciona dónde recibir --</option>`;
-        puntoEntrega.innerHTML += `<option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>`;
+        puntoEntrega.innerHTML += `<option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
 
         if (alcanzoEnvioGratis) {
             puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)">Envío a Domicilio (¡GRATIS!)</option>`;
@@ -994,7 +979,7 @@ function actualizarCarritoVisual() {
         if (valorSeleccionadoPrevio && Array.from(puntoEntrega.options).some(o => o.value === valorSeleccionadoPrevio)) {
             puntoEntrega.value = valorSeleccionadoPrevio;
         } else {
-            puntoEntrega.value = "TIENDA DAYH (Entrega Física)";
+            puntoEntrega.value = "TIENDA DAHY (Entrega Física)";
         }
     }
 
@@ -1037,9 +1022,6 @@ function actualizarCarritoVisual() {
     renderizarCrossSelling();
 }
 
-// =========================================================================
-// ACCIÓN AUXILIAR: ELIMINAR DIRECTAMENTE DEL CARRITO EN LA FILA
-// =========================================================================
 function eliminarDelCarritoVisual(codigo) {
     reproducirSonido('eliminar');
     carrito = carrito.filter(item => item.codigo !== codigo);
@@ -1144,7 +1126,7 @@ async function enviarPedidoFinal() {
         }
 
         textoMensajeWhatsApp += `📅 *Fecha de Entrega:* ${formatearFechaHumana(fecha)}\n`;
-        textoMensajeWhatsApp += `⏰ *Hora Aproximada:* ${hora}\n`;
+        textoMensajeWhatsApp += `⏰ *Hora Aproximada:* ${hora === '16:00' ? '4 pm a 5 pm' : hora}\n`;
         textoMensajeWhatsApp += `💳 *Forma de Pago:* ${metodoPago}\n`;
         if (codigoCuponActivo) {
             textoMensajeWhatsApp += `🎟️ *Cupón Aplicado:* ${codigoCuponActivo}\n`;
@@ -1189,7 +1171,7 @@ async function enviarPedidoFinal() {
             }
 
             doc.setFont("helvetica", "bold"); doc.text("Fecha de Entrega:", 15, 73 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(formatearFechaHumana(fecha), 55, 73 + compensacionY);
-            doc.setFont("helvetica", "bold"); doc.text("Hora Aproximada:", 15, 80 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(hora, 55, 80 + compensacionY);
+            doc.setFont("helvetica", "bold"); doc.text("Hora Aproximada:", 15, 80 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(hora === '16:00' ? '4 pm a 5 pm' : hora, 55, 80 + compensacionY);
             doc.setFont("helvetica", "bold"); doc.text("Método de Pago:", 15, 87 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(metodoPago, 55, 87 + compensacionY);
             doc.setFont("helvetica", "bold"); doc.text("DETALLE DEL PEDIDO", 15, 100 + compensacionY); doc.line(15, 103 + compensacionY, 195, 103 + compensacionY);
             doc.setFillColor(249, 250, 251); doc.rect(15, 107 + compensacionY, 180, 8, "F");
@@ -1255,7 +1237,7 @@ async function enviarPedidoFinal() {
         lanzarEfectoConfeti();
         carrito = [];
         codigoCuponActivo = "";
-        yaExplotoConfettiEnvio = false; 
+        yaExplotoConfettiEnvio = false;
         if(document.getElementById('input-cupon')) document.getElementById('input-cupon').value = "";
         if(document.getElementById('mensaje-cupon')) document.getElementById('mensaje-cupon').textContent = "";
         if(document.getElementById('direccion-envio')) document.getElementById('direccion-envio').value = "";
@@ -1360,3 +1342,12 @@ window.addEventListener('storage', (e) => {
         renderizarWishlist();
     }
 });
+
+// Registrar el Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registrado con éxito:', reg.scope))
+            .catch(err => console.warn('Error al registrar el Service Worker:', err));
+    });
+}

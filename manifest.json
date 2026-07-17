@@ -1,23 +1,21 @@
 {
-  "name": "TIENDA DAYH - Catálogo Oficial",
-  "short_name": "TIENDA DAYH",
-  "description": "Catálogo Oficial y sistema de pedidos de TIENDA DAYH.",
-  "start_url": "./index.html",
-  "display": "fullscreen",
-  "background_color": "#111827",
-  "theme_color": "#a855f7",
-  "orientation": "portrait",
+  "short_name": "DAYH POS",
+  "name": "TIENDA DAYH - Punto de Venta y Catálogo",
   "icons": [
     {
       "src": "imagenes_eventos/logo_inicio.png",
-      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "sizes": "192x192"
     },
     {
       "src": "imagenes_eventos/logo_inicio.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "sizes": "512x512"
     }
-  ]
+  ],
+  "start_url": "./index.html",
+  "background_color": "#111827",
+  "theme_color": "#a855f7",
+  "display": "standalone",
+  "orientation": "portrait"
 }
