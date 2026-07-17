@@ -1,0 +1,23 @@
+{
+  "name": "TIENDA DAYH - Catálogo Oficial",
+  "short_name": "TIENDA DAYH",
+  "description": "Catálogo Oficial y sistema de pedidos de TIENDA DAYH.",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "background_color": "#111827",
+  "theme_color": "#a855f7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "imagenes_eventos/logo_inicio.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "imagenes_eventos/logo_inicio.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
