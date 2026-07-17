@@ -1,19 +1,3 @@
-// === REGISTRO DEL SERVICE WORKER (Para que la app sea instalable) ===
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-                console.log('Service Worker registrado con éxito:', registration.scope);
-            })
-            .catch(error => {
-                console.error('Error al registrar el Service Worker:', error);
-            });
-    });
-}
-
-// =========================================================================
-// VARIABLES GLOBALES Y ESTADO DE LA APLICACIÓN
-// =========================================================================
 const BACKEND_URL = "http://127.0.0.1:5000"; // URL centralizada. Cambia esta por tu IP de producción
 const TELEFONO_WHATSAPP = "527442411773";
 let categorySeleccionada = "todas";
@@ -26,10 +10,9 @@ let indicesCarrusel = {};
 
 // VARIABLES PARA CUPONES Y LOGÍSTICA
 let codigoCuponActivo = "";
-let cargoPorEnvio = 0; // Siempre será 0 ya que quitamos los cargos por envío
-let yaExplotoConfettiEnvio = false; // Control de disparo de confetti único
+let cargoPorEnvio = 0; // Sin cargos por envío
+let yaExplotoConfettiEnvio = false; 
 
-// SISTEMA DE CUPONES AVANZADO (Por categorías o globales)
 const CUPONES_CONFIG = {
     "BIENVENIDA10": { descuento: 0.10, categoriaRestringida: null },
     "DAYH20": { descuento: 0.20, categoriaRestringida: null },
@@ -45,9 +28,6 @@ const EVENTOS_CONFIG = [
     { titulo: "🎓 Graduaciones (Ropa)", fecha: "Mes de Julio", descripcion: "Termina una etapa llena de aprendizajes.", categoriaVinculada: "ropa", imagen: "imagenes_eventos/graduaciones.jpg" }
 ];
 
-// =========================================================================
-// SISTEMA DE AUDIO-FEEDBACK
-// =========================================================================
 const EFECTOS_SONIDO = {
     agregar: "https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav",
     eliminar: "https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav",
@@ -60,7 +40,7 @@ function reproducirSonido(tipo) {
     if (!EFECTOS_SONIDO[tipo]) return;
     try {
         const audio = new Audio(EFECTOS_SONIDO[tipo]);
-        audio.volume = 0.15;
+        audio.volume = 0.15; 
         audio.play().catch(error => {
             console.log("El navegador requiere interacción previa para el audio:", error);
         });
@@ -69,9 +49,6 @@ function reproducirSonido(tipo) {
     }
 }
 
-// =========================================================================
-// INICIALIZACIÓN DE LA APLICACIÓN
-// =========================================================================
 window.addEventListener('load', () => {
     configurarTema();
     configuringCamposFecha();
@@ -121,9 +98,6 @@ window.addEventListener('load', () => {
     }, 900);
 });
 
-// =========================================================================
-// HANDLER DEL WEBSOCKET
-// =========================================================================
 function configurarWebSockets() {
     if (!socket) return;
     
@@ -168,9 +142,6 @@ function configurarWebSockets() {
     });
 }
 
-// =========================================================================
-// CARGA INICIAL DE PRODUCTOS
-// =========================================================================
 function cargarProductos() {
     fetch('productos.json?v=' + Date.now())
         .then(res => res.json())
@@ -190,7 +161,7 @@ function cargarProductos() {
             actualizarCarritoVisual();
         })
         .catch((error) => {
-            console.error("Error cargando productos frescos:", error);
+            console.error("Error cargando productos:", error);
             let inventarioGuardado = localStorage.getItem('inventario_tienda_real');
             if (inventarioGuardado) {
                 INVENTARIO_GLOBAL = JSON.parse(inventarioGuardado);
@@ -203,9 +174,6 @@ function cargarProductos() {
         });
 }
 
-// =========================================================================
-// LÓGICA DE CUPONES Y PUNTOS DE ENTREGA
-// =========================================================================
 function inicializarLogicaCuponesYEnvio() {
     const btnCupon = document.getElementById('btn-aplicar-cupon');
     const inputCupon = document.getElementById('input-cupon');
@@ -318,9 +286,6 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
     </div>`;
 }
 
-// =========================================================================
-// GESTIÓN DE CARRITO
-// =========================================================================
 window.agregarAlCarrito = function (codigo) {
     const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
     if (!prod) return;
@@ -537,9 +502,7 @@ function configuringCamposFecha() {
     if(campoHora) campoHora.addEventListener('focus', validarHorariosDisponibles);
 }
 
-// =========================================================================
-// VALIDAR HORARIOS DISPONIBLES
-// =========================================================================
+// HORARIO DE ENTREGA FIJADO EXCLUSIVAMENTE A 4 PM - 5 PM
 function validarHorariosDisponibles() {
     const campoFecha = document.getElementById('fecha');
     const campoHora = document.getElementById('hora');
@@ -550,53 +513,32 @@ function validarHorariosDisponibles() {
     const ahora = new Date();
     const hoyStr = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
     const valorPreseleccion = campoHora.value;
-    const esEnvio = selectEntrega && selectEntrega.value === "Envío a Domicilio (Zona Urbana)";
 
     campoHora.innerHTML = '';
 
-    if (esEnvio) {
-        let incluirEnvio = true;
-        if (fechaSeleccionada === hoyStr) {
-            const horaActual = ahora.getHours();
-            const minActual = ahora.getMinutes();
-            if (horaActual > 16 || (horaActual === 16 && minActual > 15)) {
-                incluirEnvio = false;
-            }
-        }
-        
-        if (incluirEnvio) {
-            const opt = document.createElement('option');
-            opt.value = "16:00";
-            opt.innerText = "4 pm a 5 pm (Rango único de entrega)";
-            campoHora.appendChild(opt);
-        } else {
-            const opt = document.createElement('option');
-            opt.value = "";
-            opt.innerText = "❌ Horario fuera de límite por hoy (Solicitar para mañana)";
-            campoHora.appendChild(opt);
-        }
-        return;
-    }
-
-    // Adaptación para mantener el horario ajustado 
-    let incluirEnvioFisica = true;
+    let incluirEnvio = true;
     if (fechaSeleccionada === hoyStr) {
         const horaActual = ahora.getHours();
         const minActual = ahora.getMinutes();
         if (horaActual > 16 || (horaActual === 16 && minActual > 15)) {
-            incluirEnvioFisica = false;
+            incluirEnvio = false;
         }
     }
-    if (incluirEnvioFisica) {
+    
+    if (incluirEnvio) {
         const opt = document.createElement('option');
-        opt.value = "16:00";
-        opt.innerText = "4 pm a 5 pm (Rango único de entrega)";
+        opt.value = "4 pm a 5 pm";
+        opt.innerText = "4 pm a 5 pm";
         campoHora.appendChild(opt);
     } else {
         const opt = document.createElement('option');
         opt.value = "";
         opt.innerText = "❌ Horario fuera de límite por hoy (Solicitar para mañana)";
         campoHora.appendChild(opt);
+    }
+
+    if (Array.from(campoHora.options).some(o => o.value === valorPreseleccion)) {
+        campoHora.value = valorPreseleccion;
     }
 }
 
@@ -793,9 +735,7 @@ function vaciarCarrito() {
     }
 }
 
-// =========================================================================
-// ACTUALIZAR CARRITO VISUAL
-// =========================================================================
+// LOGÍSTICA DE ENVÍO GRATIS EXCLUSIVO DESDE $150
 function actualizarCarritoVisual() {
     const cont = document.getElementById('items-carrito');
     const txtMonto = document.getElementById('total-monto');
@@ -842,7 +782,7 @@ function actualizarCarritoVisual() {
         
         if (puntoEntrega) {
             puntoEntrega.innerHTML = `<option value="" disabled selected>-- Selecciona dónde recibir --</option>
-                                      <option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
+                                      <option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>`;
         }
         return;
     }
@@ -934,7 +874,7 @@ function actualizarCarritoVisual() {
             let htmlEmpujoncito = '';
 
             if (complementosDisponibles.length > 0) {
-                const sugerido = complementosDisponibles[0];
+                const sugerido = complementosDisponibles[0]; 
                 const arrImgSugerido = obtenerArregloImagenes(sugerido);
                 let imgSugeridoName = arrImgSugerido[0] ? arrImgSugerido[0].split(/[/\\\\]/).pop() : '';
                 let rImgSugerido = imgSugeridoName ? `imagenes_productos/${imgSugeridoName}` : 'https://placehold.co/35x35?text=DAYH';
@@ -970,7 +910,7 @@ function actualizarCarritoVisual() {
     
     if (puntoEntrega) {
         puntoEntrega.innerHTML = `<option value="" disabled>-- Selecciona dónde recibir --</option>`;
-        puntoEntrega.innerHTML += `<option value="TIENDA DAHY (Entrega Física)">TIENDA DAHY (Entrega Física) - Gratis</option>`;
+        puntoEntrega.innerHTML += `<option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>`;
 
         if (alcanzoEnvioGratis) {
             puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)">Envío a Domicilio (¡GRATIS!)</option>`;
@@ -979,11 +919,11 @@ function actualizarCarritoVisual() {
         if (valorSeleccionadoPrevio && Array.from(puntoEntrega.options).some(o => o.value === valorSeleccionadoPrevio)) {
             puntoEntrega.value = valorSeleccionadoPrevio;
         } else {
-            puntoEntrega.value = "TIENDA DAHY (Entrega Física)";
+            puntoEntrega.value = "TIENDA DAYH (Entrega Física)";
         }
     }
 
-    cargoPorEnvio = 0;
+    cargoPorEnvio = 0; // Remueve toda configuración residual de cobros de envío.
 
     const opcionElegida = puntoEntrega ? puntoEntrega.value : "";
     if (opcionElegida === "Envío a Domicilio (Zona Urbana)") {
@@ -1014,7 +954,7 @@ function actualizarCarritoVisual() {
     const resumenEnvio = document.getElementById('resumen-envio');
     if (filaEnvio && resumenEnvio) {
         filaEnvio.style.display = "flex";
-        resumenEnvio.innerText = "¡Gratis! 🎉";
+        resumenEnvio.innerText = "¡Gratis! en la compra de $150🎉";
         resumenEnvio.style.color = "var(--success)";
     }
 
@@ -1126,7 +1066,7 @@ async function enviarPedidoFinal() {
         }
 
         textoMensajeWhatsApp += `📅 *Fecha de Entrega:* ${formatearFechaHumana(fecha)}\n`;
-        textoMensajeWhatsApp += `⏰ *Hora Aproximada:* ${hora === '16:00' ? '4 pm a 5 pm' : hora}\n`;
+        textoMensajeWhatsApp += `⏰ *Hora Aproximada:* ${hora}\n`;
         textoMensajeWhatsApp += `💳 *Forma de Pago:* ${metodoPago}\n`;
         if (codigoCuponActivo) {
             textoMensajeWhatsApp += `🎟️ *Cupón Aplicado:* ${codigoCuponActivo}\n`;
@@ -1171,7 +1111,7 @@ async function enviarPedidoFinal() {
             }
 
             doc.setFont("helvetica", "bold"); doc.text("Fecha de Entrega:", 15, 73 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(formatearFechaHumana(fecha), 55, 73 + compensacionY);
-            doc.setFont("helvetica", "bold"); doc.text("Hora Aproximada:", 15, 80 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(hora === '16:00' ? '4 pm a 5 pm' : hora, 55, 80 + compensacionY);
+            doc.setFont("helvetica", "bold"); doc.text("Hora Aproximada:", 15, 80 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(hora, 55, 80 + compensacionY);
             doc.setFont("helvetica", "bold"); doc.text("Método de Pago:", 15, 87 + compensacionY); doc.setFont("helvetica", "normal"); doc.text(metodoPago, 55, 87 + compensacionY);
             doc.setFont("helvetica", "bold"); doc.text("DETALLE DEL PEDIDO", 15, 100 + compensacionY); doc.line(15, 103 + compensacionY, 195, 103 + compensacionY);
             doc.setFillColor(249, 250, 251); doc.rect(15, 107 + compensacionY, 180, 8, "F");
@@ -1237,7 +1177,7 @@ async function enviarPedidoFinal() {
         lanzarEfectoConfeti();
         carrito = [];
         codigoCuponActivo = "";
-        yaExplotoConfettiEnvio = false;
+        yaExplotoConfettiEnvio = false; 
         if(document.getElementById('input-cupon')) document.getElementById('input-cupon').value = "";
         if(document.getElementById('mensaje-cupon')) document.getElementById('mensaje-cupon').textContent = "";
         if(document.getElementById('direccion-envio')) document.getElementById('direccion-envio').value = "";
@@ -1343,7 +1283,6 @@ window.addEventListener('storage', (e) => {
     }
 });
 
-// Registrar el Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
