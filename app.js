@@ -76,8 +76,9 @@ window.addEventListener('load', () => {
     inicializarLogicaCuponesYEnvio();
 
     const clienteGuardado = localStorage.getItem('nombre_cliente_dayh');
-    if (clienteGuardado && document.getElementById('cliente')) {
-        document.getElementById('cliente').value = clienteGuardado;
+    const inputCliente = document.getElementById('cliente');
+    if (clienteGuardado && inputCliente) {
+        inputCliente.value = clienteGuardado;
     }
 
     const btnLimpiar = document.getElementById('btn-limpiar-busqueda');
@@ -209,7 +210,7 @@ function inicializarLogicaCuponesYEnvio() {
 
             if (CUPONES_CONFIG.hasOwnProperty(codigo)) {
                 reproducirSonido('cupon');
-                codigoCuponActivo = codigo;
+                codigoCuponActivo = code;
                 const conf = CUPONES_CONFIG[codigo];
                 const textCategoria = conf.categoriaRestringida ? ` (Solo en ${conf.categoriaRestringida})` : ``;
                 msgCupon.textContent = `🎟️ Cupón ${codigo} aplicado (-${conf.descuento * 100}%${textCategoria})`;
@@ -227,7 +228,7 @@ function inicializarLogicaCuponesYEnvio() {
     if (selectEntrega) {
         selectEntrega.addEventListener('change', () => {
             const contenedorDireccion = document.getElementById('contenedor-direccion-envio');
-            if (selectEntrega.value === "Envío a Domicilio (Zona Urbana)") {
+            if (selectEntrega.value.includes("Domicilio")) {
                 if (contenedorDireccion) contenedorDireccion.style.display = "block";
             } else {
                 if (contenedorDireccion) contenedorDireccion.style.display = "none";
@@ -440,12 +441,13 @@ function filtrarPorEvento(categoria) {
         if(btn.getAttribute('data-cat') && btn.getAttribute('data-cat').toLowerCase() === categoria.toLowerCase()) btn.classList.add('activo');
     });
     filtrarCatalogo();
-    if (document.getElementById('buscador')) {
-        const buscador = document.getElementById('buscador');
+    const buscador = document.getElementById('buscador');
+    if (buscador) {
         buscador.value = "";
         buscador.placeholder = `🔍 Buscando eventos...`; 
     }
-    if (document.getElementById('barra-categorias')) document.getElementById('barra-categorias').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const barraCat = document.getElementById('barra-categorias');
+    if (barraCat) barraCat.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function configurarTema() {
@@ -464,12 +466,17 @@ function configurarTema() {
 }
 
 function setupEventListeners() {
-    if (document.getElementById('btn-vaciar')) document.getElementById('btn-vaciar').addEventListener('click', vaciarCarrito);
-    if (document.getElementById('btn-enviar-pedido')) document.getElementById('btn-enviar-pedido').addEventListener('click', enviarPedidoFinal);
-    if (document.getElementById('btn-chat-manual')) document.getElementById('btn-chat-manual').addEventListener('click', abrirChatManual);
-    if (document.getElementById('btn-enviar-pedido')) {
-        document.getElementById('btn-enviar-pedido').addEventListener('dblclick', (e) => { e.preventDefault(); abrirModalDespacho(); });
+    const btnVaciar = document.getElementById('btn-vaciar');
+    const btnEnviar = document.getElementById('btn-enviar-pedido');
+    const btnChat = document.getElementById('btn-chat-manual');
+
+    if (btnVaciar) btnVaciar.addEventListener('click', vaciarCarrito);
+    if (btnEnviar) {
+        btnEnviar.addEventListener('click', enviarPedidoFinal);
+        btnEnviar.addEventListener('dblclick', (e) => { e.preventDefault(); abrirModalDespacho(); });
     }
+    if (btnChat) btnChat.addEventListener('click', abrirChatManual);
+    
     document.querySelectorAll('.btn-categoria').forEach(button => {
         button.addEventListener('click', (e) => {
             seleccionarCategoria(e.currentTarget.getAttribute('data-cat'), e.currentTarget);
@@ -532,7 +539,7 @@ function validarHorariosDisponibles() {
     const ahora = new Date();
     const hoyStr = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
     const valorPreseleccion = campoHora.value;
-    const esEnvio = selectEntrega && selectEntrega.value === "Envío a Domicilio (Zona Urbana)";
+    const esEnvio = selectEntrega && selectEntrega.value.includes("Domicilio");
 
     campoHora.innerHTML = '';
 
@@ -640,8 +647,11 @@ window.moverImagenCarrusel = function (codigo, direccion) {
     else if (indicesCarrusel[codigo] < 0) indicesCarrusel[codigo] = images.length - 1;
     let imgName = images[indicesCarrusel[codigo]].split(/[/\\\\]/).pop();
     let nRuta = imgName ? `imagenes_productos/${imgName}` : 'https://placehold.co/300';
-    if (document.getElementById(`img-carrusel-${codigo}`)) document.getElementById(`img-carrusel-${codigo}`).src = nRuta;
-    if (document.getElementById(`img-carrusel-dest-${codigo}`)) document.getElementById(`img-carrusel-dest-${codigo}`).src = nRuta;
+    
+    const imgNormal = document.getElementById(`img-carrusel-${codigo}`);
+    const imgDest = document.getElementById(`img-carrusel-dest-${codigo}`);
+    if (imgNormal) imgNormal.src = nRuta;
+    if (imgDest) imgDest.src = nRuta;
 };
 
 window.compartirProducto = function(codigo, nombre, precio) {
@@ -709,8 +719,9 @@ function seleccionarCategoria(cat, elemento) {
     categorySeleccionada = cat;
     document.querySelectorAll('.btn-categoria').forEach(b => b.classList.remove('activo'));
     if (elemento) elemento.classList.add('activo');
-    if (document.getElementById('buscador')) {
-        document.getElementById('buscador').placeholder = cat === 'todas' 
+    const buscador = document.getElementById('buscador');
+    if (buscador) {
+        buscador.placeholder = cat === 'todas' 
             ? " 🔍 ¿Qué estás buscando hoy? Escribe nombre o código..." 
             : `🔍 Buscando en ${cat}...`;
     }
@@ -785,7 +796,7 @@ function vaciarCarrito() {
 }
 
 function actualizarCarritoVisual() {
-    const cont = document.getElementById('items-carrito');
+    const cont = document.getElementById('items-carrito') || document.getElementById('productos-contenedor');
     const txtMonto = document.getElementById('total-monto');
     const btnVaciar = document.getElementById('btn-vaciar');
     const bContador = document.getElementById('badge-contador');
@@ -797,8 +808,6 @@ function actualizarCarritoVisual() {
 
     const infoEnvioGratis = document.getElementById('info-envio-gratis');
     const contenedorDireccion = document.getElementById('contenedor-direccion-envio');
-    const campoFecha = document.getElementById('fecha');
-    const campoHora = document.getElementById('hora');
     const puntoEntrega = document.getElementById('select-punto-entrega');
 
     if (carrito.length === 0) {
@@ -809,9 +818,13 @@ function actualizarCarritoVisual() {
         if (txtMonto) txtMonto.innerText = "$0.00";
         if (btnVaciar) btnVaciar.style.display = 'none';
         
-        if (document.getElementById('resumen-subtotal')) document.getElementById('resumen-subtotal').innerText = "$0.00";
-        if (document.getElementById('fila-descuento')) document.getElementById('fila-descuento').style.display = "none";
-        if (document.getElementById('fila-envio')) document.getElementById('fila-envio').style.display = "none";
+        const subResumen = document.getElementById('resumen-subtotal');
+        const fDescuento = document.getElementById('fila-descuento');
+        const fEnvio = document.getElementById('fila-envio');
+
+        if (subResumen) subResumen.innerText = "$0.00";
+        if (fDescuento) fDescuento.style.display = "none";
+        if (fEnvio) fEnvio.style.display = "none";
         if (infoEnvioGratis) infoEnvioGratis.style.display = "none";
         if (contenedorDireccion) contenedorDireccion.style.display = "none";
         return;
@@ -877,28 +890,36 @@ function actualizarCarritoVisual() {
     if (infoEnvioGratis) {
         infoEnvioGratis.style.display = "block";
         if (alcanzoEnvioGratis) {
-            infoEnvioGratis.innerHTML = `<div style="color: var(--success);">🎉 ¡Envío a Domicilio GRATIS desbloqueado!</div>`;
+            infoEnvioGratis.innerHTML = `<div style="color: var(--success); font-weight: bold;">🎉 ¡Envío a Domicilio GRATIS desbloqueado!</div>`;
         } else {
             infoEnvioGratis.innerHTML = `<div>Faltan ${formatearDinero(metaEnvio - subtotalGeneral)} para Envío GRATIS</div>`;
         }
     }
 
     if (puntoEntrega) {
-        if (alcanzoEnvioGratis && puntoEntrega.options.length === 1) {
-            puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)">Envío a Domicilio (¡GRATIS!)</option>`;
+        const tieneDomicilio = Array.from(puntoEntrega.options).some(o => o.value.includes("Domicilio"));
+        if (alcanzoEnvioGratis && !tieneDomicilio) {
+            const opt = document.createElement('option');
+            opt.value = "Envío a Domicilio (Zona Urbana)";
+            opt.innerText = "Envío a Domicilio (¡GRATIS!)";
+            puntoEntrega.appendChild(opt);
         } else if (!alcanzoEnvioGratis) {
             puntoEntrega.innerHTML = `<option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>`;
+            if (contenedorDireccion) contenedorDireccion.style.display = "none";
         }
     }
 
     let totalFinal = Math.max(0, subtotalGeneral - montoDescuento);
-    if (document.getElementById('resumen-subtotal')) document.getElementById('resumen-subtotal').innerText = formatearDinero(subtotalGeneral);
+    
+    const subResumen = document.getElementById('resumen-subtotal');
+    if (subResumen) subResumen.innerText = formatearDinero(subtotalGeneral);
 
     const filaDescuento = document.getElementById('fila-descuento');
-    if (filaDescuento && document.getElementById('resumen-descuento')) {
+    const resDescuento = document.getElementById('resumen-descuento');
+    if (filaDescuento && resDescuento) {
         if (montoDescuento > 0) {
             filaDescuento.style.display = "flex";
-            document.getElementById('resumen-descuento').innerText = `-${formatearDinero(montoDescuento)}`;
+            resDescuento.innerText = `-${formatearDinero(montoDescuento)}`;
         } else {
             filaDescuento.style.display = "none";
         }
@@ -940,7 +961,7 @@ function renderizarCrossSelling() {
                 let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/50x50?text=Prod';
                 return `
                 <div class="tarjeta-cross" style="display:flex; align-items:center; gap:10px; margin-top:5px;">
-                    <img src="${rImg}" style="width:40px; height:40px; object-fit:contain;">
+                    <img src="${rImg}" style="width:40px; height:40px; object-fit:contain;" onerror="this.src='https://placehold.co/50x50';">
                     <div>
                         <strong>${p.articulo}</strong><br>
                         <span>$${p.precio.toFixed(2)}</span>
@@ -957,11 +978,17 @@ async function enviarPedidoFinal() {
     const puntoEntrega = document.getElementById('select-punto-entrega');
     const valorPuntoEntrega = puntoEntrega ? puntoEntrega.value : "TIENDA DAYH (Entrega Física)";
     
-    const fecha = document.getElementById('fecha').value;
-    const hora = document.getElementById('hora').value;
-    const cliente = document.getElementById('cliente').value.trim();
-    const metodoPago = document.getElementById('metodo-pago') ? document.getElementById('metodo-pago').value : "Efectivo";
-    const direccionEnvio = document.getElementById('direccion-envio') ? document.getElementById('direccion-envio').value.trim() : "";
+    const campoFecha = document.getElementById('fecha');
+    const campoHora = document.getElementById('hora');
+    const campoCliente = document.getElementById('cliente');
+    const campoPago = document.getElementById('metodo-pago');
+    const campoDireccion = document.getElementById('direccion-envio');
+
+    const fecha = campoFecha ? campoFecha.value : "";
+    const hora = campoHora ? campoHora.value : "";
+    const cliente = campoCliente ? campoCliente.value.trim() : "";
+    const metodoPago = campoPago ? campoPago.value : "Efectivo";
+    const direccionEnvio = campoDireccion ? campoDireccion.value.trim() : "";
 
     if (valorPuntoEntrega.includes("Domicilio") && direccionEnvio.length < 5) {
         alert("Por favor, escribe la dirección completa.");
