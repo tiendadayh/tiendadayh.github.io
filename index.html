@@ -14,6 +14,26 @@
     <link rel="manifest" href="manifest.json">
     
     <script src="app.js" defer></script>
+    <style>
+        /* Ajuste de diseño para que el catálogo ocupe el 100% del ancho ahora que no hay carrito lateral */
+        .container {
+            display: block !important;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .productos-seccion {
+            width: 100% !important;
+        }
+        /* Hacer el carrito flotante un poco más llamativo e indicar que es interactivo */
+        .carrito-flotante {
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .carrito-flotante:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.4);
+        }
+    </style>
 </head>
 
 <body>
@@ -75,97 +95,10 @@
 
             <div class="productos" id="lista-productos"></div>
         </div>
-
-        <div class="carrito">
-            <div class="carrito-header">
-                <h2>Tu Pedido <span class="cart-badge" id="badge-contador">0</span></h2>
-                <button id="btn-vaciar" class="btn-danger" style="display: none;">Vaciar</button>
-            </div>
-
-            <div id="items-carrito"></div>
-            
-            <div id="info-envio-gratis" style="display: none;"></div>
-            
-            <div class="contenedor-cross-selling" style="display: none;"></div>
-
-            <div class="resumen-totales-checkout" style="margin-top: 15px; font-size: 14px; display: flex; flex-direction: column; gap: 6px;">
-                <div style="display: flex; justify-content: space-between; color: var(--text-light);">
-                    <span>Subtotal:</span>
-                    <span id="resumen-subtotal">$0.00</span>
-                </div>
-                <div id="fila-descuento" style="display: none; justify-content: space-between; color: var(--success); font-weight: 600;">
-                    <span>Descuento aplicado:</span>
-                    <span id="resumen-descuento">-$0.00</span>
-                </div>
-                <div id="fila-envio" style="display: none; justify-content: space-between; color: var(--primary-light); font-weight: 600;">
-                    <span>Cargo por Envío:</span>
-                    <span id="resumen-envio">+$0.00</span>
-                </div>
-                <h3 id="total-carrito" style="font-size: 20px; margin-top: 5px; display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 10px;">
-                    <span>Total a Pagar:</span> <span id="total-monto">$0.00</span>
-                </h3>
-            </div>
-            <hr>
-
-            <h3>AGENDAR PEDIDO</h3>
-            <p style="color: var(--primary-light); font-size: 13px; font-weight: 600; margin: 8px 0 18px 0;">
-                📅 Nota: Solo se agendan pedidos de Lunes a Viernes.
-            </p>
-
-            <div class="input-group">
-                <label for="fecha">Fecha de entrega:</label>
-                <input type="date" id="fecha">
-            </div>
-
-            <div class="input-group">
-                <label for="hora">Hora aproximada:</label>
-                <select id="hora" onfocus="validarHorariosDisponibles()">
-                    <option value="04:00 PM">04:00 p. m. a 05:00 p. m.</option>
-                </select>
-            </div>
-
-            <div class="input-group">
-                <label for="select-punto-entrega">📍 Punto de Entrega:</label>
-                <select id="select-punto-entrega">
-                    <option value="" disabled selected>-- Selecciona dónde recibir --</option>
-                    <option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>
-                </select>
-            </div>
-
-            <div class="input-group" id="contenedor-direccion-envio" style="display: none;">
-                <label for="direccion-envio" style="color: var(--success); font-weight: bold;">🏠 Dirección Completa de Envío:</label>
-                <input type="text" id="direccion-envio" placeholder="Colonia, Referencias.">
-            </div>
-
-            <div class="input-group">
-                <label for="cliente">Nombre del cliente:</label>
-                <input type="text" id="cliente" placeholder="Escribe tu nombre completo...">
-            </div>
-
-            <div class="input-group">
-                <label for="metodo-pago">Método de Pago Preferido:</label>
-                <select id="metodo-pago">
-                    <option value="Efectivo al entregar">💵 Efectivo al entregar</option>
-                    <option value="Transferencia Bancaria">📱 Transferencia Bancaria</option>
-                </select>
-            </div>
-
-            <div class="input-group">
-                <label for="input-cupon">🎟️ ¿Tienes un cupón de descuento?</label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="input-cupon" placeholder="Ej: BIENVENIDA10" style="text-transform: uppercase;">
-                    <button id="btn-aplicar-cupon" class="btn" style="margin-top: 0; width: auto; white-space: nowrap; padding: 0 15px;">Aplicar</button>
-                </div>
-                <div id="mensaje-cupon" class="mensaje-cupon"></div>
-            </div>
-
-            <button id="btn-enviar-pedido" class="btn">Enviar Pedido por WhatsApp</button>
-
-            <div id="alerta-copiado" class="alerta-exito" style="display: none;"></div>
-        </div>
     </div>
 
-    <div id="carrito-flotante" class="carrito-flotante" onclick="document.querySelector('.carrito').scrollIntoView({behavior: 'smooth'})">
+    <!-- El Carrito flotante ahora te redirige a la página completa al hacer clic -->
+    <div id="carrito-flotante" class="carrito-flotante" onclick="window.location.href='carrito.html'">
         🛒
         <span id="badge-flotante" class="badge-flotante">0</span>
     </div>

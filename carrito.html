@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Carrito de Compras | TIENDA DAYH</title>
+    <!-- Cargar jsPDF para mantener la compatibilidad con tu sistema de reportes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Biblioteca de Confetti para mantener los efectos visuales premium -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #a855f7; 
+            --primary-light: #c084fc;
+            --bg: #0f172a; 
+            --card-bg: #1e293b; 
+            --text: #f8fafc; 
+            --text-light: #94a3b8; 
+            --danger: #ef4444;
+            --success: #10b981;
+            --border: rgba(255, 255, 255, 0.08);
+            --gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+        }
+
+        body.light-mode {
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-light: #64748b;
+            --border: rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .cart-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 7fr 5fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .cart-container { grid-template-columns: 1fr; }
+        }
+
+        header {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 10px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            text-align: left;
+        }
+
+        @media (max-width: 480px) {
+            header {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                text-align: center;
+            }
+            header h1 { text-align: center; font-size: 2rem; }
+            .btn-return-shop { width: 100%; justify-content: center; }
+        }
+
+        .btn-theme {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin: 0;
+        }
+
+        /* Sección de productos */
+        .products-panel {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        body.light-mode .products-panel {
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .cart-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto auto;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .cart-item:last-child { border-bottom: none; }
+
+        .item-img {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+            background: #fff;
+            border-radius: 16px;
+            padding: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .item-details h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .item-code {
+            font-size: 0.8rem;
+            color: var(--primary-light);
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .qty-selector {
+            display: flex;
+            align-items: center;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .qty-btn {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            width: 35px;
+            height: 35px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .qty-btn:hover { background: rgba(168, 85, 247, 0.2); }
+
+        .qty-num {
+            padding: 0 10px;
+            font-weight: 700;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .item-price-block {
+            text-align: right;
+            min-width: 100px;
+        }
+
+        .item-total {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .btn-delete {
+            background: transparent;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* Lateral del Resumen */
+        .summary-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            height: fit-content;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            position: sticky;
+            top: 40px;
+        }
+
+        .summary-panel h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 6px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            border-color: var(--primary-light);
+            outline: none;
+        }
+
+        .coupon-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn-apply {
+            background: var(--bg);
+            border: 1px solid var(--primary);
+            color: var(--primary-light);
+            padding: 0 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-apply:hover { background: var(--primary); color: white; }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 1rem;
+            color: var(--text-light);
+        }
+
+        .summary-row.total {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text);
+            border-top: 1px dashed var(--border);
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        .btn-checkout {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+        }
+
+        .btn-checkout:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+        }
+
+        .empty-view {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-view span { font-size: 4.5rem; display: block; margin-bottom: 20px; }
+
+        .msg-coupon { font-size: 0.85rem; margin-top: -8px; margin-bottom: 10px; font-weight: 600; }
+        .msg-coupon.exito { color: var(--success); }
+        .msg-coupon.error { color: var(--danger); }
+    </style>
+</head>
+<body>
+
+    <div class="cart-container">
+        <header>
+            <button class="btn-apply btn-return-shop" onclick="window.location.href='index.html'" style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 12px; height: 45px; margin: 0; font-size: 0.95rem;">
+                ⬅️ Ir a la Tienda
+            </button>
+            <h1>Mi Carrito</h1>
+            <button class="btn-theme" id="btn-tema">☀️</button>
+        </header>
+
+        <!-- PANEL IZQUIERDO: LISTA DE PRODUCTOS -->
+        <div class="products-panel" id="productos-contenedor">
+            <!-- Render dinámico por JS -->
+        </div>
+
+        <!-- PANEL DERECHO: FORMULARIO Y RESUMEN -->
+        <div class="summary-panel">
+            <h2>Resumen de Compra</h2>
+            
+            <div id="info-envio-gratis"></div>
+
+            <div class="input-group">
+                <label>Nombre Completo</label>
+                <input type="text" id="cliente" placeholder="Escribe tu nombre">
+            </div>
+
+            <div class="input-group">
+                <label>Punto de Entrega</label>
+                <select id="select-punto-entrega">
+                    <option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>
+                </select>
+            </div>
+
+            <div class="input-group" id="contenedor-direccion-envio" style="display:none;">
+                <label>Dirección de Envío Completa</label>
+                <input type="text" id="direccion-envio" placeholder="Calle, Número, Colonia...">
+            </div>
+
+            <div class="grid-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="input-group">
+                    <label>Fecha Entrega</label>
+                    <input type="date" id="fecha">
+                </div>
+                <div class="input-group">
+                    <label>Hora Entrega</label>
+                    <select id="hora">
+                        <option value="">Selecciona día primero</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Método de Pago</label>
+                <select id="metodo-pago">
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Transferencia">Transferencia Bancaria</option>
+                </select>
+            </div>
+
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-light); margin-bottom: 6px;">Cupón de Descuento</label>
+            <div class="coupon-box">
+                <input type="text" id="input-cupon" placeholder="EJ: DAYH20" style="flex:1; padding:12px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:12px; text-transform:uppercase;">
+                <button class="btn-apply" id="btn-aplicar-cupon">Aplicar</button>
+            </div>
+            <div id="mensaje-cupon" class="msg-coupon"></div>
+
+            <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span id="resumen-subtotal">$0.00</span>
+            </div>
+            <div class="summary-row" id="fila-descuento" style="display:none; color:var(--success);">
+                <span>Descuento</span>
+                <span id="resumen-descuento">-$0.00</span>
+            </div>
+            <div class="summary-row">
+                <span>Envío</span>
+                <span id="resumen-envio">¡Gratis desde $150!</span>
+            </div>
+            <div class="summary-row total">
+                <span>Total</span>
+                <span id="total-monto">$0.00</span>
+            </div>
+
+            <button class="btn-checkout" id="btn-enviar-pedido">Confirmar Pedido vía WhatsApp 🚀</button>
+        </div>
+    </div>
+
+    <script>
+        // Traemos las configuraciones y lógica idénticas de tu archivo fuente para sincronizarse perfectamente
+        const BACKEND_URL = "http://127.0.0.1:5000";
+        const TELEFONO_WHATSAPP = "527442411773";
+        let carrito = [];
+        let INVENTARIO_GLOBAL = [];
+        let codigoCuponActivo = "";
+        let yaExplotoConfettiEnvio = false;
+
+        const CUPONES_CONFIG = {
+            "BIENVENIDA10": { descuento: 0.10, categoriaRestringida: null },
+            "DAYH20": { descuento: 0.20, categoriaRestringida: null },
+            "OFERTA15": { descuento: 0.15, categoriaRestringida: null },
+            "KIDS20": { descuento: 0.20, categoriaRestringida: "jugueteria" },
+            "MANUAL10": { descuento: 0.10, categoriaRestringida: "manualidades" }
+        };
+
+        // Recuperar información de LocalStorage
+        function init() {
+            const savedCart = localStorage.getItem('carrito_tienda');
+            const savedInv = localStorage.getItem('inventario_tienda_real');
+            if (savedCart) carrito = JSON.parse(savedCart);
+            if (savedInv) INVENTARIO_GLOBAL = JSON.parse(savedInv);
+            
+            configurarTema();
+            configuringCamposFecha();
+            setupListeners();
+            actualizarCarritoVisual();
+            
+            const client = localStorage.getItem('nombre_cliente_dayh');
+            if (client) document.getElementById('cliente').value = client;
+        }
+
+        function configurarTema() {
+            const tema = localStorage.getItem('tema_tienda');
+            if (tema === 'light') document.body.classList.add('light-mode');
+            document.getElementById('btn-tema').addEventListener('click', () => {
+                document.body.classList.toggle('light-mode');
+                localStorage.setItem('tema_tienda', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+            });
+        }
+
+        function formatearDinero(n) {
+            return '$' + parseFloat(n).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        }
+
+        function formatearFechaHumana(f) {
+            if(!f) return "";
+            const p = f.split('-');
+            const m = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            return `${p[2]} de ${m[parseInt(p[1]) - 1]} de ${p[0]}`;
+        }
+
+        function actualizarCarritoVisual() {
+            const cont = document.getElementById('productos-contenedor');
+            if (carrito.length === 0) {
+                // Vista de carrito vacío mejorada con botón directo de regreso a la tienda
+                cont.innerHTML = `
+                    <div class="empty-view">
+                        <span>🛒</span>
+                        <p style="font-size: 1.2rem; color: var(--text-light); margin-bottom: 25px;">Tu carrito está vacío actualmente.</p>
+                        <button class="btn-checkout" onclick="window.location.href='index.html'" style="max-width: 280px; margin: 0 auto; display: block; padding: 14px 24px;">
+                            🛍️ Explorar Catálogo
+                        </button>
+                    </div>`;
+                document.getElementById('total-monto').innerText = "$0.00";
+                document.getElementById('resumen-subtotal').innerText = "$0.00";
+                return;
+            }
+
+            cont.innerHTML = '';
+            let subtotalGeneral = 0;
+            let montoDescuento = 0;
+            let configCupon = codigoCuponActivo ? CUPONES_CONFIG[codigoCuponActivo] : null;
+
+            carrito.forEach(item => {
+                const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
+                if (!prod) return;
+
+                const sub = prod.precio * item.cantidad;
+                subtotalGeneral += sub;
+
+                if (configCupon) {
+                    const catProd = prod.categoria ? prod.categoria.toLowerCase() : "general";
+                    if (!configCupon.categoriaRestringida || catProd === configCupon.categoriaRestringida.toLowerCase()) {
+                        montoDescuento += sub * configCupon.descuento;
+                    }
+                }
+
+                const imgN = prod.imagen ? prod.imagen.split(/[/\\\\]/).pop() : '';
+                const rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/90';
+
+                cont.innerHTML += `
+                    <div class="cart-item">
+                        <img src="${rImg}" class="item-img" onerror="this.src='https://placehold.co/90';">
+                        <div class="item-details">
+                            <span class="item-code">CÓDIGO: ${prod.codigo}</span>
+                            <h3>${prod.articulo}</h3>
+                            <button class="btn-delete" onclick="eliminarArticulo('${prod.codigo}')">🗑️ Eliminar</button>
+                        </div>
+                        <div class="qty-selector">
+                            <button class="qty-btn" onclick="cambiarCantidad('${prod.codigo}', -1)">-</button>
+                            <span class="qty-num">${item.cantidad}</span>
+                            <button class="qty-btn" onclick="cambiarCantidad('${prod.codigo}', 1)">+</button>
+                        </div>
+                        <div class="item-price-block">
+                            <span class="item-total">${formatearDinero(sub)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Lógica de Envío Gratis adaptada de tus reglas originales (límite $150)
+            const metaEnvio = 150.00;
+            const alcanzoEnvio = subtotalGeneral >= metaEnvio;
+            const infoEnvio = document.getElementById('info-envio-gratis');
+            const puntoEntrega = document.getElementById('select-punto-entrega');
+
+            if (alcanzoEnvio && !yaExplotoConfettiEnvio) {
+                if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                yaExplotoConfettiEnvio = true;
+            }
+
+            if (infoEnvio) {
+                if (alcanzoEnvio) {
+                    infoEnvio.innerHTML = `<div style="background:rgba(16,185,129,0.15); border:1px solid var(--success); color:var(--success); padding:12px; border-radius:12px; font-size:0.9rem; margin-bottom:15px; text-align:center;">🎉 ¡Envío a Domicilio GRATIS disponible!</div>`;
+                    if(puntoEntrega.options.length == 1) {
+                        puntoEntrega.innerHTML += `<option value="Envío a Domicilio (Zona Urbana)">Envío a Domicilio (¡GRATIS!)</option>`;
+                    }
+                } else {
+                    infoEnvio.innerHTML = `<div style="background:rgba(168,85,247,0.1); border:1px solid var(--primary); color:var(--primary-light); padding:12px; border-radius:12px; font-size:0.9rem; margin-bottom:15px; text-align:center;">Faltan ${formatearDinero(metaEnvio - subtotalGeneral)} para Envío GRATIS</div>`;
+                    puntoEntrega.innerHTML = `<option value="TIENDA DAYH (Entrega Física)">TIENDA DAYH (Entrega Física) - Gratis</option>`;
+                    document.getElementById('contenedor-direccion-envio').style.display = "none";
+                }
+            }
+
+            let totalFinal = Math.max(0, subtotalGeneral - montoDescuento);
+            document.getElementById('resumen-subtotal').innerText = formatearDinero(subtotalGeneral);
+            
+            if (montoDescuento > 0) {
+                document.getElementById('fila-descuento').style.display = 'flex';
+                document.getElementById('resumen-descuento').innerText = `-${formatearDinero(montoDescuento)}`;
+            } else {
+                document.getElementById('fila-descuento').style.display = 'none';
+            }
+            
+            document.getElementById('total-monto').innerText = formatearDinero(totalFinal);
+        }
+
+        window.cambiarCantidad = function(codigo, cambio) {
+            const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
+            const item = carrito.find(i => i.codigo === codigo);
+            if (!item || !prod) return;
+
+            if (cambio === 1 && prod.stock > item.cantidad) {
+                item.cantidad += 1;
+            } else if (cambio === -1) {
+                item.cantidad -= 1;
+                if (item.cantidad <= 0) carrito = carrito.filter(i => i.codigo !== codigo);
+            } else if (cambio === 1) {
+                alert("Sin más stock en inventario.");
+                return;
+            }
+            syncData();
+        };
+
+        window.eliminarArticulo = function(codigo) {
+            carrito = carrito.filter(i => i.codigo !== codigo);
+            syncData();
+        };
+
+        function syncData() {
+            localStorage.setItem('carrito_tienda', JSON.stringify(carrito));
+            actualizarCarritoVisual();
+        }
+
+        function setupListeners() {
+            document.getElementById('select-punto-entrega').addEventListener('change', (e) => {
+                document.getElementById('contenedor-direccion-envio').style.display = e.target.value.includes("Domicilio") ? "block" : "none";
+            });
+
+            document.getElementById('btn-aplicar-cupon').addEventListener('click', () => {
+                const cod = document.getElementById('input-cupon').value.trim().toUpperCase();
+                const msg = document.getElementById('mensaje-cupon');
+                if (CUPONES_CONFIG.hasOwnProperty(cod)) {
+                    codigoCuponActivo = cod;
+                    msg.textContent = `🎟️ Cupón ${cod} aplicado!`;
+                    msg.className = "msg-coupon exito";
+                } else {
+                    codigoCuponActivo = "";
+                    msg.textContent = "❌ Cupón inválido.";
+                    msg.className = "msg-coupon error";
+                }
+                actualizarCarritoVisual();
+            });
+
+            document.getElementById('btn-enviar-pedido').addEventListener('click', enviarPedidoFinal);
+        }
+
+        function configuringCamposFecha() {
+            const hoy = new Date().toISOString().split('T')[0];
+            const fInput = document.getElementById('fecha');
+            fInput.min = hoy;
+            fInput.addEventListener('input', () => {
+                const hSelect = document.getElementById('hora');
+                hSelect.innerHTML = '';
+                ["09:00 AM", "11:00 AM", "01:00 PM", "03:00 PM", "05:00 PM"].forEach(h => {
+                    hSelect.innerHTML += `<option value="${h}">${h}</option>`;
+                });
+            });
+        }
+
+        // Sistema asíncrono exacto de checkout mediante tu API y WhatsApp Fallback
+        async function enviarPedidoFinal() {
+            const cliente = document.getElementById('cliente').value.trim();
+            const fecha = document.getElementById('fecha').value;
+            const hora = document.getElementById('hora').value;
+            const punto = document.getElementById('select-punto-entrega').value;
+            const direccion = document.getElementById('direccion-envio').value.trim();
+            const pago = document.getElementById('metodo-pago').value;
+
+            if (!fecha || !hora || cliente.length < 3) {
+                alert("Completa Nombre, Fecha y Hora por favor.");
+                return;
+            }
+
+            let subtotalProductos = 0;
+            let montoDescuento = 0;
+            let textoWA = `*¡Hola Tienda DAYH! Generé un nuevo pedido* 📄🛒\n\n👤 *Cliente:* ${cliente}\n📍 *Punto:* ${punto}\n`;
+            
+            if(punto.includes("Domicilio")) textoWA += `🏠 *Dirección:* ${direccion}\n`;
+            textoWA += `📅 *Fecha:* ${formatearFechaHumana(fecha)}\n⏰ *Hora:* ${hora}\n💳 *Pago:* ${pago}\n\n📦 *DETALLE:*\n`;
+
+            const productosAPI = [];
+            carrito.forEach(item => {
+                const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
+                if (prod) {
+                    const sub = prod.precio * item.cantidad;
+                    subtotalProductos += sub;
+                    textoWA += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(sub)}_\n`;
+                    productosAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
+                }
+            });
+
+            let totalGeneral = subtotalProductos; 
+            textoWA += `\n💵 *TOTAL NETO A PAGAR: ${formatearDinero(totalGeneral)}*`;
+
+            try {
+                await fetch(`${BACKEND_URL}/api/pedidos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosAPI, metodo_pago: pago, direccion })
+                });
+            } catch(e) {
+                console.log("Enviando por contingencia directa a WhatsApp...");
+            }
+
+            localStorage.setItem("nombre_cliente_dayh", cliente);
+            carrito = [];
+            syncData();
+            window.open(`https://wa.me/${TELEFONO_WHATSAPP}?text=${encodeURIComponent(textoWA)}`, '_blank');
+            window.close(); // Cierra la pestaña tras el envío exitoso
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
