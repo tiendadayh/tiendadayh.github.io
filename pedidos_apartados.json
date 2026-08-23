@@ -5,15 +5,18 @@
         "telefono": "",
         "fecha_entrega": "2026-08-24",
         "hora_entrega": "09:00 AM",
-        "total": 130.0,
-        "detalles": "Playera Blanca - 14 años (x1)",
+        "total": 45.0,
+        "detalles": "barra multicontacto (x1)",
         "productos": [
             {
                 "cantidad": 1,
-                "codigo": "d23"
+                "codigo": "c2"
             }
         ],
+        "metodo_pago": "Efectivo",
+        "punto_entrega": "TIENDA DAYH (Entrega Física)",
+        "direccion": "",
         "estado": "Pendiente",
-        "fecha_registro": "2026-08-22 22:47:09"
+        "fecha_registro": "2026-08-23 08:45:00"
     }
 ]
