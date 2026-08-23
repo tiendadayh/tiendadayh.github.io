@@ -51,8 +51,8 @@ const CUPONES_CONFIG = {
 };
 
 const EVENTOS_CONFIG = [
-    { titulo: "🎓 Graduaciones (Manualidades)", fecha: "Mes de Julio", descripcion: "Termina una etapa llena de aprendizajes.", categoriaVinculada: "manualidades", imagen: "imagenes_eventos/graduaciones.jpg" },
-    { titulo: "🎓 Graduaciones (Ropa)", fecha: "Mes de Julio", descripcion: "Termina una etapa llena de aprendizajes.", categoriaVinculada: "ropa", imagen: "imagenes_eventos/graduaciones.jpg" }
+    { titulo: "🎓 La Independencia de México (Manualidades)", fecha: "Mes de Septiembre", descripcion: "La independencia de México.", categoriaVinculada: "manualidades", imagen: "imagenes_eventos/graduaciones.jpg" },
+    { titulo: "🎓 La Independencia de México (Ropa)", fecha: "Mes de Septiembre", descripcion: "La independencia de México.", categoriaVinculada: "ropa", imagen: "imagenes_eventos/graduaciones.jpg" }
 ];
 
 const EFECTOS_SONIDO = {
