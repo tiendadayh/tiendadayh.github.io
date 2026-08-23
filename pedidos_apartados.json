@@ -1,1 +1,19 @@
-[]
+[
+    {
+        "id": 1,
+        "cliente": "Alexis",
+        "telefono": "",
+        "fecha_entrega": "2026-08-24",
+        "hora_entrega": "09:00 AM",
+        "total": 130.0,
+        "detalles": "Playera Blanca - 14 años (x1)",
+        "productos": [
+            {
+                "cantidad": 1,
+                "codigo": "d23"
+            }
+        ],
+        "estado": "Pendiente",
+        "fecha_registro": "2026-08-22 22:47:09"
+    }
+]
