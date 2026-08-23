@@ -8,6 +8,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Biblioteca de Confetti para mantener los efectos visuales premium -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Firebase (reemplaza al antiguo servidor local + Socket.IO) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <style>
         :root {
             --primary: #a855f7; 
@@ -402,7 +405,20 @@
 
     <script>
         // Traemos las configuraciones y lógica idénticas de tu archivo fuente para sincronizarse perfectamente
-        const BACKEND_URL = "http://127.0.0.1:5000";
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyBHrUnR49F-dY_kgyiw88SepoZ8-lSjxbM",
+            authDomain: "tiendadayh.firebaseapp.com",
+            databaseURL: "https://tiendadayh-default-rtdb.firebaseio.com",
+            projectId: "tiendadayh",
+            storageBucket: "tiendadayh.firebasestorage.app",
+            messagingSenderId: "821695977091",
+            appId: "1:821695977091:web:3d7be4af127370ef9dadb6"
+        };
+        if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+            firebase.initializeApp(FIREBASE_CONFIG);
+        }
+        const dbFirebase = typeof firebase !== 'undefined' ? firebase.database() : null;
+
         const TELEFONO_WHATSAPP = "527442411773";
         let carrito = [];
         let INVENTARIO_GLOBAL = [];
@@ -431,6 +447,30 @@
             
             const client = localStorage.getItem('nombre_cliente_dayh');
             if (client) document.getElementById('cliente').value = client;
+
+            escucharStockEnVivo();
+        }
+
+        function escucharStockEnVivo() {
+            if (!dbFirebase) return;
+            dbFirebase.ref('productos').on('value', (snapshot) => {
+                const datos = snapshot.val();
+                if (!datos) return;
+                Object.values(datos).forEach((prodNuevo) => {
+                    const producto = INVENTARIO_GLOBAL.find(p => p.codigo === prodNuevo.codigo);
+                    if (producto) {
+                        producto.stock = parseInt(prodNuevo.stock) || 0;
+                        producto.precio = prodNuevo.precio;
+                        const item = carrito.find(i => i.codigo === producto.codigo);
+                        if (item && item.cantidad > producto.stock) {
+                            item.cantidad = producto.stock;
+                            if (item.cantidad <= 0) carrito = carrito.filter(i => i.codigo !== producto.codigo);
+                        }
+                    }
+                });
+                localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
+                syncData();
+            });
         }
 
         function configurarTema() {
@@ -647,14 +687,28 @@
             let totalGeneral = subtotalProductos; 
             textoWA += `\n💵 *TOTAL NETO A PAGAR: ${formatearDinero(totalGeneral)}*`;
 
+            const btnEnviarPedido = document.getElementById('btn-enviar-pedido');
+            const textoOriginalBtn = btnEnviarPedido ? btnEnviarPedido.innerText : "Confirmar Pedido";
+            if (btnEnviarPedido) { btnEnviarPedido.innerText = "Procesando..."; btnEnviarPedido.disabled = true; }
+
             try {
-                await fetch(`${BACKEND_URL}/api/pedidos`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosAPI, metodo_pago: pago, direccion })
-                });
+                if (dbFirebase) {
+                    await dbFirebase.ref('pedidos_pendientes').push({
+                        cliente,
+                        fecha_entrega: fecha,
+                        hora_entrega: hora,
+                        productos: productosAPI,
+                        metodo_pago: pago,
+                        direccion,
+                        punto_entrega: punto,
+                        fecha_registro: new Date().toISOString()
+                    });
+                } else {
+                    throw new Error("Firebase no está disponible en esta página");
+                }
             } catch(e) {
-                console.log("Enviando por contingencia directa a WhatsApp...");
+                console.log("No se pudo enviar el pedido al punto de venta (sin conexión a Firebase), enviando por contingencia directa a WhatsApp...", e);
+                alert("No se pudo conectar con el punto de venta. Tu pedido se enviará por WhatsApp, pero confirma directamente que el stock siga disponible.");
             }
 
             localStorage.setItem("nombre_cliente_dayh", cliente);

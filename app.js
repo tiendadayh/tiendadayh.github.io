@@ -14,7 +14,21 @@ if ('serviceWorker' in navigator) {
 // =========================================================================
 // VARIABLES GLOBALES Y ESTADO DE LA APLICACIÓN
 // =========================================================================
-const BACKEND_URL = "http://127.0.0.1:5000"; 
+// === FIREBASE (reemplaza al antiguo backend local en 127.0.0.1) ===
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyBHrUnR49F-dY_kgyiw88SepoZ8-lSjxbM",
+    authDomain: "tiendadayh.firebaseapp.com",
+    databaseURL: "https://tiendadayh-default-rtdb.firebaseio.com",
+    projectId: "tiendadayh",
+    storageBucket: "tiendadayh.firebasestorage.app",
+    messagingSenderId: "821695977091",
+    appId: "1:821695977091:web:3d7be4af127370ef9dadb6"
+};
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+}
+const dbFirebase = typeof firebase !== 'undefined' ? firebase.database() : null;
+
 const TELEFONO_WHATSAPP = "527442411773";
 let categorySeleccionada = "todas";
 let urlGlobalWhatsApp = "";
@@ -35,8 +49,6 @@ const CUPONES_CONFIG = {
     "KIDS20": { descuento: 0.20, categoriaRestringida: "jugueteria" },
     "MANUAL10": { descuento: 0.10, categoriaRestringida: "manualidades" }
 };
-
-const socket = typeof io !== 'undefined' ? io(BACKEND_URL) : null;
 
 const EVENTOS_CONFIG = [
     { titulo: "🎓 Graduaciones (Manualidades)", fecha: "Mes de Julio", descripcion: "Termina una etapa llena de aprendizajes.", categoriaVinculada: "manualidades", imagen: "imagenes_eventos/graduaciones.jpg" },
@@ -118,77 +130,100 @@ window.addEventListener('load', () => {
 });
 
 function configurarWebSockets() {
-    if (!socket) return;
-    
-    socket.on('actualizar_stock_web', (data) => {
-        const { codigo, nuevo_stock } = data;
-        let producto = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
-        if (producto) {
-            producto.stock = parseInt(nuevo_stock) || 0;
-            
-            const itemEnCarrito = carrito.find(i => i.codigo === codigo);
-            if (itemEnCarrito && itemEnCarrito.cantidad > producto.stock) {
-                itemEnCarrito.cantidad = producto.stock;
-                if (itemEnCarrito.cantidad <= 0) carrito = carrito.filter(c => c.codigo !== codigo);
-                guardarCarritoEnLocalStorage();
-                actualizarCarritoVisual(); 
-            }
-            
-            localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
-            actualizarContadoresCategorias();
-            filtrarCatalogo();
-            renderizarDestacados();
-            renderizarWishlist();
-            
-            if (producto.stock === 0) {
-                mostrarNotificacionFlotante(`❌ Se ha agotado en inventario: ${producto.articulo}`, 5000, '#7f1d1d');
-            } else if (producto.stock <= 3) {
-                mostrarNotificacionFlotante(`🔥 ¡Inventario actualizado! Últimas ${producto.stock} piezas de: ${producto.articulo}`, 5000, '#9a3412');
-            }
-        }
-    });
+    // Ahora escuchamos cambios en tiempo real directo desde Firebase Realtime Database
+    // en vez de Socket.IO contra un servidor local (127.0.0.1). El nodo "productos"
+    // lo mantiene actualizado el POS (TIENDA_DAYH.py) cada vez que cambia stock,
+    // precio o se agrega un artículo.
+    if (!dbFirebase) return;
 
-    socket.on('nuevo_producto_web', (nuevoProducto) => {
-        let existe = INVENTARIO_GLOBAL.some(p => p.codigo === nuevoProducto.codigo);
-        if (!existe) {
-            INVENTARIO_GLOBAL.unshift(nuevoProducto);
-            localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
-            actualizarContadoresCategorias();
-            filtrarCatalogo();
-            renderizarDestacados();
-            mostrarNotificacionFlotante(`✨ ¡Nuevo producto agregado!: ${nuevoProducto.articulo}`, 5000, '#a855f7');
-        }
+    dbFirebase.ref('productos').on('value', (snapshot) => {
+        const datos = snapshot.val();
+        if (!datos) return; // Aún no hay catálogo sincronizado en Firebase
+
+        const productosFirebase = Object.values(datos);
+
+        productosFirebase.forEach((prodNuevo) => {
+            const producto = INVENTARIO_GLOBAL.find(p => p.codigo === prodNuevo.codigo);
+
+            if (producto) {
+                const stockAnterior = producto.stock;
+                Object.assign(producto, prodNuevo, { stock: parseInt(prodNuevo.stock) || 0 });
+
+                if (producto.stock !== stockAnterior) {
+                    const itemEnCarrito = carrito.find(i => i.codigo === producto.codigo);
+                    if (itemEnCarrito && itemEnCarrito.cantidad > producto.stock) {
+                        itemEnCarrito.cantidad = producto.stock;
+                        if (itemEnCarrito.cantidad <= 0) carrito = carrito.filter(c => c.codigo !== producto.codigo);
+                        guardarCarritoEnLocalStorage();
+                        actualizarCarritoVisual();
+                    }
+
+                    if (producto.stock === 0) {
+                        mostrarNotificacionFlotante(`❌ Se ha agotado en inventario: ${producto.articulo}`, 5000, '#7f1d1d');
+                    } else if (producto.stock <= 3) {
+                        mostrarNotificacionFlotante(`🔥 ¡Inventario actualizado! Últimas ${producto.stock} piezas de: ${producto.articulo}`, 5000, '#9a3412');
+                    }
+                }
+            } else {
+                INVENTARIO_GLOBAL.unshift({ ...prodNuevo, stock: parseInt(prodNuevo.stock) || 0 });
+                mostrarNotificacionFlotante(`✨ ¡Nuevo producto agregado!: ${prodNuevo.articulo}`, 5000, '#a855f7');
+            }
+        });
+
+        localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
+        actualizarContadoresCategorias();
+        filtrarCatalogo();
+        renderizarDestacados();
+        renderizarWishlist();
+        actualizarCarritoVisual();
     });
 }
 
-function cargarProductos() {
+function aplicarInventarioCargado(lista) {
+    INVENTARIO_GLOBAL = lista.map(p => ({
+        ...p,
+        stock: parseInt(p.stock) || 0,
+        destacado: p.destacado === true
+    }));
+    localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
+    actualizarContadoresCategorias();
+    filtrarCatalogo();
+    renderizarDestacados();
+    renderizarWishlist();
+    actualizarCarritoVisual();
+}
+
+function cargarProductosDesdeArchivoLocal() {
     fetch('productos.json?v=' + Date.now())
         .then(res => res.json())
-        .then(json => {
-            INVENTARIO_GLOBAL = json.map(p => ({ 
-                ...p, 
-                stock: parseInt(p.stock) || 0, 
-                destacado: p.destacado === true 
-            }));
-            
-            localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
-            actualizarContadoresCategorias();
-            filtrarCatalogo();
-            renderizarDestacados();
-            renderizarWishlist();
-            actualizarCarritoVisual();
-        })
+        .then(json => aplicarInventarioCargado(json))
         .catch((error) => {
-            console.error("Error cargando productos frescos:", error);
+            console.error("Error cargando productos.json:", error);
             let inventarioGuardado = localStorage.getItem('inventario_tienda_real');
             if (inventarioGuardado) {
-                INVENTARIO_GLOBAL = JSON.parse(inventarioGuardado);
-                actualizarContadoresCategorias();
-                filtrarCatalogo();
-                renderizarDestacados();
-                renderizarWishlist();
-                actualizarCarritoVisual();
+                aplicarInventarioCargado(JSON.parse(inventarioGuardado));
             }
+        });
+}
+
+function cargarProductos() {
+    // Primero intentamos leer el catálogo en vivo desde Firebase (lo mantiene
+    // sincronizado el POS). Si Firebase no responde o el catálogo está vacío,
+    // caemos a productos.json (respaldo estático subido a GitHub Pages).
+    if (!dbFirebase) { cargarProductosDesdeArchivoLocal(); return; }
+
+    dbFirebase.ref('productos').once('value')
+        .then((snapshot) => {
+            const datos = snapshot.val();
+            if (!datos) {
+                cargarProductosDesdeArchivoLocal();
+                return;
+            }
+            aplicarInventarioCargado(Object.values(datos));
+        })
+        .catch((error) => {
+            console.error("Error cargando productos desde Firebase, usando respaldo local:", error);
+            cargarProductosDesdeArchivoLocal();
         });
 }
 
@@ -1045,13 +1080,26 @@ async function enviarPedidoFinal() {
             doc.save(`Pedido_${cliente.replace(/ /g, "_")}.pdf`);
         }
 
-        await fetch(`${BACKEND_URL}/api/pedidos`, { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ cliente, fecha_entrega: fecha, hora_entrega: hora, productos: productosParaAPI, metodo_pago: metodoPago, direccion: direccionEnvio }) 
-        });
+        if (dbFirebase) {
+            // El pedido se escribe directo en Firebase; el POS (TIENDA_DAYH.py) lo
+            // recibe en tiempo real aunque el cliente esté en cualquier red, valida
+            // el stock disponible y confirma el apartado desde su lado.
+            await dbFirebase.ref('pedidos_pendientes').push({
+                cliente,
+                fecha_entrega: fecha,
+                hora_entrega: hora,
+                productos: productosParaAPI,
+                metodo_pago: metodoPago,
+                direccion: direccionEnvio,
+                punto_entrega: valorPuntoEntrega,
+                fecha_registro: new Date().toISOString()
+            });
+        } else {
+            throw new Error("Firebase no está disponible en esta página");
+        }
     } catch (err) {
-        console.error("Modo fallback activo:", err);
+        console.error("No se pudo enviar el pedido al punto de venta (sin conexión a Firebase):", err);
+        alert("No se pudo conectar con el punto de venta. Tu pedido se enviará por WhatsApp, pero confirma directamente que el stock siga disponible.");
     } finally {
         reproducirSonido('pedido');
         carrito = [];
