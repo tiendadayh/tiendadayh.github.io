@@ -57,7 +57,7 @@
         "codigo": "c2",
         "articulo": "barra multicontacto",
         "precio": 45.0,
-        "stock": 4,
+        "stock": 3,
         "categoria": "Electronica",
         "imagen": "imagenes_productos/IMG_c2_1782858645.jpg",
         "destacado": false
@@ -70,15 +70,6 @@
         "categoria": "Electronica",
         "imagen": "imagenes_productos/IMG_c6_1782859899.jpg",
         "destacado": false
-    },
-    {
-        "codigo": "g2",
-        "articulo": "Arreglo Rosas",
-        "precio": 450.0,
-        "stock": 1,
-        "categoria": "Manualidades",
-        "imagen": "imagenes_productos/IMG_g2_1783214703.jpg",
-        "destacado": true
     },
     {
         "codigo": "d1",
@@ -162,15 +153,6 @@
         "destacado": false
     },
     {
-        "codigo": "d10",
-        "articulo": "Conjunto Azul cielo Unitalla",
-        "precio": 250.0,
-        "stock": 0,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d10_1783276772.jpg",
-        "destacado": false
-    },
-    {
         "codigo": "d11",
         "articulo": "Vestido mini Rojo - S",
         "precio": 150.0,
@@ -207,15 +189,6 @@
         "destacado": false
     },
     {
-        "codigo": "d15",
-        "articulo": "Playera Rojo - M",
-        "precio": 90.0,
-        "stock": 1,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d15_1783320192.jpg",
-        "destacado": false
-    },
-    {
         "codigo": "d16",
         "articulo": "Shorts deportivo Azul- L",
         "precio": 140.0,
@@ -249,33 +222,6 @@
         "stock": 2,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d19_1783321456.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "d21",
-        "articulo": "Playera Negra - 14 años",
-        "precio": 120.0,
-        "stock": 0,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d21_1783400622.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "d22",
-        "articulo": "Playera Gris - 14 años",
-        "precio": 120.0,
-        "stock": 0,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d22_1783401826.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "d23",
-        "articulo": "Playera Blanca - 14 años",
-        "precio": 130.0,
-        "stock": 0,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d23_1783407444.jpg",
         "destacado": false
     },
     {
@@ -321,15 +267,6 @@
         "stock": 1,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d28_1783584799.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "d29",
-        "articulo": "Playera Manga Larga Beige - XL",
-        "precio": 140.0,
-        "stock": 1,
-        "categoria": "Ropa",
-        "imagen": "imagenes_productos/IMG_d29_1783584837.jpg",
         "destacado": false
     },
     {
