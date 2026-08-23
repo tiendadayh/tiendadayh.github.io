@@ -273,7 +273,7 @@
         "codigo": "d23",
         "articulo": "Playera Blanca - 14 años",
         "precio": 130.0,
-        "stock": 1,
+        "stock": 0,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d23_1783407444.jpg",
         "destacado": false
