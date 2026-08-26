@@ -966,7 +966,7 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
                 <span>Descuento</span>
                 <span id="resumen-descuento">-$0.00</span>
             </div>
-            <div class="summary-row">
+            <div class="summary-row" id="fila-envio">
                 <span>Envío</span>
                 <span id="resumen-envio">¡Gratis desde $150!</span>
             </div>
@@ -975,6 +975,7 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
                 <span id="total-monto">$0.00</span>
             </div>
 
+            <button class="btn-apply" id="btn-vaciar" style="width:100%; margin-bottom:10px; background:transparent; border:1px solid var(--danger); color:var(--danger);">🗑️ Vaciar Carrito</button>
             <button class="btn-checkout" id="btn-enviar-pedido">Confirmar Pedido vía WhatsApp 🚀</button>
         </div>
     </div>
@@ -1027,13 +1028,44 @@ let codigoCuponActivo = "";
 let cargoPorEnvio = 0; 
 let yaExplotoConfettiEnvio = false; 
 
-const CUPONES_CONFIG = {
-    "BIENVENIDA10": { descuento: 0.10, categoriaRestringida: null },
-    "DAYH20": { descuento: 0.20, categoriaRestringida: null },
-    "OFERTA15": { descuento: 0.15, categoriaRestringida: null },
-    "KIDS20": { descuento: 0.20, categoriaRestringida: "jugueteria" },
-    "MANUAL10": { descuento: 0.10, categoriaRestringida: "manualidades" }
-};
+// Los cupones ya NO están fijos en el código: se crean desde el punto de venta
+// (botón "🎟 CUPONES" en TIENDA_DAYH.py) y se guardan en Firebase bajo el nodo
+// "cupones". Esta página los escucha en tiempo real y valida aquí mismo si
+// siguen vigentes (por fecha) o si ya se usaron (por conteo de usos).
+let CUPONES_CONFIG = {};
+
+function cargarCuponesFirebase() {
+    if (!dbFirebase) return;
+    dbFirebase.ref('cupones').on('value', (snapshot) => {
+        const datos = snapshot.val() || {};
+        const nuevoConfig = {};
+        Object.keys(datos).forEach(codigo => {
+            const c = datos[codigo] || {};
+            nuevoConfig[codigo] = {
+                descuento: parseFloat(c.descuento) || 0,
+                categoriaRestringida: c.categoria_restringida || null,
+                activo: c.activo !== false,
+                fechaExpiracion: c.fecha_expiracion || null,
+                usosMaximos: c.usos_maximos || null,
+                usosActuales: parseInt(c.usos_actuales) || 0
+            };
+        });
+        CUPONES_CONFIG = nuevoConfig;
+    });
+}
+
+function validarCupon(codigo) {
+    const conf = CUPONES_CONFIG[codigo];
+    if (!conf) return { valido: false, motivo: "Código de cupón inválido." };
+    if (!conf.activo) return { valido: false, motivo: "Este cupón ya no está disponible." };
+    if (conf.fechaExpiracion && Date.now() > new Date(conf.fechaExpiracion).getTime()) {
+        return { valido: false, motivo: "Este cupón ya venció." };
+    }
+    if (conf.usosMaximos && conf.usosActuales >= conf.usosMaximos) {
+        return { valido: false, motivo: "Este cupón ya alcanzó su límite de usos." };
+    }
+    return { valido: true, conf };
+}
 
 const EVENTOS_CONFIG = [
     { titulo: " La Independencia de México (Manualidades)", fecha: "Mes de Septiembre", descripcion: "La independencia de México.", categoriaVinculada: "manualidades", imagen: "imagenes_eventos/graduaciones.jpg" },
@@ -1071,6 +1103,7 @@ window.addEventListener('load', () => {
     recuperarWishlistDeLocalStorage();
     inicializarBotónVolverArriba();
     inicializarLogicaCuponesYEnvio();
+    cargarCuponesFirebase();
 
     const clienteGuardado = localStorage.getItem('nombre_cliente_dayh');
     const inputCliente = document.getElementById('cliente');
@@ -1151,7 +1184,8 @@ function configurarWebSockets() {
                 }
             } else {
                 INVENTARIO_GLOBAL.unshift({ ...prodNuevo, stock: parseInt(prodNuevo.stock) || 0 });
-                mostrarNotificacionFlotante(`✨ ¡Nuevo producto agregado!: ${prodNuevo.articulo}`, 5000, '#a855f7');
+                // Se quitó el aviso flotante de "¡Nuevo producto agregado!" a pedido del usuario;
+                // el producto se sigue agregando al catálogo con normalidad, solo ya no interrumpe con la notificación.
             }
         });
 
@@ -1222,7 +1256,7 @@ function inicializarLogicaCuponesYEnvio() {
 
     if (btnCupon && inputCupon && msgCupon) {
         btnCupon.addEventListener('click', () => {
-            const codigo = inputCupon.value.trim().toUpperCase();
+            const codigo = inputCupon.value.replace(/\s+/g, "").toUpperCase();
             if (!codigo) {
                 codigoCuponActivo = "";
                 msgCupon.textContent = "";
@@ -1230,17 +1264,18 @@ function inicializarLogicaCuponesYEnvio() {
                 return;
             }
 
-            if (CUPONES_CONFIG.hasOwnProperty(codigo)) {
+            const resultado = validarCupon(codigo);
+            if (resultado.valido) {
                 reproducirSonido('cupon');
                 codigoCuponActivo = codigo;
-                const conf = CUPONES_CONFIG[codigo];
+                const conf = resultado.conf;
                 const textCategoria = conf.categoriaRestringida ? ` (Solo en ${conf.categoriaRestringida})` : ``;
                 msgCupon.textContent = `🎟️ Cupón ${codigo} aplicado (-${conf.descuento * 100}%${textCategoria})`;
                 msgCupon.className = "mensaje-cupon exito";
             } else {
                 reproducirSonido('error');
                 codigoCuponActivo = "";
-                msgCupon.textContent = "❌ Código de cupón inválido o vencido.";
+                msgCupon.textContent = `❌ ${resultado.motivo}`;
                 msgCupon.className = "mensaje-cupon error";
             }
             actualizarCarritoVisual();
@@ -1760,7 +1795,7 @@ function seleccionarCategoria(cat, elemento) {
 }
 
 function dispararAnimacionCarrito() {
-    const elements = [document.getElementById('badge-contador'), document.getElementById('carrito-flotante')];
+    const elements = [document.getElementById('badge-flotante'), document.getElementById('carrito-flotante')];
     elements.forEach(el => {
         if(el) {
             el.classList.remove('animar-pop', 'animar-shake');
@@ -1830,7 +1865,7 @@ function actualizarCarritoVisual() {
     const cont = document.getElementById('items-carrito') || document.getElementById('productos-contenedor');
     const txtMonto = document.getElementById('total-monto');
     const btnVaciar = document.getElementById('btn-vaciar');
-    const bContador = document.getElementById('badge-contador');
+    const bContador = document.getElementById('badge-flotante');
     const bFlotante = document.getElementById('badge-flotante');
     
     const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
@@ -1981,11 +2016,30 @@ function renderizarCrossSelling() {
     let contenedorCross = document.querySelector('.contenedor-cross-selling');
     if (!contenedorCross) return;
 
+    if (carrito.length === 0) {
+        contenedorCross.style.display = 'none';
+        contenedorCross.innerHTML = '';
+        return;
+    }
+
     const codigosEnCarrito = carrito.map(item => item.codigo);
-    const sugeridos = INVENTARIO_GLOBAL.filter(p => p.stock > 0 && !codigosEnCarrito.includes(p.codigo)).slice(0, 2);
+    const disponibles = INVENTARIO_GLOBAL.filter(p => p.stock > 0 && !codigosEnCarrito.includes(p.codigo));
+
+    // Categorías de lo que ya lleva en el carrito, para sugerir algo relacionado de verdad
+    const categoriasEnCarrito = [...new Set(
+        carrito.map(item => INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo)?.categoria).filter(Boolean)
+    )];
+
+    const relacionados = disponibles.filter(p => categoriasEnCarrito.includes(p.categoria));
+    const destacados = disponibles.filter(p => p.destacado && !relacionados.includes(p));
+    const resto = disponibles.filter(p => !relacionados.includes(p) && !destacados.includes(p));
+
+    // Prioriza: mismo tipo de producto que ya compra > ofertas destacadas > cualquier otro disponible
+    const sugeridos = [...relacionados, ...destacados, ...resto].slice(0, 3);
 
     if (sugeridos.length === 0) {
         contenedorCross.style.display = 'none';
+        contenedorCross.innerHTML = '';
         return;
     }
 
@@ -1998,13 +2052,13 @@ function renderizarCrossSelling() {
                 let imgN = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
                 let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/50x50?text=Prod';
                 return `
-                <div class="tarjeta-cross" style="display:flex; align-items:center; gap:10px; margin-top:5px;">
-                    <img src="${rImg}" style="width:40px; height:40px; object-fit:contain;" onerror="this.src='https://placehold.co/50x50';">
-                    <div>
-                        <strong>${p.articulo}</strong><br>
-                        <span>$${p.precio.toFixed(2)}</span>
+                <div class="tarjeta-cross">
+                    <img src="${rImg}" alt="${p.articulo}" onerror="this.src='https://placehold.co/50x50';">
+                    <div class="info-cross">
+                        <strong title="${p.articulo}">${p.articulo}</strong>
+                        <span>${formatearDinero(p.precio)}</span>
                     </div>
-                    <button onclick="agregarAlCarrito('${p.codigo}')" style="margin-left:auto;">+ Añadir</button>
+                    <button class="btn-cross-add" onclick="agregarAlCarrito('${p.codigo}')">+ Añadir</button>
                 </div>`;
             }).join('')}
         </div>`;
@@ -2070,7 +2124,7 @@ async function enviarPedidoFinal() {
 
     let totalGeneral = Math.max(0, subtotalProductos - montoDescuento);
     textoMensajeWhatsApp += `\n💰 *Subtotal:* ${formatearDinero(subtotalProductos)}\n`;
-    if (montoDescuento > 0) textoMensajeWhatsApp += `📉 *Descuento:* -${formatearDinero(montoDescuento)}\n`;
+    if (montoDescuento > 0) textoMensajeWhatsApp += `📉 *Descuento (${codigoCuponActivo}):* -${formatearDinero(montoDescuento)}\n`;
     textoMensajeWhatsApp += `💵 *TOTAL NETO A PAGAR: ${formatearDinero(totalGeneral)}*\n`;
 
     try {
@@ -2095,8 +2149,26 @@ async function enviarPedidoFinal() {
                 metodo_pago: metodoPago,
                 direccion: direccionEnvio,
                 punto_entrega: valorPuntoEntrega,
-                fecha_registro: new Date().toISOString()
+                fecha_registro: new Date().toISOString(),
+                cupon_aplicado: codigoCuponActivo || null,
+                descuento_cupon: montoDescuento,
+                subtotal_sin_descuento: subtotalProductos,
+                total_con_descuento: totalGeneral
             });
+
+            // Si se usó un cupón, se registra el uso en Firebase (transacción atómica,
+            // así aunque dos personas lo usen casi al mismo tiempo el conteo no se pierde).
+            // Esto es lo que hace que un cupón "de un solo uso" ya no sirva la próxima vez.
+            // Solo se cuenta el uso si de verdad aplicó un descuento (por ejemplo, si el
+            // cupón está restringido a una categoría y el carrito no tenía nada de esa
+            // categoría, no tiene sentido "quemar" el cupón sin que el cliente se beneficie).
+            if (configCupon && codigoCuponActivo && montoDescuento > 0) {
+                try {
+                    await dbFirebase.ref(`cupones/${codigoCuponActivo}/usos_actuales`).transaction(actual => (actual || 0) + 1);
+                } catch (errCupon) {
+                    console.error("No se pudo registrar el uso del cupón:", errCupon);
+                }
+            }
         } else {
             throw new Error("Firebase no está disponible en esta página");
         }
