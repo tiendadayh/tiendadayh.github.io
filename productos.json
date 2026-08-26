@@ -394,5 +394,14 @@
         "categoria": "Papeleria",
         "imagen": "imagenes_productos/IMG_a1_1787720674.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "a2",
+        "articulo": "Conjunto de Mochila 4 pz Rosa",
+        "precio": 180.0,
+        "stock": 1,
+        "categoria": "General",
+        "imagen": "imagenes_productos/IMG_a2_1787720872.jpg",
+        "destacado": false
     }
 ]
