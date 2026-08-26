@@ -403,5 +403,50 @@
         "categoria": "Papelería",
         "imagen": "imagenes_productos/IMG_a2_1787721306.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "e1",
+        "articulo": "Zapatos Negros Talla 40",
+        "precio": 320.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e1_1787721511.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e2",
+        "articulo": "Zapatos Negro Talla 39",
+        "precio": 320.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e2_1787721825.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e3",
+        "articulo": "Zapatos Negros Talla 38",
+        "precio": 280.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e3_1787722083.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e4",
+        "articulo": "Zapatos Negro Talla 39",
+        "precio": 280.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e4_1787722152.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e5",
+        "articulo": "Zapatos Negro Talla 40",
+        "precio": 280.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e5_1787722227.jpg",
+        "destacado": false
     }
 ]
