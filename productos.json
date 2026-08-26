@@ -397,11 +397,11 @@
     },
     {
         "codigo": "a2",
-        "articulo": "Conjunto de Mochila 4 pz Rosa",
+        "articulo": "Conjunto de Mochela 4 pz Rosa",
         "precio": 180.0,
         "stock": 1,
-        "categoria": "General",
-        "imagen": "imagenes_productos/IMG_a2_1787720872.jpg",
+        "categoria": "Papelería",
+        "imagen": "imagenes_productos/IMG_a2_1787721306.jpg",
         "destacado": false
     }
 ]
