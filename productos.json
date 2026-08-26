@@ -448,5 +448,77 @@
         "categoria": "Calzado",
         "imagen": "imagenes_productos/IMG_e5_1787722227.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "a3",
+        "articulo": "Mochila Azul",
+        "precio": 130.0,
+        "stock": 1,
+        "categoria": "Papeleria",
+        "imagen": "imagenes_productos/IMG_a3_1787722519.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "a4",
+        "articulo": "Mochila Rosa",
+        "precio": 130.0,
+        "stock": 1,
+        "categoria": "Papelería",
+        "imagen": "imagenes_productos/IMG_a4_1787722840.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e6",
+        "articulo": "Zapatos Negros Talla 23.5",
+        "precio": 320.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e6_1787723073.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e7",
+        "articulo": "Tenis Blanco Talla 29",
+        "precio": 250.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e7_1787723242.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e8",
+        "articulo": "Tenis Blanco Talla 33",
+        "precio": 250.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e8_1787723384.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e9",
+        "articulo": "Tenis Blanco Talla 32",
+        "precio": 280.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e9_1787723545.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d10",
+        "articulo": "pants Rosa Claro  Unitalla",
+        "precio": 180.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d10_1787723949.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d15",
+        "articulo": "Pants Rosa Oscuro Unitalla",
+        "precio": 220.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d15_1787724434.jpg",
+        "destacado": false
     }
 ]
