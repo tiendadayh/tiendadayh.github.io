@@ -4,7 +4,7 @@
         "articulo": "Mini Bocina Hongo Verde",
         "precio": 100.0,
         "stock": 1,
-        "categoria": "Electronica",
+        "categoria": "Electrónica",
         "imagen": "imagenes_productos/IMG_c1_1782605716.jpg",
         "destacado": false
     },
@@ -13,7 +13,7 @@
         "articulo": "Mini Bocina Azul",
         "precio": 120.0,
         "stock": 1,
-        "categoria": "Electronica",
+        "categoria": "Electrónica",
         "imagen": "imagenes_productos/IMG_c3_1782606032.jpg",
         "destacado": false
     },
@@ -22,7 +22,7 @@
         "articulo": "Mini Bocina Rojo",
         "precio": 120.0,
         "stock": 1,
-        "categoria": "Electronica",
+        "categoria": "Electrónica",
         "imagen": "imagenes_productos/IMG_c4_1782607271.jpg",
         "destacado": false
     },
@@ -37,37 +37,37 @@
     },
     {
         "codigo": "c7",
-        "articulo": "lámpara de escritorio",
+        "articulo": "Lampara De Escritorio",
         "precio": 90.0,
         "stock": 1,
-        "categoria": "Electronica",
+        "categoria": "Electrónica",
         "imagen": "imagenes_productos/IMG_c7_1782609367.jpg",
         "destacado": false
     },
     {
         "codigo": "c8",
-        "articulo": "ventilador de escritorio",
+        "articulo": "Ventilador De Escritorio",
         "precio": 70.0,
         "stock": 1,
-        "categoria": "Electronica",
+        "categoria": "Electrónica",
         "imagen": "imagenes_productos/IMG_c8_1782609658.jpg",
         "destacado": false
     },
     {
         "codigo": "c2",
-        "articulo": "barra multicontacto",
+        "articulo": "Barra Multicontacto",
         "precio": 45.0,
         "stock": 4,
-        "categoria": "Electronica",
+        "categoria": "Electrónica",
         "imagen": "imagenes_productos/IMG_c2_1782858645.jpg",
         "destacado": false
     },
     {
         "codigo": "c6",
-        "articulo": "mini ventilador de escritorio",
+        "articulo": "Mini Ventilador De Escritorio",
         "precio": 140.0,
         "stock": 1,
-        "categoria": "Electronica",
+        "categoria": "Electrónica",
         "imagen": "imagenes_productos/IMG_c6_1782859899.jpg",
         "destacado": false
     },
@@ -154,7 +154,7 @@
     },
     {
         "codigo": "d11",
-        "articulo": "Vestido mini Rojo - S",
+        "articulo": "Vestido Mini Rojo - S",
         "precio": 150.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -190,7 +190,7 @@
     },
     {
         "codigo": "d16",
-        "articulo": "Shorts deportivo Azul- L",
+        "articulo": "Shorts Deportivo Azul- L",
         "precio": 140.0,
         "stock": 2,
         "categoria": "Ropa",
@@ -199,7 +199,7 @@
     },
     {
         "codigo": "d17",
-        "articulo": "Shorts deportivo Gris- L",
+        "articulo": "Shorts Deportivo Gris- L",
         "precio": 140.0,
         "stock": 2,
         "categoria": "Ropa",
@@ -208,7 +208,7 @@
     },
     {
         "codigo": "d18",
-        "articulo": "Shorts deportivo Negro - XL",
+        "articulo": "Shorts Deportivo Negro - XL",
         "precio": 140.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -217,7 +217,7 @@
     },
     {
         "codigo": "d19",
-        "articulo": "Shorts deportivo - L",
+        "articulo": "Shorts Deportivo - L",
         "precio": 140.0,
         "stock": 2,
         "categoria": "Ropa",
@@ -253,7 +253,7 @@
     },
     {
         "codigo": "d27",
-        "articulo": "Playera azul marino - L",
+        "articulo": "Playera Azul Marino - L",
         "precio": 90.0,
         "stock": 1,
         "categoria": "Ropa",
@@ -388,16 +388,16 @@
     },
     {
         "codigo": "a1",
-        "articulo": "Conjunto de mochila 4 pz Azul",
+        "articulo": "Conjunto De Mochila 4 Pz Azul",
         "precio": 180.0,
         "stock": 1,
-        "categoria": "Papeleria",
+        "categoria": "Papelería",
         "imagen": "imagenes_productos/IMG_a1_1787720674.jpg",
         "destacado": false
     },
     {
         "codigo": "a2",
-        "articulo": "Conjunto de Mochela 4 pz Rosa",
+        "articulo": "Conjunto De Mochila 4 Pz Rosa",
         "precio": 180.0,
         "stock": 1,
         "categoria": "Papelería",
@@ -454,7 +454,7 @@
         "articulo": "Mochila Azul",
         "precio": 130.0,
         "stock": 1,
-        "categoria": "Papeleria",
+        "categoria": "Papelería",
         "imagen": "imagenes_productos/IMG_a3_1787722519.jpg",
         "destacado": false
     },
@@ -505,10 +505,10 @@
     },
     {
         "codigo": "d10",
-        "articulo": "pants Rosa Claro  Unitalla",
+        "articulo": "Pants Rosa Claro  Unitalla",
         "precio": 180.0,
         "stock": 1,
-        "categoria": "Ropa",
+        "categoria": "Accesorios",
         "imagen": "imagenes_productos/IMG_d10_1787723949.jpg",
         "destacado": false
     },
@@ -519,6 +519,33 @@
         "stock": 1,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d15_1787724434.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e10",
+        "articulo": "Zapatos Negros Talla 39",
+        "precio": 280.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e10_1787811531.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d20",
+        "articulo": "Camiseta Sin Mangas Corta Rosa Talla 40",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d20_1787812011.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "d21",
+        "articulo": "Camiseta Sin Manga Azul Talla Unica",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Ropa",
+        "imagen": "imagenes_productos/IMG_d21_1787812188.jpg",
         "destacado": false
     }
 ]
