@@ -1492,10 +1492,14 @@ function renderizarEventos() {
 
 function filtrarPorEvento(categoria) {
     if (!categoria) return;
-    categorySeleccionada = categoria;
+    // Normalizamos acentos aquí también, para que un nombre de categoría con
+    // acento (p. ej. "Papelería") siga encontrando y resaltando el botón
+    // correcto aunque su data-cat esté escrito sin acento.
+    const categoriaNormalizada = categoria.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    categorySeleccionada = categoriaNormalizada;
     document.querySelectorAll('.btn-categoria').forEach(btn => btn.classList.remove('activo'));
     document.querySelectorAll('.btn-categoria').forEach(btn => {
-        if(btn.getAttribute('data-cat') && btn.getAttribute('data-cat').toLowerCase() === categoria.toLowerCase()) btn.classList.add('activo');
+        if(btn.getAttribute('data-cat') && btn.getAttribute('data-cat').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === categoriaNormalizada) btn.classList.add('activo');
     });
     filtrarCatalogo();
     const buscador = document.getElementById('buscador');
@@ -1682,11 +1686,14 @@ function recuperarCarritoDeLocalStorage() { const guardado = localStorage.getIte
 function actualizarContadoresCategorias() {
     const conteo = { todas: INVENTARIO_GLOBAL.length };
     INVENTARIO_GLOBAL.forEach(prod => {
-        const cat = prod.categoria ? prod.categoria.toLowerCase() : "general";
+        // Quitamos acentos aquí igual que en filtrarCatalogo(), para que
+        // "Papelería" y "Papeleria" (sin acento, por un error de captura
+        // anterior) se cuenten como la misma categoría en vez de separarse.
+        const cat = prod.categoria ? prod.categoria.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "general";
         conteo[cat] = (conteo[cat] || 0) + 1;
     });
     document.querySelectorAll('.btn-categoria').forEach(btn => {
-        const catId = btn.getAttribute('data-cat').toLowerCase();
+        const catId = btn.getAttribute('data-cat').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         const contadorViejo = btn.querySelector('.cat-contador');
         if (contadorViejo) contadorViejo.remove();
         const num = conteo[catId] || 0;
@@ -1919,8 +1926,9 @@ function actualizarCarritoVisual() {
         subtotalGeneral += subtotalProducto;
 
         if (configCupon) {
-            const catProd = prod.categoria ? prod.categoria.toLowerCase() : "general";
-            if (!configCupon.categoriaRestringida || catProd === configCupon.categoriaRestringida.toLowerCase()) {
+            const catProd = prod.categoria ? prod.categoria.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "general";
+            const catRestringida = configCupon.categoriaRestringida ? configCupon.categoriaRestringida.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+            if (!configCupon.categoriaRestringida || catProd === catRestringida) {
                 montoDescuento += subtotalProducto * configCupon.descuento;
             }
         }
@@ -2112,8 +2120,9 @@ async function enviarPedidoFinal() {
             const sub = prod.precio * item.cantidad;
             subtotalProductos += sub;
             if (configCupon) {
-                const catProd = prod.categoria ? prod.categoria.toLowerCase() : "general";
-                if (!configCupon.categoriaRestringida || catProd === configCupon.categoriaRestringida.toLowerCase()) {
+                const catProd = prod.categoria ? prod.categoria.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "general";
+                const catRestringida = configCupon.categoriaRestringida ? configCupon.categoriaRestringida.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+                if (!configCupon.categoriaRestringida || catProd === catRestringida) {
                     montoDescuento += sub * configCupon.descuento;
                 }
             }
