@@ -195,9 +195,12 @@ body {
     font-weight: 600; 
     line-height: 1.3; 
     color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis; 
+    white-space: normal;
+    overflow: visible;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
 }
 .producto-codigo { font-size: 10px; color: var(--primary-light); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
 .producto-stock { font-size: 12px; font-weight: 600; color: var(--success); margin-bottom: 6px; }
@@ -411,7 +414,7 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
     .producto-card { padding: 10px !important; border-radius: 10px !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; }
     .img-wrapper { width: 100% !important; height: 110px !important; margin-bottom: 4px !important; overflow: hidden !important; display: flex !important; align-items: center !important; justify-content: center !important; background: transparent !important; }
     .producto-card img { width: 100% !important; height: 100% !important; object-fit: contain !important; }
-    .producto-card h3 { font-size: 12px !important; margin: 6px 0 4px 0 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .producto-card h3 { font-size: 12px !important; margin: 6px 0 4px 0 !important; white-space: normal !important; overflow: visible !important; display: -webkit-box !important; -webkit-box-orient: vertical !important; -webkit-line-clamp: 3 !important; }
     .producto-codigo { font-size: 9px !important; letter-spacing: 0.4px; }
     .producto-stock { font-size: 11px !important; }
     .tarjeta-controles-qty { height: 32px !important; margin-top: 6px; }
@@ -1178,8 +1181,8 @@ function configurarWebSockets() {
 
                     if (producto.stock === 0) {
                         mostrarNotificacionFlotante(`❌ Se ha agotado en inventario: ${producto.articulo}`, 5000, '#7f1d1d');
-                    } else if (producto.stock <= 3) {
-                        mostrarNotificacionFlotante(`🔥 ¡Inventario actualizado! Últimas ${producto.stock} piezas de: ${producto.articulo}`, 5000, '#9a3412');
+                    } else if (producto.stock === 1) {
+                        mostrarNotificacionFlotante(`🔥 ¡Inventario actualizado! Última pieza de: ${producto.articulo}`, 5000, '#9a3412');
                     }
                 }
             } else {
@@ -1308,8 +1311,8 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
         txtStock = '❌ Agotado en Tienda'; cStock = 'producto-stock agotado'; 
     } else if (stockDisponible <= 0) {
         txtStock = '❌ Agotado en tu Carrito'; cStock = 'producto-stock agotado';
-    } else if (stockDisponible <= 3) { 
-        txtStock = `🔥 ¡Últimas ${stockDisponible} pzs!`; cStock = 'producto-stock stock-critico'; 
+    } else if (stockDisponible === 1) { 
+        txtStock = `🔥 ¡Última pieza!`; cStock = 'producto-stock stock-critico'; 
     }
 
     const arrImg = obtenerArregloImagenes(prod);
