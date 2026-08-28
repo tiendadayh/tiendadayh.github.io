@@ -411,7 +411,7 @@
         "stock": 1,
         "categoria": "Calzado",
         "imagen": "imagenes_productos/IMG_e1_1787721511.jpg",
-        "destacado": false
+        "destacado": true
     },
     {
         "codigo": "e2",
@@ -456,7 +456,7 @@
         "stock": 1,
         "categoria": "Papelería",
         "imagen": "imagenes_productos/IMG_a3_1787722519.jpg",
-        "destacado": false
+        "destacado": true
     },
     {
         "codigo": "a4",
@@ -546,6 +546,51 @@
         "stock": 1,
         "categoria": "Ropa",
         "imagen": "imagenes_productos/IMG_d21_1787812188.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e11",
+        "articulo": "Sandalias Cielo Azul Talla 23-24",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e11_1787895410.paint",
+        "destacado": false
+    },
+    {
+        "codigo": "e12",
+        "articulo": "Sandalias Rosa Talla 26",
+        "precio": 130.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e12_1787895682.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e13",
+        "articulo": "Sandalia Rosa Talla 24",
+        "precio": 130.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e13_1787896408.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e14",
+        "articulo": "Sandalias Amarillos Talla 23",
+        "precio": 130.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e14_1787896638.jpg",
+        "destacado": false
+    },
+    {
+        "codigo": "e15",
+        "articulo": "Sandalias Cielo Azul Talla 24-25",
+        "precio": 120.0,
+        "stock": 1,
+        "categoria": "Calzado",
+        "imagen": "imagenes_productos/IMG_e15_1787897236.jpg",
         "destacado": false
     }
 ]
