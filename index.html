@@ -6,6 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TIENDA DAYH - Catálogo Oficial</title>
 
+    <!-- ==========================================================================
+         META TAGS PARA VISTA PREVIA AL COMPARTIR (WhatsApp, Facebook, etc.)
+         IMPORTANTE: og:image y og:url necesitan una URL ABSOLUTA (con https://)
+         para que WhatsApp pueda mostrar la vista previa, ya que estos bots NO
+         ejecutan JavaScript, solo leen el HTML tal cual. Reemplaza el dominio de
+         abajo (chanecarlos83.github.io) si tu sitio final queda en otra dirección.
+         ========================================================================== -->
+    <meta name="description" content="Catálogo oficial de TIENDA DAYH: encuentra ferretería, papelería, calzado y más. Arma tu pedido en línea y recíbelo o pásalo a recoger.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="TIENDA DAYH">
+    <meta property="og:title" content="TIENDA DAYH - Catálogo Oficial">
+    <meta property="og:description" content="Explora nuestro catálogo completo, arma tu pedido en minutos y confírmalo por WhatsApp.">
+    <meta property="og:image" content="https://chanecarlos83.github.io/imagenes_eventos/logo_inicio.png">
+    <meta property="og:url" content="https://chanecarlos83.github.io/">
+    <meta property="og:locale" content="es_MX">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="TIENDA DAYH - Catálogo Oficial">
+    <meta name="twitter:description" content="Explora nuestro catálogo completo, arma tu pedido en minutos y confírmalo por WhatsApp.">
+    <meta name="twitter:image" content="https://chanecarlos83.github.io/imagenes_eventos/logo_inicio.png">
+
     <!-- Librerías de soporte e integración externa -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -1350,7 +1370,7 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
             <div class="producto-codigo">CÓDIGO: ${prod.codigo}</div>
             <div class="img-wrapper" style="cursor: zoom-in;" onclick="abrirLightbox('${rImg}', '${artLimpio}')">
                 ${bIzq} 
-                <img id="${idImg}" src="${rImg}" alt="${artLimpio}" 
+                <img id="${idImg}" src="${rImg}" alt="${artLimpio}" loading="lazy" decoding="async"
                      onmouseover="if('${rImg2}' !== '${rImg}') this.src='${rImg2}'"
                      onmouseout="this.src='${rImg}'"
                      onerror="this.onerror=null; this.src='https://placehold.co/300?text=${encodeURIComponent(artLimpio)}'"> 
@@ -2064,7 +2084,7 @@ function renderizarCrossSelling() {
                 let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/50x50?text=Prod';
                 return `
                 <div class="tarjeta-cross">
-                    <img src="${rImg}" alt="${p.articulo}" onerror="this.src='https://placehold.co/50x50';">
+                    <img src="${rImg}" alt="${p.articulo}" loading="lazy" decoding="async" onerror="this.src='https://placehold.co/50x50';">
                     <div class="info-cross">
                         <strong title="${p.articulo}">${p.articulo}</strong>
                         <span>${formatearDinero(p.precio)}</span>
@@ -2073,6 +2093,204 @@ function renderizarCrossSelling() {
                 </div>`;
             }).join('')}
         </div>`;
+}
+
+// =========================================================================
+// GENERACIÓN DEL PDF DEL PEDIDO (con imagen de cada producto)
+// =========================================================================
+
+// Convierte la imagen de un producto a un dataURL en formato PNG para poder
+// incrustarla en el PDF. Si la imagen no carga (ruta rota, sin internet,
+// bloqueada por CORS, etc.) regresa null y el PDF simplemente dibuja un
+// recuadro "Sin foto" en su lugar, así un producto sin imagen nunca detiene
+// la generación del comprobante completo.
+function cargarImagenBase64ParaPDF(rutaImagen) {
+    return new Promise((resolve) => {
+        if (!rutaImagen) { resolve(null); return; }
+        fetch(rutaImagen)
+            .then(respuesta => {
+                if (!respuesta.ok) throw new Error('Imagen no encontrada');
+                return respuesta.blob();
+            })
+            .then(blob => {
+                const urlObjeto = URL.createObjectURL(blob);
+                const imagen = new Image();
+                imagen.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = imagen.naturalWidth || 100;
+                        canvas.height = imagen.naturalHeight || 100;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(imagen, 0, 0);
+                        URL.revokeObjectURL(urlObjeto);
+                        resolve(canvas.toDataURL('image/png'));
+                    } catch (errCanvas) {
+                        URL.revokeObjectURL(urlObjeto);
+                        resolve(null);
+                    }
+                };
+                imagen.onerror = () => { URL.revokeObjectURL(urlObjeto); resolve(null); };
+                imagen.src = urlObjeto;
+            })
+            .catch(() => resolve(null));
+    });
+}
+
+// Genera el comprobante en PDF del pedido con una tabla de productos que
+// incluye la imagen, cantidad y precio de cada artículo (antes el PDF solo
+// traía el nombre del cliente y el total, sin el detalle del pedido).
+async function generarPDFComprobante(datos) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const anchoPagina = doc.internal.pageSize.getWidth();
+    const altoPagina = doc.internal.pageSize.getHeight();
+    const margenX = 15;
+    const anchoUtil = anchoPagina - margenX * 2;
+
+    // Precarga todas las imágenes en paralelo antes de dibujar nada
+    const imagenesBase64 = await Promise.all(
+        datos.items.map(item => cargarImagenBase64ParaPDF(item.rutaImagen))
+    );
+
+    // --- Encabezado ---
+    doc.setFillColor(168, 85, 247);
+    doc.rect(0, 0, anchoPagina, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.text('TIENDA DAYH', margenX, 15);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text('Comprobante de Pedido', margenX, 23);
+    doc.setFontSize(9);
+    doc.text(new Date().toLocaleString('es-MX'), anchoPagina - margenX, 23, { align: 'right' });
+
+    // --- Datos del cliente y del pedido ---
+    let y = 40;
+    doc.setTextColor(30, 30, 30);
+    doc.setFontSize(10);
+    const lineaInfo = (etiqueta, valor) => {
+        doc.setFont('helvetica', 'bold');
+        doc.text(etiqueta, margenX, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(String(valor), margenX + 32, y);
+        y += 6;
+    };
+    lineaInfo('Cliente:', datos.cliente);
+    lineaInfo('Entrega:', datos.valorPuntoEntrega);
+    if (datos.valorPuntoEntrega.includes('Domicilio') && datos.direccionEnvio) {
+        lineaInfo('Dirección:', datos.direccionEnvio);
+    }
+    lineaInfo('Fecha / Hora:', `${formatearFechaHumana(datos.fecha)} - ${datos.hora}`);
+    lineaInfo('Método de pago:', datos.metodoPago);
+    if (datos.codigoCupon) lineaInfo('Cupón aplicado:', datos.codigoCupon);
+
+    y += 4;
+
+    // --- Columnas de la tabla de productos ---
+    const colImg = margenX;
+    const colProducto = margenX + 22;
+    const colCant = margenX + anchoUtil - 45;
+    const colPrecio = margenX + anchoUtil - 30;
+    const colSubtotal = margenX + anchoUtil;
+
+    const dibujarEncabezadoTabla = () => {
+        doc.setFillColor(31, 41, 55);
+        doc.rect(margenX, y, anchoUtil, 8, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text('Producto', colProducto, y + 5.5);
+        doc.text('Cant.', colCant, y + 5.5);
+        doc.text('P. Unit.', colPrecio, y + 5.5);
+        doc.text('Subtotal', colSubtotal, y + 5.5, { align: 'right' });
+        y += 12;
+        doc.setTextColor(30, 30, 30);
+        doc.setFont('helvetica', 'normal');
+    };
+    dibujarEncabezadoTabla();
+
+    const altoFila = 20;
+
+    datos.items.forEach((item, indice) => {
+        // Salto de página si no cabe la siguiente fila (deja espacio para totales/pie)
+        if (y + altoFila > altoPagina - 45) {
+            doc.addPage();
+            y = 20;
+            dibujarEncabezadoTabla();
+        }
+
+        // Imagen del producto, o un recuadro "Sin foto" si no se pudo cargar
+        const img64 = imagenesBase64[indice];
+        if (img64) {
+            try { doc.addImage(img64, 'PNG', colImg, y, 18, 18); }
+            catch (e) { doc.setDrawColor(200, 200, 200); doc.rect(colImg, y, 18, 18); }
+        } else {
+            doc.setDrawColor(200, 200, 200);
+            doc.setFillColor(240, 240, 240);
+            doc.rect(colImg, y, 18, 18, 'FD');
+            doc.setFontSize(6);
+            doc.setTextColor(150, 150, 150);
+            doc.text('Sin foto', colImg + 9, y + 10, { align: 'center' });
+            doc.setTextColor(30, 30, 30);
+        }
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        const nombreLineas = doc.splitTextToSize(item.articulo, colCant - colProducto - 3).slice(0, 2);
+        doc.text(nombreLineas, colProducto, y + 6);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text(`Cód. ${item.codigo}`, colProducto, y + (nombreLineas.length > 1 ? 15 : 11));
+        doc.setTextColor(30, 30, 30);
+
+        doc.setFontSize(9);
+        doc.text(String(item.cantidad), colCant, y + 10);
+        doc.text(formatearDinero(item.precioUnit), colPrecio, y + 10);
+        doc.text(formatearDinero(item.subtotal), colSubtotal, y + 10, { align: 'right' });
+
+        doc.setDrawColor(225, 225, 225);
+        doc.line(margenX, y + altoFila - 2, margenX + anchoUtil, y + altoFila - 2);
+
+        y += altoFila;
+    });
+
+    // --- Totales ---
+    if (y + 35 > altoPagina - 20) { doc.addPage(); y = 20; }
+    y += 6;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Subtotal:', colPrecio, y);
+    doc.text(formatearDinero(datos.subtotalProductos), colSubtotal, y, { align: 'right' });
+    y += 7;
+    if (datos.montoDescuento > 0) {
+        doc.setTextColor(16, 185, 129);
+        doc.text('Descuento:', colPrecio, y);
+        doc.text(`-${formatearDinero(datos.montoDescuento)}`, colSubtotal, y, { align: 'right' });
+        doc.setTextColor(30, 30, 30);
+        y += 7;
+    }
+    doc.setDrawColor(30, 30, 30);
+    doc.line(colPrecio - 5, y, margenX + anchoUtil, y);
+    y += 7;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('TOTAL:', colPrecio, y);
+    doc.text(formatearDinero(datos.totalGeneral), colSubtotal, y, { align: 'right' });
+
+    // --- Pie de página ---
+    const totalPaginas = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPaginas; p++) {
+        doc.setPage(p);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('¡Gracias por tu compra en TIENDA DAYH!', anchoPagina / 2, altoPagina - 12, { align: 'center' });
+        doc.text(`Página ${p} de ${totalPaginas}`, anchoPagina / 2, altoPagina - 7, { align: 'center' });
+    }
+
+    doc.save(`Pedido_${datos.cliente.replace(/ /g, "_")}.pdf`);
 }
 
 async function enviarPedidoFinal() {
@@ -2111,6 +2329,7 @@ async function enviarPedidoFinal() {
     let montoDescuento = 0;
     const configCupon = CUPONES_CONFIG[codigoCuponActivo] || null;
     const productosParaAPI = [];
+    const itemsParaPDF = [];
 
     let textoMensajeWhatsApp = `*¡Hola Tienda DAYH! Generé un nuevo pedido* 📄🛒\n\n`;
     textoMensajeWhatsApp += `👤 *Cliente:* ${cliente}\n📍 *Punto/Entrega:* ${valorPuntoEntrega}\n`;
@@ -2131,6 +2350,20 @@ async function enviarPedidoFinal() {
             }
             textoMensajeWhatsApp += `▪️ ${item.cantidad}x [${prod.codigo}] ${prod.articulo} - _${formatearDinero(sub)}_\n`;
             productosParaAPI.push({ codigo: item.codigo, cantidad: item.cantidad });
+
+            // Ruta de la imagen del producto para dibujarla en el PDF del comprobante.
+            // Si no tiene imagen se deja vacía a propósito: así el PDF no intenta
+            // descargar un placeholder y solo dibuja un recuadro "Sin foto".
+            const arrImgItem = obtenerArregloImagenes(prod);
+            const imgNombreItem = arrImgItem[0] ? arrImgItem[0].split(/[/\\\\]/).pop() : '';
+            itemsParaPDF.push({
+                codigo: prod.codigo,
+                articulo: prod.articulo,
+                cantidad: item.cantidad,
+                precioUnit: prod.precio,
+                subtotal: sub,
+                rutaImagen: imgNombreItem ? `imagenes_productos/${imgNombreItem}` : ''
+            });
         }
     });
 
@@ -2139,16 +2372,22 @@ async function enviarPedidoFinal() {
     if (montoDescuento > 0) textoMensajeWhatsApp += `📉 *Descuento (${codigoCuponActivo}):* -${formatearDinero(montoDescuento)}\n`;
     textoMensajeWhatsApp += `💵 *TOTAL NETO A PAGAR: ${formatearDinero(totalGeneral)}*\n`;
 
+    // El PDF se genera en su propio try/catch: si una imagen no carga o algo
+    // falla al dibujar el PDF, el pedido de todos modos se manda a Firebase
+    // y por WhatsApp con normalidad (antes un fallo aquí podía tirar todo el envío).
     try {
         if (window.jspdf) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("TIENDA DAYH - COMPROBANTE", 15, 15);
-            doc.text(`Cliente: ${cliente}`, 15, 25);
-            doc.text(`Total: ${formatearDinero(totalGeneral)}`, 15, 35);
-            doc.save(`Pedido_${cliente.replace(/ /g, "_")}.pdf`);
+            await generarPDFComprobante({
+                cliente, fecha, hora, valorPuntoEntrega, direccionEnvio, metodoPago,
+                items: itemsParaPDF, subtotalProductos, montoDescuento, totalGeneral,
+                codigoCupon: codigoCuponActivo
+            });
         }
+    } catch (errPDF) {
+        console.error("No se pudo generar el PDF del comprobante:", errPDF);
+    }
 
+    try {
         if (dbFirebase) {
             // El pedido se escribe directo en Firebase; el POS (TIENDA_DAYH.py) lo
             // recibe en tiempo real aunque el cliente esté en cualquier red, valida
