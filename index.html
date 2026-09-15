@@ -1707,8 +1707,9 @@ function guardarCarritoEnLocalStorage() { localStorage.setItem('carrito_tienda',
 function recuperarCarritoDeLocalStorage() { const guardado = localStorage.getItem('carrito_tienda'); if (guardado) carrito = JSON.parse(guardado); }
 
 function actualizarContadoresCategorias() {
-    const conteo = { todas: INVENTARIO_GLOBAL.length };
-    INVENTARIO_GLOBAL.forEach(prod => {
+    const conStock = INVENTARIO_GLOBAL.filter(p => (parseInt(p.stock) || 0) > 0);
+    const conteo = { todas: conStock.length };
+    conStock.forEach(prod => {
         // Quitamos acentos aquí igual que en filtrarCatalogo(), para que
         // "Papelería" y "Papeleria" (sin acento, por un error de captura
         // anterior) se cuenten como la misma categoría en vez de separarse.
@@ -1790,7 +1791,7 @@ function renderizarDestacados() {
     const cont = document.getElementById('lista-destacados');
     const sec = document.getElementById('seccion-destacados');
     if (!cont || !sec) return;
-    const dest = INVENTARIO_GLOBAL.filter(p => p.destacado === true);
+    const dest = INVENTARIO_GLOBAL.filter(p => p.destacado === true && (parseInt(p.stock) || 0) > 0);
     if (dest.length === 0) { sec.style.display = 'none'; return; }
     sec.style.display = 'block'; cont.innerHTML = '';
     dest.forEach(p => { cont.innerHTML += generarHTMLTarjeta(p, true); });
@@ -1803,7 +1804,8 @@ function filtrarCatalogo() {
         const nom = prod.articulo ? prod.articulo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
         const cod = prod.codigo ? prod.codigo.toLowerCase() : "";
         const cat = prod.categoria ? prod.categoria.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "general";
-        return (nom.includes(buscar) || cod.includes(buscar)) && (categorySeleccionada === "todas" || cat === categorySeleccionada.toLowerCase());
+        const tieneStock = (parseInt(prod.stock) || 0) > 0;
+        return tieneStock && (nom.includes(buscar) || cod.includes(buscar)) && (categorySeleccionada === "todas" || cat === categorySeleccionada.toLowerCase());
     });
     const cont = document.getElementById('lista-productos');
     if (!cont) return; cont.innerHTML = '';
