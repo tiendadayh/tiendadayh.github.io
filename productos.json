@@ -1,1 +1,22 @@
-[]
+[
+    {
+        "codigo": "a1",
+        "articulo": "Pala",
+        "precio": 150.0,
+        "stock": 1,
+        "categoria": "Herramientas Manuales",
+        "imagen": "imagenes_productos/IMG_a1_1789703671.jpg",
+        "destacado": false,
+        "unidad": "pza"
+    },
+    {
+        "codigo": "a2",
+        "articulo": "Pala2",
+        "precio": 150.0,
+        "stock": 1,
+        "categoria": "Herramientas Manuales",
+        "imagen": "imagenes_productos/IMG_a2_1789703764.jpg",
+        "destacado": false,
+        "unidad": "pza"
+    }
+]
