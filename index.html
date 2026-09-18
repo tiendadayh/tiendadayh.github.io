@@ -1066,15 +1066,23 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 const dbFirebase = typeof firebase !== 'undefined' ? firebase.database() : null;
 
 // === PRESENCIA EN TIEMPO REAL ===
-// Registra esta pestaña como "conectada" mientras esté abierta, para poder
-// ver desde el POS (TIENDA_DAYH.py) cuántos clientes tienen la web abierta
-// en este momento. ".info/connected" es un valor especial que Firebase
-// actualiza solo cada vez que el navegador se conecta/desconecta del
-// servidor. onDisconnect() le dice al SERVIDOR qué borrar si este cliente
-// se cae, así que funciona incluso si el usuario cierra sin avisar o
-// se queda sin internet.
+// El ID de la conexión se guarda en localStorage (no se genera uno nuevo
+// cada vez). Con esto:
+//  - Si el cliente recarga la página, reutiliza la MISMA entrada en vez de
+//    sumar una nueva mientras Firebase termina de limpiar la anterior.
+//  - Si abre varias pestañas de la tienda en el mismo celular/computadora,
+//    todas comparten la misma entrada y cuentan como 1 conexión, no varias.
+// (Nota: si de esas varias pestañas cierra unas y deja otra abierta, puede
+// que por un instante el contador no la refleje hasta que esa pestaña
+// vuelva a "tocar" la conexión; para una tienda pequeña esto no es un
+// problema real.)
 if (dbFirebase) {
-    const miConexionRef = dbFirebase.ref('conectados').push();
+    let idConexion = localStorage.getItem('dayh_id_conexion');
+    if (!idConexion) {
+        idConexion = dbFirebase.ref('conectados').push().key;
+        localStorage.setItem('dayh_id_conexion', idConexion);
+    }
+    const miConexionRef = dbFirebase.ref('conectados/' + idConexion);
     dbFirebase.ref('.info/connected').on('value', (snap) => {
         if (snap.val() === true) {
             miConexionRef.onDisconnect().remove();
