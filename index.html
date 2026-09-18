@@ -1076,6 +1076,11 @@ const dbFirebase = typeof firebase !== 'undefined' ? firebase.database() : null;
 // que por un instante el contador no la refleje hasta que esa pestaña
 // vuelva a "tocar" la conexión; para una tienda pequeña esto no es un
 // problema real.)
+//
+// Además, se quita del contador a quien deje la página abierta SIN
+// interactuar (no mueve el mouse, no toca la pantalla, no da clic ni hace
+// scroll) por más de MINUTOS_INACTIVIDAD, aunque la pestaña siga abierta y
+// conectada. En cuanto vuelve a interactuar, reaparece como conectado.
 if (dbFirebase) {
     let idConexion = localStorage.getItem('dayh_id_conexion');
     if (!idConexion) {
@@ -1083,11 +1088,38 @@ if (dbFirebase) {
         localStorage.setItem('dayh_id_conexion', idConexion);
     }
     const miConexionRef = dbFirebase.ref('conectados/' + idConexion);
-    dbFirebase.ref('.info/connected').on('value', (snap) => {
-        if (snap.val() === true) {
-            miConexionRef.onDisconnect().remove();
+
+    const MINUTOS_INACTIVIDAD = 2;
+    const MS_INACTIVIDAD = MINUTOS_INACTIVIDAD * 60 * 1000;
+    let timerInactividad = null;
+    let marcadoComoActivo = false;
+
+    function marcarActivo() {
+        if (!marcadoComoActivo) {
+            marcadoComoActivo = true;
             miConexionRef.set(Date.now());
         }
+        clearTimeout(timerInactividad);
+        timerInactividad = setTimeout(marcarInactivo, MS_INACTIVIDAD);
+    }
+
+    function marcarInactivo() {
+        marcadoComoActivo = false;
+        miConexionRef.remove();
+    }
+
+    dbFirebase.ref('.info/connected').on('value', (snap) => {
+        if (snap.val() === true) {
+            // Se vuelve a registrar en cada reconexión (ej. si el celular
+            // pierde señal un momento y vuelve).
+            miConexionRef.onDisconnect().remove();
+            marcarActivo();
+        }
+    });
+
+    // Cualquiera de estos eventos cuenta como "está usando la página".
+    ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach((evento) => {
+        document.addEventListener(evento, marcarActivo, { passive: true });
     });
 }
 
