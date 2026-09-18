@@ -284,7 +284,7 @@ body {
 /* CATEGORÍAS */
 .categorias-barra { display: flex; gap: 12px; overflow-x: auto; flex-wrap: nowrap; padding: 10px 5px 15px 5px; scrollbar-width: none; -webkit-overflow-scrolling: touch; margin-bottom: 25px; }
 .categorias-barra::-webkit-scrollbar { display: none; }
-.btn-categoria { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 85px; height: 75px; flex-shrink: 0; border-radius: 14px; padding: 6px 12px; font-size: 11px; background: var(--card-bg); color: var(--text-light); border: 1px solid var(--border); cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+.btn-categoria { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 98px; min-width: 98px; max-width: 98px; height: 92px; flex-shrink: 0; border-radius: 14px; padding: 6px 6px; font-size: 9.5px; line-height: 1.15; background: var(--card-bg); color: var(--text-light); border: 1px solid var(--border); cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 0px; text-align: center; white-space: normal; overflow-wrap: normal; word-break: normal; hyphens: none; }
 .btn-categoria span { font-size: 20px; transition: transform 0.2s ease; }
 .btn-categoria:hover span { transform: scale(1.2); }
 .btn-categoria:hover { border-color: var(--primary-light); color: var(--text); }
@@ -829,15 +829,15 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
     <div class="container">
         <div class="productos-seccion">
 
-            <div class="anuncio-container">
+            <div class="anuncio-container" id="anuncio-container-principal">
                 <div class="anuncio-card">
-                    <span class="badge-live">La Independencia</span>
+                    <span class="badge-live" id="banner-badge">La Independencia</span>
                     <div class="anuncio-img-wrapper">
-                        <img src="imagenes_eventos/independencia.jpg" alt="La Independencia" class="anuncio-img" onerror="this.onerror=null; this.src='https://placehold.co/1200x400/1f2937/f9fafb?text=LA+INDEPENDENCIA'">
+                        <img src="imagenes_eventos/independencia.jpg" alt="Banner" class="anuncio-img" id="banner-img" onerror="this.onerror=null; this.src='https://placehold.co/1200x400/1f2937/f9fafb?text=LA+INDEPENDENCIA'">
                     </div>
                     <div class="anuncio-footer">
-                        <h3 class="anuncio-titulo">LA INDEPENDENCIA DE MEXICO</h3>
-                        <p class="anuncio-subtitulo">CELEBRACIÓN DE LA INDEPENDENCIA DE MÉXICO</p>
+                        <h3 class="anuncio-titulo" id="banner-titulo">LA INDEPENDENCIA DE MEXICO</h3>
+                        <p class="anuncio-subtitulo" id="banner-subtitulo">CELEBRACIÓN DE LA INDEPENDENCIA DE MÉXICO</p>
                     </div>
                 </div>
             </div>
@@ -1000,11 +1000,38 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
 
             <button class="btn-apply" id="btn-vaciar" style="width:100%; margin-bottom:10px; background:transparent; border:1px solid var(--danger); color:var(--danger);">🗑️ Vaciar Carrito</button>
             <button class="btn-checkout" id="btn-enviar-pedido">Confirmar Pedido vía WhatsApp 🚀</button>
+            <p style="font-size:11px; text-align:center; margin-top:10px; opacity:0.75;">
+                Al confirmar tu pedido aceptas nuestro
+                <a href="#" onclick="document.getElementById('modal-privacidad').style.display='flex'; return false;" style="color:var(--primary-light); text-decoration:underline;">Aviso de Privacidad</a>.
+            </p>
         </div>
     </div>
 
     
     </div>
+
+    <div id="modal-privacidad" class="modal-despacho" style="display: none;">
+        <div class="modal-contenido">
+            <span class="btn-cerrar-modal" onclick="document.getElementById('modal-privacidad').style.display='none'">&times;</span>
+            <h2>🔒 Aviso de Privacidad</h2>
+            <div style="font-size: 14px; line-height: 1.6; text-align: left;">
+                <p><strong>Responsable:</strong> TIENDA DAYH es responsable del uso y protección de tus datos personales.</p>
+                <p><strong>¿Qué datos recabamos?</strong> Solo lo necesario para procesar tu pedido: tu nombre, la dirección de entrega (cuando eliges envío a domicilio) y el detalle de los productos que compraste.</p>
+                <p><strong>¿Para qué los usamos?</strong> Únicamente para preparar, confirmar y entregar tu pedido, y para contactarte por WhatsApp sobre el mismo.</p>
+                <p><strong>¿Con quién los compartimos?</strong> No vendemos ni compartimos tus datos con terceros para fines de publicidad. Usamos Firebase (Google) y WhatsApp únicamente como herramientas para operar tu pedido.</p>
+                <p><strong>¿Cuánto tiempo los guardamos?</strong> El tiempo necesario para atender tu pedido y llevar un control de nuestras ventas.</p>
+                <p><strong>Tus derechos:</strong> Puedes pedirnos en cualquier momento que te digamos qué datos tenemos tuyos, que los corrijamos o que los eliminemos, escribiéndonos directamente por WhatsApp.</p>
+                <p><strong>Cambios a este aviso:</strong> Si actualizamos este aviso, publicaremos la nueva versión en esta misma página.</p>
+                <p style="opacity:0.7; font-size:12px;">Última actualización: septiembre 2026.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align:center; padding: 18px 10px; font-size: 12px; opacity: 0.7;">
+        © 2026 TIENDA DAYH —
+        <a href="#" onclick="document.getElementById('modal-privacidad').style.display='flex'; return false;" style="color:inherit; text-decoration:underline;">Aviso de Privacidad</a>
+        <span id="footer-redes"></span>
+    </footer>
 
     <script>
 // === REGISTRO DEL SERVICE WORKER ===
@@ -1038,7 +1065,27 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 const dbFirebase = typeof firebase !== 'undefined' ? firebase.database() : null;
 
-const TELEFONO_WHATSAPP = "527442411773";
+// === PRESENCIA EN TIEMPO REAL ===
+// Registra esta pestaña como "conectada" mientras esté abierta, para poder
+// ver desde el POS (TIENDA_DAYH.py) cuántos clientes tienen la web abierta
+// en este momento. ".info/connected" es un valor especial que Firebase
+// actualiza solo cada vez que el navegador se conecta/desconecta del
+// servidor. onDisconnect() le dice al SERVIDOR qué borrar si este cliente
+// se cae, así que funciona incluso si el usuario cierra sin avisar o
+// se queda sin internet.
+if (dbFirebase) {
+    const miConexionRef = dbFirebase.ref('conectados').push();
+    dbFirebase.ref('.info/connected').on('value', (snap) => {
+        if (snap.val() === true) {
+            miConexionRef.onDisconnect().remove();
+            miConexionRef.set(Date.now());
+        }
+    });
+}
+
+// Valor por defecto: se sobreescribe en vivo si el administrador configura
+// otro número desde el punto de venta (botón "⚙CONFIG. WEB").
+let TELEFONO_WHATSAPP = "527442411773";
 let categorySeleccionada = "todas";
 let urlGlobalWhatsApp = "";
 
@@ -1090,10 +1137,103 @@ function validarCupon(codigo) {
     return { valido: true, conf };
 }
 
-const EVENTOS_CONFIG = [
-    { titulo: "Regreso a clases", fecha: "Mes de Agosto", descripcion: "Papeleria", categoriaVinculada: "papeleria", imagen: "imagenes_eventos/papeleria.jpg" },
-    { titulo: "Regreso a clases", fecha: "Mes de Agosto", descripcion: "Calzado", categoriaVinculada: "calzado", imagen: "imagenes_eventos/calzado.jpg" }
-];
+// Los eventos, el banner principal y los datos de contacto ya NO están fijos
+// en el código: se configuran desde el punto de venta (botón "⚙CONFIG. WEB"
+// en TIENDA_DAYH.py) y se guardan en Firebase bajo el nodo "configuracion_sitio".
+// Esta página los escucha en tiempo real con cargarConfiguracionSitioFirebase().
+let EVENTOS_CONFIG = [];
+
+function cargarConfiguracionSitioFirebase() {
+    if (!dbFirebase) return;
+    dbFirebase.ref('configuracion_sitio').on('value', (snapshot) => {
+        const cfg = snapshot.val() || {};
+
+        // --- Banner principal ---
+        const contBanner = document.getElementById('anuncio-container-principal');
+        if (cfg.banner) {
+            const banner = cfg.banner;
+            if (banner.activo === false) {
+                if (contBanner) contBanner.style.display = 'none';
+            } else {
+                if (contBanner) contBanner.style.display = '';
+                const elBadge = document.getElementById('banner-badge');
+                const elImg = document.getElementById('banner-img');
+                const elTitulo = document.getElementById('banner-titulo');
+                const elSubtitulo = document.getElementById('banner-subtitulo');
+                if (elBadge && banner.badge !== undefined) elBadge.textContent = banner.badge;
+                if (elImg && banner.imagen) elImg.src = banner.imagen;
+                if (elTitulo && banner.titulo !== undefined) elTitulo.textContent = banner.titulo;
+                if (elSubtitulo && banner.subtitulo !== undefined) elSubtitulo.textContent = banner.subtitulo;
+            }
+        }
+        // Si cfg.banner no existe todavía (nunca se ha guardado configuración),
+        // se deja el banner tal como está escrito en el HTML, sin tocarlo.
+
+        // --- Eventos y fechas especiales ---
+        EVENTOS_CONFIG = Array.isArray(cfg.eventos) ? cfg.eventos : [];
+        if (typeof renderizarEventos === 'function') renderizarEventos();
+
+        // --- Contacto ---
+        const contacto = cfg.contacto || {};
+        if (contacto.whatsapp) TELEFONO_WHATSAPP = contacto.whatsapp;
+        const footerRedes = document.getElementById('footer-redes');
+        if (footerRedes) {
+            let html = '';
+            if (contacto.facebook) html += ` — <a href="${contacto.facebook}" target="_blank" rel="noopener" style="color:inherit;">Facebook</a>`;
+            if (contacto.instagram) html += ` — <a href="${contacto.instagram}" target="_blank" rel="noopener" style="color:inherit;">Instagram</a>`;
+            footerRedes.innerHTML = html;
+        }
+    });
+}
+
+// Las categorías ya NO están fijas en el HTML: se agregan o quitan desde el
+// punto de venta (pestaña "🗂 Categorías" de "⚙CONFIG. WEB") y se guardan en
+// Firebase bajo el nodo "categorias". Esta página arma la barra con esa
+// lista en tiempo real. Si nunca se ha guardado nada todavía, se deja la
+// barra tal como está escrita en el HTML, sin tocarla.
+function normalizarCategoria(texto) {
+    return (texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+function renderizarBarraCategorias(categorias) {
+    const barra = document.getElementById('barra-categorias');
+    if (!barra || !Array.isArray(categorias) || categorias.length === 0) return;
+
+    let html = '<button class="btn-categoria" data-cat="todas"><span>🌐</span>Todas</button>';
+    categorias.forEach(cat => {
+        if (!cat || !cat.nombre) return;
+        html += `<button class="btn-categoria" data-cat="${normalizarCategoria(cat.nombre)}"><span>${cat.icono || '🏷️'}</span>${cat.nombre}</button>`;
+    });
+    barra.innerHTML = html;
+
+    // Conserva la categoría que estaba activa (o "todas" si no hay ninguna
+    // seleccionada, o si la que estaba activa ya no existe en la lista nueva).
+    let quedoActiva = false;
+    document.querySelectorAll('.btn-categoria').forEach(btn => {
+        if (btn.getAttribute('data-cat') === categorySeleccionada) {
+            btn.classList.add('activo');
+            quedoActiva = true;
+        }
+    });
+    if (!quedoActiva) {
+        categorySeleccionada = 'todas';
+        const btnTodas = barra.querySelector('[data-cat="todas"]');
+        if (btnTodas) btnTodas.classList.add('activo');
+    }
+
+    if (typeof actualizarContadoresCategorias === 'function') actualizarContadoresCategorias();
+    if (typeof filtrarCatalogo === 'function') filtrarCatalogo();
+}
+
+function cargarCategoriasFirebase() {
+    if (!dbFirebase) return;
+    dbFirebase.ref('categorias').on('value', (snapshot) => {
+        const datos = snapshot.val();
+        if (Array.isArray(datos) && datos.length > 0) {
+            renderizarBarraCategorias(datos);
+        }
+    });
+}
 
 const EFECTOS_SONIDO = {
     agregar: "https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav",
@@ -1127,6 +1267,8 @@ window.addEventListener('load', () => {
     inicializarBotónVolverArriba();
     inicializarLogicaCuponesYEnvio();
     cargarCuponesFirebase();
+    cargarConfiguracionSitioFirebase();
+    cargarCategoriasFirebase();
 
     const clienteGuardado = localStorage.getItem('nombre_cliente_dayh');
     const inputCliente = document.getElementById('cliente');
@@ -1562,11 +1704,18 @@ function setupEventListeners() {
     }
     if (btnChat) btnChat.addEventListener('click', abrirChatManual);
     
-    document.querySelectorAll('.btn-categoria').forEach(button => {
-        button.addEventListener('click', (e) => {
-            seleccionarCategoria(e.currentTarget.getAttribute('data-cat'), e.currentTarget);
+    // Delegación de eventos en la barra de categorías: así, si la barra se
+    // vuelve a dibujar (categorías agregadas/eliminadas desde el POS vía
+    // Firebase), los botones nuevos siguen respondiendo al clic sin tener
+    // que re-enlazar nada, porque el listener vive en el contenedor y no
+    // en cada botón individual.
+    const barraCatDelegada = document.getElementById('barra-categorias');
+    if (barraCatDelegada) {
+        barraCatDelegada.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-categoria');
+            if (btn) seleccionarCategoria(btn.getAttribute('data-cat'), btn);
         });
-    });
+    }
 
     window.addEventListener('keydown', (e) => {
         if (e.key === "Escape") {
