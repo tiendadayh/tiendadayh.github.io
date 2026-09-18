@@ -1121,6 +1121,19 @@ if (dbFirebase) {
     ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach((evento) => {
         document.addEventListener(evento, marcarActivo, { passive: true });
     });
+
+    // Cuando el celular se bloquea o el usuario cambia de app, el navegador
+    // pausa los temporizadores en segundo plano (para ahorrar batería), así
+    // que el setTimeout de inactividad puede tardar de más en dispararse.
+    // Con esto se quita de inmediato al ocultarse la pestaña, sin esperar
+    // los MINUTOS_INACTIVIDAD, y reaparece en cuanto se vuelve a ver.
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            marcarInactivo();
+        } else {
+            marcarActivo();
+        }
+    });
 }
 
 // Valor por defecto: se sobreescribe en vivo si el administrador configura
