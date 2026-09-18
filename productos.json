@@ -1,12 +1,1 @@
-[
-    {
-        "codigo": "a1",
-        "articulo": "Pala",
-        "precio": 150.0,
-        "stock": 1,
-        "categoria": "Herramientas Manuales",
-        "imagen": "imagenes_productos/IMG_a1_1789702443.jpg",
-        "destacado": false,
-        "unidad": "pza"
-    }
-]
+[]
