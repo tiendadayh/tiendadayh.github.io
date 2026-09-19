@@ -1094,10 +1094,46 @@ if (dbFirebase) {
     let timerInactividad = null;
     let marcadoComoActivo = false;
 
+    // Arma el "snapshot" de lo que el POS mostrará de esta visita: nombre
+    // (si ya lo escribió en el checkout, o el guardado de un pedido
+    // anterior), en qué parte de la tienda está, y cuántos artículos lleva
+    // en el carrito. No identifica a nadie que no haya escrito su nombre.
+    function datosPresenciaActuales() {
+        const inputCliente = document.getElementById('cliente');
+        const nombreEscrito = inputCliente ? inputCliente.value.trim() : '';
+        const nombreGuardado = localStorage.getItem('nombre_cliente_dayh') || '';
+        const vCarrito = document.getElementById('vista-carrito');
+        const enVistaCarrito = vCarrito && vCarrito.style.display !== 'none';
+        let totalArticulos = 0;
+        try {
+            totalArticulos = carrito.reduce((acc, item) => acc + (item.cantidad || 0), 0);
+        } catch (e) { /* carrito aún no listo */ }
+
+        return {
+            ultimaActividad: Date.now(),
+            nombre: nombreEscrito || nombreGuardado || null,
+            vista: enVistaCarrito ? 'carrito' : 'catalogo',
+            articulosCarrito: totalArticulos
+        };
+    }
+
+    // Reescribe el snapshot completo en Firebase, pero solo si la conexión
+    // sigue marcada como activa (si ya se marcó inactiva, no la revivimos).
+    function actualizarPresencia() {
+        if (marcadoComoActivo) {
+            miConexionRef.set(datosPresenciaActuales());
+        }
+    }
+    window.actualizarPresenciaDayh = actualizarPresencia;
+
     function marcarActivo() {
+        // Igual que antes: solo escribe en Firebase cuando pasa de inactivo a
+        // activo (no en cada mousemove), para no gastar cuota de más. Los
+        // cambios de nombre/vista/carrito se reportan aparte con
+        // actualizarPresencia(), sin depender de este throttle.
         if (!marcadoComoActivo) {
             marcadoComoActivo = true;
-            miConexionRef.set(Date.now());
+            miConexionRef.set(datosPresenciaActuales());
         }
         clearTimeout(timerInactividad);
         timerInactividad = setTimeout(marcarInactivo, MS_INACTIVIDAD);
@@ -1132,6 +1168,14 @@ if (dbFirebase) {
             marcarInactivo();
         } else {
             marcarActivo();
+        }
+    });
+
+    // Actualiza el nombre casi al instante mientras lo escribe en el
+    // checkout, para que el POS lo vea sin esperar a que mueva el mouse.
+    document.addEventListener('input', (e) => {
+        if (e.target && e.target.id === 'cliente') {
+            actualizarPresencia();
         }
     });
 }
@@ -2105,6 +2149,7 @@ function actualizarCarritoVisual() {
     const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
     if (bContador) bContador.innerText = totalItems;
     if (bFlotante) bFlotante.innerText = totalItems;
+    if (window.actualizarPresenciaDayh) window.actualizarPresenciaDayh();
 
     const infoEnvioGratis = document.getElementById('info-envio-gratis');
     const contenedorDireccion = document.getElementById('contenedor-direccion-envio');
@@ -2689,6 +2734,7 @@ function mostrarVistaCatalogo() {
     const vCarrito = document.getElementById('vista-carrito');
     if (vCarrito) vCarrito.style.display = 'none';
     if (vCatalogo) vCatalogo.style.display = 'block';
+    if (window.actualizarPresenciaDayh) window.actualizarPresenciaDayh();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
