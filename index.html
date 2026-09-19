@@ -1117,11 +1117,26 @@ if (dbFirebase) {
         };
     }
 
+    // Escribe el snapshot en Firebase. Si las reglas de la base de datos
+    // todavía exigen que 'conectados/$id' sea un número (como cuando solo
+    // se guardaba el timestamp), el objeto completo será rechazado con
+    // PERMISSION_DENIED; en ese caso cae de respaldo a guardar solo el
+    // timestamp, para que el contador de conectados nunca se quede en
+    // cero mientras se actualiza la regla en Firebase.
+    function escribirPresencia(datos) {
+        return miConexionRef.set(datos).catch((err) => {
+            console.error('[presencia] Firebase rechazó el detalle completo (revisa las reglas de "conectados"); guardando solo el timestamp como respaldo:', err);
+            return miConexionRef.set(datos.ultimaActividad).catch((err2) => {
+                console.error('[presencia] Tampoco se pudo guardar el timestamp de respaldo:', err2);
+            });
+        });
+    }
+
     // Reescribe el snapshot completo en Firebase, pero solo si la conexión
     // sigue marcada como activa (si ya se marcó inactiva, no la revivimos).
     function actualizarPresencia() {
         if (marcadoComoActivo) {
-            miConexionRef.set(datosPresenciaActuales());
+            escribirPresencia(datosPresenciaActuales());
         }
     }
     window.actualizarPresenciaDayh = actualizarPresencia;
@@ -1133,7 +1148,7 @@ if (dbFirebase) {
         // actualizarPresencia(), sin depender de este throttle.
         if (!marcadoComoActivo) {
             marcadoComoActivo = true;
-            miConexionRef.set(datosPresenciaActuales());
+            escribirPresencia(datosPresenciaActuales());
         }
         clearTimeout(timerInactividad);
         timerInactividad = setTimeout(marcarInactivo, MS_INACTIVIDAD);
