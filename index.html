@@ -812,7 +812,20 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
             box-shadow: 0 8px 24px rgba(168, 85, 247, 0.4);
         }
 
-    </style>
+    
+/* ==========================================================================
+   SALUDO Y NOMBRE DEL CLIENTE (opcional)
+   ========================================================================== */
+.saludo-cliente { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 10px; width: fit-content; max-width: calc(100% - 32px); margin: 0 auto 16px auto; padding: 8px 18px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 999px; color: var(--text); font-size: 15px; font-weight: 600; text-align: center; box-sizing: border-box; }
+.saludo-accion { background: none; border: none; padding: 2px 4px; color: var(--primary-light); font-family: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.saludo-accion:hover { opacity: 0.8; }
+.saludo-accion:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+.bienvenida-input { width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: 16px; font-family: inherit; text-align: center; border-radius: 10px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); }
+.bienvenida-input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+.bienvenida-error { color: #e0453f; font-size: 13px; font-weight: 700; margin-top: 8px; }
+.bienvenida-nota { font-size: 12px; opacity: 0.75; margin: 14px 0 0 0; line-height: 1.5; }
+.bienvenida-nota a { color: var(--primary-light); }
+</style>
 </head>
 
 <body>
@@ -826,6 +839,12 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
     <div class="header-tienda">
         <button id="btn-tema" class="btn-tema" title="Cambiar Tema Oscuro/Claro">☀️</button>
         <img src="imagenes_eventos/logo_inicio.png" alt="TIENDA DAYH" class="img-header-inicio" onerror="this.onerror=null; this.src='https://placehold.co/600x200?text=TIENDA+DAYH'">
+    </div>
+
+    <!-- Saludo según la hora del día y el nombre del cliente (si lo compartió) -->
+    <div id="saludo-cliente" class="saludo-cliente" style="display: none;" aria-live="polite">
+        <span id="saludo-texto"></span>
+        <button type="button" id="saludo-accion" class="saludo-accion"></button>
     </div>
 
     <div class="container">
@@ -1012,13 +1031,26 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
     
     </div>
 
+    <!-- Bienvenida: pide el nombre al entrar (opcional) -->
+    <div id="modal-bienvenida" class="modal-despacho" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="bienvenida-titulo">
+        <div class="modal-contenido" style="max-width: 420px; text-align: center;">
+            <h2 id="bienvenida-titulo" style="margin-top: 0;">👋 ¡Bienvenido!</h2>
+            <p id="bienvenida-texto" style="margin: 6px 0 14px 0; line-height: 1.5;"></p>
+            <input type="text" id="bienvenida-nombre" class="bienvenida-input" maxlength="40" placeholder="Tu nombre" autocomplete="given-name" aria-label="Tu nombre">
+            <div id="bienvenida-error" class="bienvenida-error" style="display: none;"></div>
+            <button type="button" id="bienvenida-guardar" class="btn" style="margin-top: 14px;">Entrar</button>
+            <button type="button" id="bienvenida-omitir" class="saludo-accion" style="margin-top: 12px;">Omitir</button>
+            <p class="bienvenida-nota">Solo lo usamos para saludarte y para que la tienda sepa quién la visita. <a href="#" onclick="document.getElementById('modal-privacidad').style.display='flex'; return false;">Aviso de Privacidad</a></p>
+        </div>
+    </div>
+
     <div id="modal-privacidad" class="modal-despacho" style="display: none;">
         <div class="modal-contenido">
             <span class="btn-cerrar-modal" onclick="document.getElementById('modal-privacidad').style.display='none'">&times;</span>
             <h2>🔒 Aviso de Privacidad</h2>
             <div style="font-size: 14px; line-height: 1.6; text-align: left;">
                 <p><strong>Responsable:</strong> TIENDA DAYH es responsable del uso y protección de tus datos personales.</p>
-                <p><strong>¿Qué datos recabamos?</strong> Solo lo necesario para procesar tu pedido: tu nombre, la dirección de entrega (cuando eliges envío a domicilio) y el detalle de los productos que compraste.</p>
+                <p><strong>¿Qué datos recabamos?</strong> Solo lo necesario para procesar tu pedido: tu nombre, la dirección de entrega (cuando eliges envío a domicilio) y el detalle de los productos que compraste. Si al entrar nos compartes tu nombre, lo guardamos en tu dispositivo para saludarte, y la tienda puede ver ese nombre y cuántos artículos llevas en tu carrito mientras tienes la página abierta.</p>
                 <p><strong>¿Para qué los usamos?</strong> Únicamente para preparar, confirmar y entregar tu pedido, y para contactarte por WhatsApp sobre el mismo.</p>
                 <p><strong>¿Con quién los compartimos?</strong> No vendemos ni compartimos tus datos con terceros para fines de publicidad. Usamos Firebase (Google) y WhatsApp únicamente como herramientas para operar tu pedido.</p>
                 <p><strong>¿Cuánto tiempo los guardamos?</strong> El tiempo necesario para atender tu pedido y llevar un control de nuestras ventas.</p>
@@ -2764,6 +2796,125 @@ function mostrarVistaCatalogo() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+    </script>
+
+    <script>
+    // =====================================================================
+    // SALUDO Y NOMBRE DEL CLIENTE (opcional)
+    // El nombre se guarda solo en este dispositivo (localStorage) y, mientras el
+    // cliente tiene la página abierta, la tienda lo ve en "clientes conectados".
+    // =====================================================================
+    (function () {
+        const CLAVE_NOMBRE = 'nombre_cliente_dayh';
+        const CLAVE_OMITIDO = CLAVE_NOMBRE + '_omitido';
+        const NOMBRE_TIENDA = 'Tienda DAYH';
+        let modo = 'nuevo';
+
+        const $ = (id) => document.getElementById(id);
+        const leer = (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+        const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } };
+        const quitar = (k) => { try { localStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ } };
+
+        function saludoSegunHora() {
+            const h = new Date().getHours();
+            if (h >= 5 && h < 12) return { texto: 'Buen día', emoji: '☀️' };
+            if (h >= 12 && h < 19) return { texto: 'Buenas tardes', emoji: '🌤️' };
+            return { texto: 'Buenas noches', emoji: '🌙' };
+        }
+
+        function limpiarNombre(texto) {
+            let n = (texto || '').replace(/[\u0000-\u001f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40).trim();
+            // Si lo escribió todo en minúsculas o todo en mayúsculas, se acomoda: "alexis" -> "Alexis"
+            if (n && (n === n.toLowerCase() || n === n.toUpperCase())) {
+                n = n.toLowerCase().replace(/(^|\s)\S/g, (m) => m.toUpperCase());
+            }
+            return n;
+        }
+
+        function pintarSaludo() {
+            const cont = $('saludo-cliente');
+            if (!cont) return;
+            const nombre = leer(CLAVE_NOMBRE);
+            const s = saludoSegunHora();
+            $('saludo-texto').textContent = nombre
+                ? '¡Hola, ' + nombre.split(' ')[0] + '! ' + s.texto + ' ' + s.emoji
+                : s.texto + ' ' + s.emoji;
+            $('saludo-accion').textContent = nombre ? '¿No eres tú?' : '¿Cómo te llamas?';
+            cont.style.display = 'flex';
+        }
+
+        function avisarPresencia() {
+            const f = window.actualizarPresenciaFoamy || window.actualizarPresenciaDayh;
+            if (typeof f === 'function') { try { f(); } catch (e) { /* no crítico */ } }
+        }
+
+        function abrirBienvenida(m) {
+            modo = m;
+            const cambiar = (m === 'cambiar');
+            $('bienvenida-titulo').textContent = cambiar ? '¿Quién está comprando?' : '👋 ¡Bienvenido a ' + NOMBRE_TIENDA + '!';
+            $('bienvenida-texto').textContent = cambiar
+                ? 'Escribe tu nombre para actualizarlo, o quita el nombre guardado en este dispositivo.'
+                : '¿Cómo te llamas? Así te saludamos y sabemos quién nos visita.';
+            $('bienvenida-guardar').textContent = cambiar ? 'Guardar' : 'Entrar';
+            $('bienvenida-omitir').textContent = cambiar ? 'Quitar mi nombre' : 'Omitir';
+            $('bienvenida-error').style.display = 'none';
+            const inp = $('bienvenida-nombre');
+            inp.value = '';
+            $('modal-bienvenida').style.display = 'flex';
+            setTimeout(() => inp.focus(), 60);
+        }
+
+        function cerrarBienvenida() { $('modal-bienvenida').style.display = 'none'; }
+
+        function guardarNombre() {
+            const nombre = limpiarNombre($('bienvenida-nombre').value);
+            if (!nombre) {
+                const err = $('bienvenida-error');
+                err.textContent = 'Escribe tu nombre o toca "' + (modo === 'cambiar' ? 'Quitar mi nombre' : 'Omitir') + '".';
+                err.style.display = 'block';
+                $('bienvenida-nombre').focus();
+                return;
+            }
+            const anterior = leer(CLAVE_NOMBRE);
+            guardar(CLAVE_NOMBRE, nombre);
+            quitar(CLAVE_OMITIDO);
+            // También se llena el campo "Nombre" del carrito si estaba vacío (o tenía el nombre anterior)
+            const campo = $('cliente');
+            if (campo && (!campo.value.trim() || campo.value.trim() === anterior)) campo.value = nombre;
+            cerrarBienvenida();
+            pintarSaludo();
+            avisarPresencia();
+        }
+
+        function omitir() {
+            if (modo === 'cambiar') {
+                const anterior = leer(CLAVE_NOMBRE);
+                quitar(CLAVE_NOMBRE);
+                const campo = $('cliente');
+                if (campo && anterior && campo.value.trim() === anterior) campo.value = '';
+            }
+            guardar(CLAVE_OMITIDO, '1');
+            cerrarBienvenida();
+            pintarSaludo();
+            avisarPresencia();
+        }
+
+        $('bienvenida-guardar').addEventListener('click', guardarNombre);
+        $('bienvenida-omitir').addEventListener('click', omitir);
+        $('bienvenida-nombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); guardarNombre(); } });
+        $('saludo-accion').addEventListener('click', () => abrirBienvenida(leer(CLAVE_NOMBRE) ? 'cambiar' : 'nuevo'));
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && $('modal-bienvenida').style.display === 'flex') {
+                if (modo === 'nuevo') omitir(); else cerrarBienvenida();
+            }
+        });
+
+        window.addEventListener('load', () => {
+            pintarSaludo();
+            setInterval(pintarSaludo, 5 * 60 * 1000);   // el saludo cambia solo al pasar de mañana a tarde a noche
+            if (!leer(CLAVE_NOMBRE) && !leer(CLAVE_OMITIDO)) setTimeout(() => abrirBienvenida('nuevo'), 1200);
+        });
+    })();
     </script>
 </body>
 </html>
