@@ -825,6 +825,42 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
 .bienvenida-error { color: #e0453f; font-size: 13px; font-weight: 700; margin-top: 8px; }
 .bienvenida-nota { font-size: 12px; opacity: 0.75; margin: 14px 0 0 0; line-height: 1.5; }
 .bienvenida-nota a { color: var(--primary-light); }
+
+/* ==========================================================================
+   SEGUIMIENTO DEL PEDIDO
+   ========================================================================== */
+.saludo-cliente { border-radius: 22px; }
+.punto-aviso { color: #e0453f; font-size: 12px; }
+.seg-intro { margin: 4px 0 6px 0; font-size: 14px; line-height: 1.5; text-align: center; opacity: 0.85; }
+.seg-nuevo-aviso { background: rgba(47, 158, 94, 0.14); color: #1c7a45; border-radius: 12px; padding: 10px 12px; font-weight: 700; font-size: 14px; margin: 10px 0 0 0; text-align: center; }
+body.dark-mode .seg-nuevo-aviso { color: #7fd6a3; }
+.seg-pedido { border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-top: 12px; text-align: left; background: var(--card-bg); }
+.seg-pedido.seg-destacado { border-color: #2f9e5e; box-shadow: 0 0 0 3px rgba(47, 158, 94, 0.2); }
+.seg-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.seg-folio { font-family: 'Courier New', monospace; font-size: 20px; font-weight: 800; letter-spacing: 2px; color: var(--primary-light); }
+.seg-acciones { display: flex; gap: 6px; }
+.seg-meta { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+.seg-pasos { list-style: none; display: flex; padding: 0; margin: 16px 0 6px 0; }
+.seg-paso { flex: 1; text-align: center; position: relative; font-size: 11px; font-weight: 700; opacity: 0.55; }
+.seg-paso::before { content: ''; display: block; width: 24px; height: 24px; border-radius: 50%; margin: 0 auto 6px auto; background: var(--card-bg); border: 2px solid var(--border); box-sizing: border-box; position: relative; z-index: 1; color: #fff; font-size: 13px; line-height: 20px; }
+.seg-paso::after { content: ''; position: absolute; top: 11px; left: -50%; width: 100%; height: 3px; background: var(--border); z-index: 0; }
+.seg-paso:first-child::after { display: none; }
+.seg-paso.hecho, .seg-paso.actual { opacity: 1; }
+.seg-paso.hecho::before { content: '✓'; background: #2f9e5e; border-color: #2f9e5e; }
+.seg-paso.hecho::after, .seg-paso.actual::after { background: #2f9e5e; }
+.seg-paso.actual::before { border-color: #2f9e5e; box-shadow: 0 0 0 4px rgba(47, 158, 94, 0.25); }
+.seg-hora { display: block; font-weight: 500; font-size: 10px; opacity: 0.8; margin-top: 2px; }
+.seg-msg { font-size: 14px; font-weight: 700; margin: 8px 0 0 0; line-height: 1.4; }
+.seg-detalle { font-size: 12px; opacity: 0.75; margin-top: 4px; }
+.seg-cancelado { background: rgba(224, 69, 63, 0.12); color: #c0332d; border-radius: 10px; padding: 10px 12px; font-weight: 700; font-size: 14px; margin-top: 10px; line-height: 1.4; }
+body.dark-mode .seg-cancelado { color: #ff8c87; }
+.seg-espera { font-size: 14px; margin-top: 10px; line-height: 1.4; opacity: 0.9; }
+.seg-consulta { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border); text-align: left; font-size: 13px; }
+.seg-consulta label { display: block; margin-bottom: 6px; font-weight: 700; }
+.seg-consulta-fila { display: flex; gap: 8px; }
+.seg-consulta-fila .bienvenida-input { text-transform: uppercase; letter-spacing: 1px; }
+.seg-consulta-fila .btn { width: auto; padding: 0 18px; }
+.toast-seguimiento { display: none; position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #1f2937; color: #fff; padding: 12px 18px; border-radius: 12px; font-weight: 700; font-size: 14px; z-index: 10001; box-shadow: 0 8px 26px rgba(0,0,0,0.35); max-width: 90vw; text-align: center; }
 </style>
 </head>
 
@@ -845,6 +881,7 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
     <div id="saludo-cliente" class="saludo-cliente" style="display: none;" aria-live="polite">
         <span id="saludo-texto"></span>
         <button type="button" id="saludo-accion" class="saludo-accion"></button>
+        <button type="button" id="btn-mis-pedidos" class="saludo-accion">📦 Mis pedidos<span id="mis-pedidos-punto" class="punto-aviso" style="display: none;"> ●</span></button>
     </div>
 
     <div class="container">
@@ -1029,6 +1066,25 @@ body.light-mode .anuncio-subtitulo { color: var(--text-light); }
     </div>
 
     
+    </div>
+
+    <!-- Seguimiento del pedido (Mis pedidos) -->
+    <div id="modal-seguimiento" class="modal-despacho" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="seg-titulo">
+        <div class="modal-contenido" style="max-width: 520px; max-height: 90vh; overflow-y: auto;">
+            <h2 id="seg-titulo" style="margin-top: 0; text-align: center;">📦 Mis pedidos</h2>
+            <p class="seg-intro">Aquí ves en qué va tu pedido. Se actualiza solo, sin que tengas que escribirnos.</p>
+            <div id="seg-aviso-nuevo" class="seg-nuevo-aviso" style="display: none;">✅ ¡Pedido enviado! Este es tu folio: guárdalo para consultar tu pedido cuando quieras.</div>
+            <div id="seg-lista"></div>
+            <div class="seg-consulta">
+                <label for="seg-folio-input">¿Tienes un folio de otro celular?</label>
+                <div class="seg-consulta-fila">
+                    <input type="text" id="seg-folio-input" class="bienvenida-input" maxlength="9" placeholder="Ej. 7K3M-9QXP" autocomplete="off" aria-label="Folio del pedido">
+                    <button type="button" id="seg-consultar" class="btn">Consultar</button>
+                </div>
+                <div id="seg-error" class="bienvenida-error" style="display: none;"></div>
+            </div>
+            <button type="button" id="seg-cerrar" class="saludo-accion" style="margin: 16px auto 0 auto; display: block;">Cerrar</button>
+        </div>
     </div>
 
     <!-- Bienvenida: pide el nombre al entrar (opcional) -->
@@ -2699,7 +2755,9 @@ async function enviarPedidoFinal() {
             // El pedido se escribe directo en Firebase; el POS (TIENDA_DAYH.py) lo
             // recibe en tiempo real aunque el cliente esté en cualquier red, valida
             // el stock disponible y confirma el apartado desde su lado.
+            window.__seg = { folio: generarFolioSeguimiento(), registrado: false, total: 0 };
             await dbFirebase.ref('pedidos_pendientes').push({
+                folio: window.__seg.folio,
                 cliente,
                 fecha_entrega: fecha,
                 hora_entrega: hora,
@@ -2713,6 +2771,8 @@ async function enviarPedidoFinal() {
                 subtotal_sin_descuento: subtotalProductos,
                 total_con_descuento: totalGeneral
             });
+            window.__seg.registrado = true;
+            window.__seg.total = totalGeneral;
 
             // Si se usó un cupón, se registra el uso en Firebase (transacción atómica,
             // así aunque dos personas lo usen casi al mismo tiempo el conteo no se pierde).
@@ -2742,6 +2802,10 @@ async function enviarPedidoFinal() {
         localStorage.setItem("nombre_cliente_dayh", cliente);
         window.open(`https://wa.me/${TELEFONO_WHATSAPP}?text=${encodeURIComponent(textoMensajeWhatsApp)}`, '_blank');
         if(btnEnviar) { btnEnviar.innerText = textoOriginal; btnEnviar.disabled = false; }
+        if (window.__seg && window.__seg.registrado && typeof window.seguimientoPedidoRegistrado === 'function') {
+            try { window.seguimientoPedidoRegistrado(window.__seg.folio, window.__seg.total); } catch (e) { console.error('Seguimiento:', e); }
+            window.__seg = null;
+        }
     }
 }
 
@@ -2914,6 +2978,255 @@ function mostrarVistaCatalogo() {
             setInterval(pintarSaludo, 5 * 60 * 1000);   // el saludo cambia solo al pasar de mañana a tarde a noche
             if (!leer(CLAVE_NOMBRE) && !leer(CLAVE_OMITIDO)) setTimeout(() => abrirBienvenida('nuevo'), 1200);
         });
+    })();
+    </script>
+
+    <script>
+    // =====================================================================
+    // SEGUIMIENTO DEL PEDIDO
+    // Al confirmar un pedido se genera un folio de 8 caracteres. El POS publica en
+    // Firebase (seguimiento/<folio>) solo el ESTADO del pedido, sin nombre, teléfono
+    // ni dirección. Esta página escucha ese estado y se lo muestra al cliente.
+    // =====================================================================
+    (function () {
+        const CLAVE_PEDIDOS = 'dayh_mis_pedidos';
+        const PASOS = [
+            { id: 'recibido', texto: 'Recibido' },
+            { id: 'preparando', texto: 'En preparación' },
+            { id: 'listo', texto: 'Listo' },
+            { id: 'entregado', texto: 'Entregado' }
+        ];
+        const ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // sin 0/O ni 1/I/L para no confundir
+        const MAX_PEDIDOS = 10;
+        const VIGENCIA_MS = 60 * 24 * 3600 * 1000;
+        const ESPERA_TIENDA_MS = 24 * 3600 * 1000;
+        const MENSAJES_AVISO = {
+            recibido: '✅ La tienda recibió tu pedido',
+            preparando: '🛠️ Estamos preparando tu pedido',
+            listo: '📦 ¡Tu pedido está listo!',
+            entregado: '🎉 Pedido entregado. ¡Gracias por tu compra!',
+            cancelado: '⚠️ Tu pedido fue cancelado'
+        };
+
+        const $ = (id) => document.getElementById(id);
+        let pedidos = [];
+        const datos = {};      // folio -> datos de Firebase (null = aún no existe, undefined = consultando)
+        const escuchas = {};   // folio -> referencia activa
+        let modalAbierto = false;
+
+        function el(tag, clase, texto) {
+            const e = document.createElement(tag);
+            if (clase) e.className = clase;
+            if (texto !== undefined) e.textContent = texto;
+            return e;
+        }
+        const verFolio = (f) => f.slice(0, 4) + '-' + f.slice(4);
+        const dinero = (n) => (typeof formatearDinero === 'function') ? formatearDinero(n) : '$' + Number(n).toFixed(2);
+
+        window.generarFolioSeguimiento = function () {
+            const bytes = new Uint8Array(8);
+            if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+            else for (let i = 0; i < 8; i++) bytes[i] = Math.floor(Math.random() * 256);
+            let f = '';
+            for (let i = 0; i < 8; i++) f += ALFABETO[bytes[i] % ALFABETO.length];
+            return f;
+        };
+
+        function cargar() {
+            try { pedidos = JSON.parse(localStorage.getItem(CLAVE_PEDIDOS) || '[]'); } catch (e) { pedidos = []; }
+            if (!Array.isArray(pedidos)) pedidos = [];
+            const limite = Date.now() - VIGENCIA_MS;
+            pedidos = pedidos.filter(p => p && /^[A-Z0-9]{8}$/.test(p.folio) && new Date(p.fecha || p.agregado || Date.now()).getTime() > limite).slice(0, MAX_PEDIDOS);
+        }
+        function guardar() { try { localStorage.setItem(CLAVE_PEDIDOS, JSON.stringify(pedidos)); } catch (e) { /* sin almacenamiento */ } }
+
+        function horaCorta(ms) {
+            const d = new Date(ms);
+            const hora = d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+            if (d.toDateString() === new Date().toDateString()) return 'hoy ' + hora;
+            return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ', ' + hora;
+        }
+
+        function toast(texto) {
+            let t = $('toast-seguimiento');
+            if (!t) { t = el('div', 'toast-seguimiento'); t.id = 'toast-seguimiento'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+            t.textContent = texto;
+            t.style.display = 'block';
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => { t.style.display = 'none'; }, 7000);
+        }
+
+        function ponerPunto(visible) { const p = $('mis-pedidos-punto'); if (p) p.style.display = visible ? 'inline' : 'none'; }
+
+        function mostrarError(texto) {
+            const e = $('seg-error');
+            e.textContent = texto;
+            e.style.display = texto ? 'block' : 'none';
+        }
+
+        function dejarDeEscuchar(folio) {
+            if (escuchas[folio]) { try { escuchas[folio].off('value'); } catch (e) { /* ya cerrada */ } delete escuchas[folio]; }
+        }
+
+        function escuchar(folio) {
+            if (escuchas[folio]) return;
+            if (typeof dbFirebase === 'undefined' || !dbFirebase) { datos[folio] = { error: true }; return; }
+            const ref = dbFirebase.ref('seguimiento/' + folio);
+            escuchas[folio] = ref;
+            ref.on('value', (snap) => {
+                const nuevo = snap.val();
+                const previo = datos[folio];
+                const pedido = pedidos.find(p => p.folio === folio);
+                if (nuevo === null && pedido && pedido.consulta) {   // folio escrito a mano que no existe
+                    quitar(folio);
+                    mostrarError('No encontramos ese folio. Revisa que esté bien escrito.');
+                    return;
+                }
+                datos[folio] = nuevo;
+                if (nuevo && previo !== undefined && (previo === null || previo.estado !== nuevo.estado)) {
+                    if (!modalAbierto) { toast((MENSAJES_AVISO[nuevo.estado] || 'Tu pedido se actualizó') + ' · ' + verFolio(folio)); ponerPunto(true); }
+                }
+                pintar();
+                if (nuevo && (nuevo.estado === 'entregado' || nuevo.estado === 'cancelado')) dejarDeEscuchar(folio);
+            }, () => {
+                datos[folio] = { error: true };
+                pintar();
+            });
+        }
+
+        function quitar(folio) {
+            dejarDeEscuchar(folio);
+            delete datos[folio];
+            pedidos = pedidos.filter(p => p.folio !== folio);
+            guardar();
+            pintar();
+        }
+
+        function copiar(folio, boton) {
+            const texto = verFolio(folio);
+            const listo = () => { const t = boton.textContent; boton.textContent = '¡Copiado!'; setTimeout(() => { boton.textContent = t; }, 1500); };
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(listo, () => {});
+        }
+
+        function mensajeDe(d) {
+            const domicilio = d.modalidad === 'Domicilio';
+            switch (d.estado) {
+                case 'recibido': return 'Recibimos tu pedido. Pronto lo empezamos a preparar.';
+                case 'preparando': return 'Estamos preparando tu pedido.';
+                case 'listo': return domicilio ? 'Tu pedido está listo y saldrá a tu domicilio en el horario acordado.' : 'Tu pedido está listo. Ya puedes pasar por él a la tienda.';
+                case 'entregado': return '¡Pedido entregado! Gracias por tu compra.';
+                default: return '';
+            }
+        }
+
+        function tarjeta(p, destacado) {
+            const cont = el('div', 'seg-pedido' + (destacado ? ' seg-destacado' : ''));
+            const cab = el('div', 'seg-cabecera');
+            cab.appendChild(el('span', 'seg-folio', verFolio(p.folio)));
+            const acc = el('span', 'seg-acciones');
+            const bCopiar = el('button', 'saludo-accion', 'Copiar'); bCopiar.type = 'button';
+            bCopiar.addEventListener('click', () => copiar(p.folio, bCopiar));
+            const bQuitar = el('button', 'saludo-accion', 'Quitar'); bQuitar.type = 'button';
+            bQuitar.addEventListener('click', () => quitar(p.folio));
+            acc.appendChild(bCopiar); acc.appendChild(bQuitar); cab.appendChild(acc);
+            cont.appendChild(cab);
+
+            const meta = [];
+            if (p.fecha) meta.push(new Date(p.fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }));
+            if (typeof p.total === 'number') meta.push(dinero(p.total));
+            if (meta.length) cont.appendChild(el('div', 'seg-meta', meta.join(' · ')));
+
+            const d = datos[p.folio];
+            if (d === undefined) {
+                cont.appendChild(el('div', 'seg-espera', 'Consultando…'));
+            } else if (d && d.error) {
+                cont.appendChild(el('div', 'seg-espera', 'No pudimos consultar el estado en este momento. Revisa tu conexión e inténtalo de nuevo más tarde.'));
+            } else if (d === null) {
+                const reciente = !p.fecha || (Date.now() - new Date(p.fecha).getTime()) < ESPERA_TIENDA_MS;
+                cont.appendChild(el('div', 'seg-espera', reciente
+                    ? 'Tu pedido fue enviado. En cuanto la tienda lo reciba, su estado aparecerá aquí.'
+                    : 'No encontramos información de este pedido. Puedes quitarlo de la lista.'));
+            } else if (d.estado === 'cancelado') {
+                cont.appendChild(el('div', 'seg-cancelado', 'Este pedido fue cancelado. Si tienes dudas, escríbenos por WhatsApp.'));
+            } else {
+                const actual = Math.max(0, PASOS.findIndex(x => x.id === d.estado));
+                const finalizado = (d.estado === 'entregado');
+                const ol = el('ol', 'seg-pasos');
+                PASOS.forEach((paso, i) => {
+                    const li = el('li', 'seg-paso' + ((i < actual || finalizado) ? ' hecho' : (i === actual ? ' actual' : '')), paso.texto);
+                    if (i <= actual && typeof d['t_' + paso.id] === 'number') li.appendChild(el('span', 'seg-hora', horaCorta(d['t_' + paso.id])));
+                    ol.appendChild(li);
+                });
+                cont.appendChild(ol);
+                cont.appendChild(el('div', 'seg-msg', mensajeDe(d)));
+                const partes = [];
+                if (d.fecha_entrega) partes.push('Entrega: ' + d.fecha_entrega + (d.hora_entrega ? ' ' + d.hora_entrega : ''));
+                if (d.modalidad) partes.push(d.modalidad === 'Domicilio' ? 'A domicilio' : 'En tienda');
+                if (typeof d.articulos === 'number') partes.push(d.articulos + (d.articulos === 1 ? ' producto' : ' productos'));
+                if (partes.length) cont.appendChild(el('div', 'seg-detalle', partes.join(' · ')));
+            }
+            return cont;
+        }
+
+        let destacadoActual = '';
+        function pintar() {
+            const lista = $('seg-lista');
+            if (!lista) return;
+            lista.textContent = '';
+            if (!pedidos.length) {
+                lista.appendChild(el('p', 'seg-espera', 'Todavía no tienes pedidos en este celular. Cuando hagas uno, aquí verás en qué va.'));
+                return;
+            }
+            pedidos.forEach(p => lista.appendChild(tarjeta(p, p.folio === destacadoActual)));
+        }
+
+        function abrir(destacar) {
+            destacadoActual = destacar || '';
+            $('seg-aviso-nuevo').style.display = destacar ? 'block' : 'none';
+            mostrarError('');
+            pintar();
+            $('modal-seguimiento').style.display = 'flex';
+            modalAbierto = true;
+            ponerPunto(false);
+            setTimeout(() => $('seg-cerrar').focus(), 60);
+        }
+        function cerrar() { $('modal-seguimiento').style.display = 'none'; modalAbierto = false; destacadoActual = ''; }
+
+        function consultar() {
+            const folio = ($('seg-folio-input').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (folio.length !== 8) { mostrarError('El folio tiene 8 letras y números, por ejemplo 7K3M-9QXP.'); return; }
+            mostrarError('');
+            $('seg-folio-input').value = '';
+            if (!pedidos.some(p => p.folio === folio)) {
+                pedidos.unshift({ folio: folio, fecha: null, agregado: new Date().toISOString(), total: null, consulta: true });
+                pedidos = pedidos.slice(0, MAX_PEDIDOS);
+                guardar();
+                escuchar(folio);
+            }
+            pintar();
+        }
+
+        // La página llama a esta función cuando el pedido ya quedó registrado en Firebase
+        window.seguimientoPedidoRegistrado = function (folio, total) {
+            if (!/^[A-Z0-9]{8}$/.test(folio)) return;
+            pedidos = pedidos.filter(p => p.folio !== folio);
+            pedidos.unshift({ folio: folio, fecha: new Date().toISOString(), total: (typeof total === 'number') ? total : null });
+            pedidos = pedidos.slice(0, MAX_PEDIDOS);
+            guardar();
+            escuchar(folio);
+            // Después de pedir, se regresa al catálogo (ahí está el botón "Mis pedidos") y se muestra el folio
+            if (typeof mostrarVistaCatalogo === 'function') { try { mostrarVistaCatalogo(); } catch (e) { /* no crítico */ } }
+            abrir(folio);
+        };
+
+        $('btn-mis-pedidos').addEventListener('click', () => abrir(''));
+        $('seg-cerrar').addEventListener('click', cerrar);
+        $('seg-consultar').addEventListener('click', consultar);
+        $('seg-folio-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); consultar(); } });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalAbierto) cerrar(); });
+
+        cargar();
+        pedidos.forEach(p => escuchar(p.folio));
     })();
     </script>
 </body>
