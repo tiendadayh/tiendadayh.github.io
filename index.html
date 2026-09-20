@@ -1096,8 +1096,10 @@ if (dbFirebase) {
 
     // Arma el "snapshot" de lo que el POS mostrará de esta visita: nombre
     // (si ya lo escribió en el checkout, o el guardado de un pedido
-    // anterior), en qué parte de la tienda está, y cuántos artículos lleva
-    // en el carrito. No identifica a nadie que no haya escrito su nombre.
+    // anterior), en qué parte de la tienda está, cuántos artículos lleva
+    // en el carrito y cuánto valen (subtotal antes de cupón, calculado con
+    // los precios del catálogo cargado). No identifica a nadie que no haya
+    // escrito su nombre.
     function datosPresenciaActuales() {
         const inputCliente = document.getElementById('cliente');
         const nombreEscrito = inputCliente ? inputCliente.value.trim() : '';
@@ -1105,15 +1107,22 @@ if (dbFirebase) {
         const vCarrito = document.getElementById('vista-carrito');
         const enVistaCarrito = vCarrito && vCarrito.style.display !== 'none';
         let totalArticulos = 0;
+        let valorCarrito = 0;
         try {
             totalArticulos = carrito.reduce((acc, item) => acc + (item.cantidad || 0), 0);
-        } catch (e) { /* carrito aún no listo */ }
+            valorCarrito = carrito.reduce((acc, item) => {
+                const prod = INVENTARIO_GLOBAL.find(p => p.codigo === item.codigo);
+                return acc + (prod ? prod.precio * (item.cantidad || 0) : 0);
+            }, 0);
+            valorCarrito = Math.round(valorCarrito * 100) / 100;
+        } catch (e) { /* carrito o inventario aún no listos */ }
 
         return {
             ultimaActividad: Date.now(),
             nombre: nombreEscrito || nombreGuardado || null,
             vista: enVistaCarrito ? 'carrito' : 'catalogo',
-            articulosCarrito: totalArticulos
+            articulosCarrito: totalArticulos,
+            valorCarrito: valorCarrito
         };
     }
 
