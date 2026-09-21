@@ -1565,6 +1565,32 @@ function configurarWebSockets() {
             }
         });
 
+        // Productos que el POS ELIMINO: ya no vienen en Firebase, hay que quitarlos
+        // tambien de aqui. Antes este listener solo agregaba y actualizaba, por eso
+        // un producto borrado seguia en pantalla hasta recargar la pagina.
+        const codigosVigentes = new Set(productosFirebase.map(p => p.codigo));
+        const eliminados = INVENTARIO_GLOBAL.filter(p => !codigosVigentes.has(p.codigo));
+        if (eliminados.length) {
+            INVENTARIO_GLOBAL = INVENTARIO_GLOBAL.filter(p => codigosVigentes.has(p.codigo));
+
+            // Si alguno estaba en el carrito del cliente, se saca y se le avisa.
+            const enCarrito = eliminados.filter(e => carrito.some(i => i.codigo === e.codigo));
+            if (enCarrito.length) {
+                carrito = carrito.filter(i => codigosVigentes.has(i.codigo));
+                guardarCarritoEnLocalStorage();
+                mostrarNotificacionFlotante(
+                    `⚠️ Ya no está disponible: ${enCarrito.map(e => e.articulo).join(', ')}`,
+                    6000, '#7f1d1d');
+            }
+
+            // Y de su lista de deseos (si no, el contador se quedaba contando fantasmas).
+            const wishAntes = WISHLIST_GLOBAL.length;
+            WISHLIST_GLOBAL = WISHLIST_GLOBAL.filter(c => codigosVigentes.has(c));
+            if (WISHLIST_GLOBAL.length !== wishAntes) {
+                localStorage.setItem('wishlist_tienda', JSON.stringify(WISHLIST_GLOBAL));
+            }
+        }
+
         INVENTARIO_GLOBAL.sort(compararCodigosNatural);
         localStorage.setItem('inventario_tienda_real', JSON.stringify(INVENTARIO_GLOBAL));
         actualizarContadoresCategorias();
