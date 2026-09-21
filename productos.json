@@ -592,41 +592,5 @@
         "categoria": "Calzado",
         "imagen": "imagenes_productos/IMG_e15_1787897236.jpg",
         "destacado": false
-    },
-    {
-        "codigo": "p1",
-        "articulo": "Mochila",
-        "precio": 150.0,
-        "stock": 1,
-        "categoria": "Papelería",
-        "imagen": "imagenes_productos/IMG_p1_1790019920.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "p2",
-        "articulo": "Mochila Rosa",
-        "precio": 150.0,
-        "stock": 1,
-        "categoria": "Papelería",
-        "imagen": "imagenes_productos/IMG_p2_1790020206.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "P3",
-        "articulo": "Bocina Homgo",
-        "precio": 100.0,
-        "stock": 1,
-        "categoria": "Papelería",
-        "imagen": "imagenes_productos/IMG_P3_1790020483.jpg",
-        "destacado": false
-    },
-    {
-        "codigo": "p4",
-        "articulo": "Bocina Azul",
-        "precio": 100.0,
-        "stock": 1,
-        "categoria": "Papelería",
-        "imagen": "imagenes_productos/IMG_p4_1790020585.jpg",
-        "destacado": false
     }
 ]
