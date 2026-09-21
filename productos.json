@@ -592,5 +592,14 @@
         "categoria": "Calzado",
         "imagen": "imagenes_productos/IMG_e15_1787897236.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "P001",
+        "articulo": "Conjunto De Mochila 4 Pz Azul",
+        "precio": 180.0,
+        "stock": 1,
+        "categoria": "Papelería",
+        "imagen": "imagenes_productos/IMG_P001_1789967548.jpg",
+        "destacado": false
     }
 ]
