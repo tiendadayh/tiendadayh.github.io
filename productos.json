@@ -596,10 +596,10 @@
     {
         "codigo": "p1",
         "articulo": "Mochila",
-        "precio": 180.0,
+        "precio": 150.0,
         "stock": 1,
         "categoria": "Papelería",
-        "imagen": "imagenes_productos/IMG_p1_1790003924.jpg",
+        "imagen": "imagenes_productos/IMG_p1_1790019920.jpg",
         "destacado": false
     }
 ]
