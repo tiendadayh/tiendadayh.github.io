@@ -592,5 +592,14 @@
         "categoria": "Calzado",
         "imagen": "imagenes_productos/IMG_e15_1787897236.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "p1",
+        "articulo": "Mochila",
+        "precio": 180.0,
+        "stock": 1,
+        "categoria": "Papelería",
+        "imagen": "imagenes_productos/IMG_p1_1790002635.jpg",
+        "destacado": false
     }
 ]
