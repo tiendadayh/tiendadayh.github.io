@@ -601,5 +601,14 @@
         "categoria": "Papelería",
         "imagen": "imagenes_productos/IMG_P001_1789967548.jpg",
         "destacado": false
+    },
+    {
+        "codigo": "P002",
+        "articulo": "Conjunto De Mochila 4 Pz Rosa",
+        "precio": 180.0,
+        "stock": 1,
+        "categoria": "Electrónica",
+        "imagen": "imagenes_productos/IMG_P002_1789967726.jpg",
+        "destacado": false
     }
 ]
