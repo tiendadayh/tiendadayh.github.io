@@ -147,6 +147,11 @@ body {
     z-index: 10;
 }
 
+/* Banner sin imagen: se oculta la foto y el aviso queda arriba, centrado (sin letras de relleno) */
+.anuncio-card.sin-imagen { align-items: center; text-align: center; }
+.anuncio-card.sin-imagen .badge-live { position: static; display: inline-block; margin: 18px auto 0 auto; }
+.anuncio-card.sin-imagen .anuncio-footer { border-top: none; width: 100%; box-sizing: border-box; padding-top: 10px; }
+
 .anuncio-footer {
     padding: 20px;
     background: linear-gradient(135deg, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.95));
@@ -209,6 +214,17 @@ body {
     position: relative; 
 }
 .producto-card img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.4s ease; }
+
+/* Logo de la tienda usado como imagen cuando un producto no tiene foto (en vez de un texto gris); el logo trae fondo blanco */
+.producto-card img.img-sin-foto, .tarjeta-cross img.img-sin-foto, .item-carrito img.img-sin-foto {
+    object-fit: contain !important;
+    box-sizing: border-box;
+    padding: 8px;
+    background: #fff;
+    border-radius: 10px;
+}
+.producto-card:hover img.img-sin-foto { transform: none; }
+.lightbox-img.img-sin-foto { background: #fff; padding: 24px; box-sizing: border-box; max-width: min(90%, 420px); }
 .producto-card:hover img { transform: scale(1.08); }
 
 .producto-card h3 { 
@@ -252,6 +268,13 @@ body {
 }
 .tarjeta-btn-qty:hover:not(:disabled) { background: var(--primary-light); }
 .tarjeta-cant-num { font-weight: bold; font-size: 14px; color: var(--text); }
+/* Cantidad que se puede teclear directo (tarjeta del catálogo y carrito) */
+.tarjeta-cant-input, .cart-qty-input { width: 54px; text-align: center; border: none; background: transparent; font-weight: 800; font-size: 14px; color: var(--text); font-family: inherit; -moz-appearance: textfield; appearance: textfield; padding: 0; }
+.cart-qty-input { width: 52px; border: 1px solid var(--border); border-radius: 6px; padding: 2px 0; background: rgba(17, 24, 39, 0.8); }
+body.light-mode .cart-qty-input { background: #ffffff; }
+.tarjeta-cant-input::-webkit-outer-spin-button, .tarjeta-cant-input::-webkit-inner-spin-button,
+.cart-qty-input::-webkit-outer-spin-button, .cart-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.tarjeta-cant-input:focus, .cart-qty-input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
 
 .btn { background: var(--primary); color: white; border: none; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; width: 100%; margin-top: 8px; transition: all 0.2s ease; font-size: 13px; }
 .btn:hover { background: var(--primary-light); box-shadow: 0 0 12px rgba(192, 132, 252, 0.4); }
@@ -874,7 +897,7 @@ body.dark-mode .seg-cancelado { color: #ff8c87; }
 
     <div class="header-tienda">
         <button id="btn-tema" class="btn-tema" title="Cambiar Tema Oscuro/Claro">☀️</button>
-        <img src="imagenes_eventos/logo_inicio.png" alt="TIENDA DAYH" class="img-header-inicio" onerror="this.onerror=null; this.src='https://placehold.co/600x200?text=TIENDA+DAYH'">
+        <img src="imagenes_eventos/logo_inicio.png" alt="TIENDA DAYH" class="img-header-inicio" onerror="this.onerror=null; this.style.display='none'">
     </div>
 
     <!-- Saludo según la hora del día y el nombre del cliente (si lo compartió) -->
@@ -888,10 +911,10 @@ body.dark-mode .seg-cancelado { color: #ff8c87; }
         <div class="productos-seccion">
 
             <div class="anuncio-container" id="anuncio-container-principal">
-                <div class="anuncio-card">
+                <div class="anuncio-card" id="banner-card">
                     <span class="badge-live" id="banner-badge">La Independencia</span>
-                    <div class="anuncio-img-wrapper">
-                        <img src="imagenes_eventos/independencia.jpg" alt="Banner" class="anuncio-img" id="banner-img" onerror="this.onerror=null; this.src='https://placehold.co/1200x400/1f2937/f9fafb?text=LA+INDEPENDENCIA'">
+                    <div class="anuncio-img-wrapper" id="banner-img-wrapper">
+                        <img src="imagenes_eventos/independencia.jpg" alt="Banner" class="anuncio-img" id="banner-img" onerror="this.onerror=null; document.getElementById('banner-img-wrapper').style.display='none'; document.getElementById('banner-card').classList.add('sin-imagen')">
                     </div>
                     <div class="anuncio-footer">
                         <h3 class="anuncio-titulo" id="banner-titulo">LA INDEPENDENCIA DE MEXICO</h3>
@@ -1123,6 +1146,16 @@ body.dark-mode .seg-cancelado { color: #ff8c87; }
         <span id="footer-redes"></span>
     </footer>
 
+    <script>
+// Logo de la tienda: se usa cuando un producto no tiene foto o la foto no carga.
+const LOGO_SIN_FOTO = 'imagenes_eventos/logo_inicio.png';
+function imagenSinFoto(el) {
+    if (!el) return;
+    el.onerror = null;                // evita bucles si el logo tampoco carga
+    el.classList.add('img-sin-foto');
+    el.src = LOGO_SIN_FOTO;
+}
+</script>
     <script>
 // === REGISTRO DEL SERVICE WORKER ===
 if ('serviceWorker' in navigator) {
@@ -1367,6 +1400,11 @@ function cargarConfiguracionSitioFirebase() {
                 if (contBanner) contBanner.style.display = 'none';
             } else {
                 if (contBanner) contBanner.style.display = '';
+                const elImgWrapper = document.getElementById('banner-img-wrapper');
+                const elCard = document.getElementById('banner-card');
+                const hayImagen = !!banner.imagen;
+                if (elImgWrapper) elImgWrapper.style.display = hayImagen ? '' : 'none';
+                if (elCard) elCard.classList.toggle('sin-imagen', !hayImagen);
                 const elBadge = document.getElementById('banner-badge');
                 const elImg = document.getElementById('banner-img');
                 const elTitulo = document.getElementById('banner-titulo');
@@ -1702,15 +1740,13 @@ function inicializarLogicaCuponesYEnvio() {
 // viaja por GitHub Pages y tarda 1-3 min en estar disponible. En vez de rendirse
 // a la primera (y quedarse con el icono roto), mostramos un aviso local y
 // reintentamos cargar la foto real cada 15 s hasta que aparezca.
-const IMG_PLACEHOLDER_CARGANDO = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="100%" height="100%" fill="#1f2937"/>' +
-    '<text x="50%" y="50%" fill="#9ca3af" font-family="sans-serif" font-size="18" text-anchor="middle">Cargando imagen...</text></svg>');
-
 function imagenNoDisponible(img) {
     const original = img.dataset.original;
     if (!original || img.dataset.reintentando === '1') return;
     img.dataset.reintentando = '1';
-    img.src = IMG_PLACEHOLDER_CARGANDO;
+    // Mientras la foto real termina de subirse, se muestra el logo de la tienda (no un cuadro con letras)
+    img.classList.add('img-sin-foto');
+    img.src = LOGO_SIN_FOTO;
 
     let intentos = 0;
     const MAX_INTENTOS = 24;      // 24 x 15 s = 6 min
@@ -1720,7 +1756,7 @@ function imagenNoDisponible(img) {
         if (intentos++ >= MAX_INTENTOS) { delete img.dataset.reintentando; return; }
         const url = original + (original.includes('?') ? '&' : '?') + 'r=' + Date.now();
         const sonda = new Image();
-        sonda.onload = () => { delete img.dataset.reintentando; img.src = url; };
+        sonda.onload = () => { delete img.dataset.reintentando; img.classList.remove('img-sin-foto'); img.src = url; };
         sonda.onerror = () => setTimeout(probar, 15000);
         sonda.src = url;
     };
@@ -1745,7 +1781,7 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
 
     const arrImg = obtenerArregloImagenes(prod);
     let imgN = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
-    let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/300?text=No+disponible';
+    let rImg = imgN ? `imagenes_productos/${imgN}` : LOGO_SIN_FOTO;
     let img2N = arrImg.length > 1 ? arrImg[1].split(/[/\\\\]/).pop() : '';
     let rImg2 = img2N ? `imagenes_productos/${img2N}` : rImg;
 
@@ -1762,7 +1798,7 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
         botonFilaHTML = `
         <div class="tarjeta-controles-qty">
             <button class="tarjeta-btn-qty" onclick="cambiarCantidad('${prod.codigo}', -1)">-</button>
-            <span class="tarjeta-cant-num">${itemEnCarrito.cantidad} pzs</span>
+            <input class="tarjeta-cant-input" type="number" inputmode="numeric" min="1" max="${prod.stock}" value="${itemEnCarrito.cantidad}" aria-label="Cantidad de piezas" onclick="this.select()" onchange="establecerCantidad('${prod.codigo}', this.value)">
             <button class="tarjeta-btn-qty" onclick="cambiarCantidad('${prod.codigo}', 1)" ${esAgotado ? 'disabled' : ''}>+</button>
         </div>`;
     } else {
@@ -1778,7 +1814,7 @@ function generarHTMLTarjeta(prod, esDestacada = false) {
             <div class="producto-codigo">CÓDIGO: ${prod.codigo}</div>
             <div class="img-wrapper" style="cursor: zoom-in;" onclick="abrirLightbox('${rImg}', '${artLimpio}')">
                 ${bIzq} 
-                <img id="${idImg}" src="${rImg}" alt="${artLimpio}" loading="lazy" decoding="async" data-original="${rImg}"
+                <img id="${idImg}" src="${rImg}" alt="${artLimpio}" class="${imgN ? '' : 'img-sin-foto'}" loading="lazy" decoding="async" data-original="${rImg}"
                      onmouseover="if(!this.dataset.reintentando && '${rImg2}' !== '${rImg}') this.src='${rImg2}'"
                      onmouseout="if(!this.dataset.reintentando) this.src='${rImg}'"
                      onerror="imagenNoDisponible(this)"> 
@@ -1814,6 +1850,35 @@ window.agregarAlCarrito = function (codigo) {
         reproducirSonido('error');
         alert("Lo sentimos, ya no quedan más unidades disponibles.");
     }
+};
+
+// Permite teclear la cantidad exacta (tarjeta del catálogo y carrito) en vez de sumar de 1 en 1.
+// Nunca deja pasar del stock disponible; si se escribe 0, el producto sale del carrito.
+window.establecerCantidad = function(codigo, valor) {
+    const prod = INVENTARIO_GLOBAL.find(p => p.codigo === codigo);
+    if (!prod) return;
+    const item = carrito.find(i => i.codigo === codigo);
+    let n = parseInt(valor, 10);
+    if (isNaN(n)) n = item ? item.cantidad : 0;
+    if (n > prod.stock) {
+        reproducirSonido('error');
+        alert(`Solo hay ${prod.stock} pzs disponibles de este producto.`);
+        n = prod.stock;
+    }
+    if (n <= 0) {
+        carrito = carrito.filter(i => i.codigo !== codigo);
+    } else if (item) {
+        item.cantidad = n;
+    } else {
+        carrito.push({ codigo: codigo, cantidad: n });
+    }
+    reproducirSonido('agregar');
+    guardarCarritoEnLocalStorage();
+    actualizarCarritoVisual();
+    filtrarCatalogo();
+    renderizarDestacados();
+    renderizarWishlist();
+    dispararAnimacionCarrito();
 };
 
 window.cambiarCantidad = function(codigo, cambio) {
@@ -2158,7 +2223,7 @@ window.moverImagenCarrusel = function (codigo, direccion) {
     if (indicesCarrusel[codigo] >= images.length) indicesCarrusel[codigo] = 0;
     else if (indicesCarrusel[codigo] < 0) indicesCarrusel[codigo] = images.length - 1;
     let imgName = images[indicesCarrusel[codigo]].split(/[/\\\\]/).pop();
-    let nRuta = imgName ? `imagenes_productos/${imgName}` : 'https://placehold.co/300';
+    let nRuta = imgName ? `imagenes_productos/${imgName}` : LOGO_SIN_FOTO;
     
     const imgNormal = document.getElementById(`img-carrusel-${codigo}`);
     const imgDest = document.getElementById(`img-carrusel-dest-${codigo}`);
@@ -2376,18 +2441,18 @@ function actualizarCarritoVisual() {
 
         const arrImg = obtenerArregloImagenes(prod);
         let imgNombre = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
-        let rutaImagen = imgNombre ? `imagenes_productos/${imgNombre}` : 'https://placehold.co/50x50?text=Prod';
+        let rutaImagen = imgNombre ? `imagenes_productos/${imgNombre}` : LOGO_SIN_FOTO;
         const artLimpio = prod.articulo.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
         const itemHTML = `
             <div class="item-carrito" style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
-                <img src="${rutaImagen}" alt="${artLimpio}" style="width: 50px; height: 50px; object-fit: contain;" onerror="this.src='https://placehold.co/50x50';">
+                <img src="${rutaImagen}" alt="${artLimpio}" class="${imgNombre ? '' : 'img-sin-foto'}" style="width: 50px; height: 50px; object-fit: contain;" onerror="imagenSinFoto(this)">
                 <div style="flex: 1; min-width: 0;">
                     <h4 style="margin:0; font-size:13px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${artLimpio}</h4>
                     <span style="font-size: 12px; color: var(--primary-light); font-weight: bold;">${formatearDinero(prod.precio)}</span>
                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 5px;">
                         <button onclick="cambiarCantidad('${prod.codigo}', -1)">-</button>
-                        <span>${item.cantidad}</span>
+                        <input class="cart-qty-input" type="number" inputmode="numeric" min="1" max="${prod.stock}" value="${item.cantidad}" aria-label="Cantidad de ${artLimpio}" onclick="this.select()" onchange="establecerCantidad('${prod.codigo}', this.value)">
                         <button onclick="cambiarCantidad('${prod.codigo}', 1)">+</button>
                     </div>
                 </div>
@@ -2499,10 +2564,10 @@ function renderizarCrossSelling() {
             ${sugeridos.map(p => {
                 const arrImg = obtenerArregloImagenes(p);
                 let imgN = arrImg[0] ? arrImg[0].split(/[/\\\\]/).pop() : '';
-                let rImg = imgN ? `imagenes_productos/${imgN}` : 'https://placehold.co/50x50?text=Prod';
+                let rImg = imgN ? `imagenes_productos/${imgN}` : LOGO_SIN_FOTO;
                 return `
                 <div class="tarjeta-cross">
-                    <img src="${rImg}" alt="${p.articulo}" loading="lazy" decoding="async" onerror="this.src='https://placehold.co/50x50';">
+                    <img src="${rImg}" alt="${p.articulo}" class="${imgN ? '' : 'img-sin-foto'}" loading="lazy" decoding="async" onerror="imagenSinFoto(this)">
                     <div class="info-cross">
                         <strong title="${p.articulo}">${p.articulo}</strong>
                         <span>${formatearDinero(p.precio)}</span>
@@ -2535,13 +2600,17 @@ function cargarImagenBase64ParaPDF(rutaImagen) {
                 const imagen = new Image();
                 imagen.onload = () => {
                     try {
+                        const ancho = imagen.naturalWidth || 100;
+                        const alto = imagen.naturalHeight || 100;
                         const canvas = document.createElement('canvas');
-                        canvas.width = imagen.naturalWidth || 100;
-                        canvas.height = imagen.naturalHeight || 100;
+                        canvas.width = ancho;
+                        canvas.height = alto;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(imagen, 0, 0);
                         URL.revokeObjectURL(urlObjeto);
-                        resolve(canvas.toDataURL('image/png'));
+                        // Se devuelven también las medidas para poder dibujarla en el PDF
+                        // SIN deformarla (antes se estiraba a un cuadrado y se veía torcida).
+                        resolve({ data: canvas.toDataURL('image/png'), w: ancho, h: alto });
                     } catch (errCanvas) {
                         URL.revokeObjectURL(urlObjeto);
                         resolve(null);
@@ -2552,6 +2621,14 @@ function cargarImagenBase64ParaPDF(rutaImagen) {
             })
             .catch(() => resolve(null));
     });
+}
+
+// Dibuja una imagen dentro de una caja (x, y, ancho, alto) manteniendo su proporción y centrada.
+function dibujarImagenAjustadaPDF(doc, img, x, y, cajaW, cajaH) {
+    const escala = Math.min(cajaW / img.w, cajaH / img.h);
+    const w = img.w * escala;
+    const h = img.h * escala;
+    doc.addImage(img.data, 'PNG', x + (cajaW - w) / 2, y + (cajaH - h) / 2, w, h);
 }
 
 // Genera el comprobante en PDF del pedido con una tabla de productos que
@@ -2569,17 +2646,27 @@ async function generarPDFComprobante(datos) {
     const imagenesBase64 = await Promise.all(
         datos.items.map(item => cargarImagenBase64ParaPDF(item.rutaImagen))
     );
+    // Logo de la tienda: va en el encabezado y sustituye a los productos sin foto
+    const logoPDF = await cargarImagenBase64ParaPDF(LOGO_SIN_FOTO);
 
     // --- Encabezado ---
     doc.setFillColor(168, 85, 247);
     doc.rect(0, 0, anchoPagina, 30, 'F');
+    // Logo en una tarjeta blanca con esquinas redondeadas (el logo trae fondo blanco y así no se ve un cuadro dentro de otro)
+    let xTitulo = margenX;
+    if (logoPDF) {
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(margenX, 3.5, 23, 23, 3, 3, 'F');
+        try { dibujarImagenAjustadaPDF(doc, logoPDF, margenX + 1.5, 5, 20, 20); } catch (e) { /* no crítico */ }
+        xTitulo = margenX + 28;
+    }
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
-    doc.text('TIENDA DAYH', margenX, 15);
+    doc.text('TIENDA DAYH', xTitulo, 15);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    doc.text('Comprobante de Pedido', margenX, 23);
+    doc.text('Comprobante de Pedido', xTitulo, 23);
     doc.setFontSize(9);
     doc.text(new Date().toLocaleString('es-MX'), anchoPagina - margenX, 23, { align: 'right' });
 
@@ -2638,19 +2725,21 @@ async function generarPDFComprobante(datos) {
             dibujarEncabezadoTabla();
         }
 
-        // Imagen del producto, o un recuadro "Sin foto" si no se pudo cargar
+        // Imagen del producto. Si no tiene foto (o no se pudo cargar) se pone el logo de la
+        // tienda sobre una tarjeta blanca, en vez de un recuadro gris con la leyenda "Sin foto".
         const img64 = imagenesBase64[indice];
         if (img64) {
-            try { doc.addImage(img64, 'PNG', colImg, y, 18, 18); }
+            try { dibujarImagenAjustadaPDF(doc, img64, colImg, y, 18, 18); }
             catch (e) { doc.setDrawColor(200, 200, 200); doc.rect(colImg, y, 18, 18); }
+        } else if (logoPDF) {
+            doc.setFillColor(255, 255, 255);
+            doc.setDrawColor(228, 228, 228);
+            doc.roundedRect(colImg, y, 18, 18, 2, 2, 'FD');
+            try { dibujarImagenAjustadaPDF(doc, logoPDF, colImg + 1.2, y + 1.2, 15.6, 15.6); } catch (e) { /* no crítico */ }
         } else {
             doc.setDrawColor(200, 200, 200);
             doc.setFillColor(240, 240, 240);
             doc.rect(colImg, y, 18, 18, 'FD');
-            doc.setFontSize(6);
-            doc.setTextColor(150, 150, 150);
-            doc.text('Sin foto', colImg + 9, y + 10, { align: 'center' });
-            doc.setTextColor(30, 30, 30);
         }
 
         doc.setFontSize(9);
@@ -2677,24 +2766,27 @@ async function generarPDFComprobante(datos) {
     // --- Totales ---
     if (y + 35 > altoPagina - 20) { doc.addPage(); y = 20; }
     y += 6;
+    // Las etiquetas van alineadas a la derecha en una columna fija, lejos de los
+    // montos, para que "TOTAL:" y la cifra nunca queden pegados.
+    const colEtiquetaTotales = colSubtotal - 42;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Subtotal:', colPrecio, y);
+    doc.text('Subtotal:', colEtiquetaTotales, y, { align: 'right' });
     doc.text(formatearDinero(datos.subtotalProductos), colSubtotal, y, { align: 'right' });
-    y += 7;
+    y += 8;
     if (datos.montoDescuento > 0) {
         doc.setTextColor(16, 185, 129);
-        doc.text('Descuento:', colPrecio, y);
+        doc.text('Descuento:', colEtiquetaTotales, y, { align: 'right' });
         doc.text(`-${formatearDinero(datos.montoDescuento)}`, colSubtotal, y, { align: 'right' });
         doc.setTextColor(30, 30, 30);
-        y += 7;
+        y += 8;
     }
     doc.setDrawColor(30, 30, 30);
-    doc.line(colPrecio - 5, y, margenX + anchoUtil, y);
-    y += 7;
+    doc.line(colSubtotal - 75, y, colSubtotal, y);
+    y += 9;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
-    doc.text('TOTAL:', colPrecio, y);
+    doc.text('TOTAL:', colEtiquetaTotales, y, { align: 'right' });
     doc.text(formatearDinero(datos.totalGeneral), colSubtotal, y, { align: 'right' });
 
     // --- Pie de página ---
@@ -2771,7 +2863,7 @@ async function enviarPedidoFinal() {
 
             // Ruta de la imagen del producto para dibujarla en el PDF del comprobante.
             // Si no tiene imagen se deja vacía a propósito: así el PDF no intenta
-            // descargar un placeholder y solo dibuja un recuadro "Sin foto".
+            // descargar un placeholder; el PDF pone el logo de la tienda en su lugar.
             const arrImgItem = obtenerArregloImagenes(prod);
             const imgNombreItem = arrImgItem[0] ? arrImgItem[0].split(/[/\\\\]/).pop() : '';
             itemsParaPDF.push({
@@ -2847,7 +2939,8 @@ async function enviarPedidoFinal() {
         }
     } catch (err) {
         console.error("No se pudo enviar el pedido al punto de venta (sin conexión a Firebase):", err);
-        alert("No se pudo conectar con el punto de venta. Tu pedido se enviará por WhatsApp, pero confirma directamente que el stock siga disponible.");
+        const detalleErr = (err && (err.code || err.message)) ? `\n\nDetalle técnico: ${err.code || err.message}` : '';
+        alert("No se pudo enviar el pedido al punto de venta. Tu pedido se enviará por WhatsApp, pero confirma directamente que el stock siga disponible." + detalleErr);
     } finally {
         reproducirSonido('pedido');
         carrito = [];
@@ -2875,11 +2968,18 @@ function abrirModalDespacho() {
 window.abrirLightbox = function(src, titulo) {
     const modal = document.getElementById('lightbox-modal');
     const img = document.getElementById('lightbox-img');
-    if (modal && img) { modal.style.display = 'flex'; img.src = src; }
+    if (modal && img) {
+        img.classList.toggle('img-sin-foto', src === LOGO_SIN_FOTO);
+        modal.style.display = 'flex';
+        img.src = src;
+        document.body.style.overflow = 'hidden';
+    }
 };
 
 window.cerrarLightbox = function() {
-    const modal = document.getElementById('lightbox-modal'); if (modal) modal.style.display = 'none';
+    const modal = document.getElementById('lightbox-modal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
 };
 
 function inicializarBotónVolverArriba() {
