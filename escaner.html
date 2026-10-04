@@ -26,11 +26,15 @@ form{display:flex;gap:8px;margin-top:14px}
 input{flex:1;min-width:0;padding:12px;border-radius:12px;border:1px solid #374151;background:var(--card);color:var(--text);font-size:16px}
 form button{width:auto;margin:0;padding:12px 18px}
 p.n{color:var(--muted);font-size:13px;text-align:center}
+#quien{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;color:var(--muted)}
+#quien b{color:var(--text)}
+button.link{width:auto;margin:0;padding:6px 12px;font-size:13px;background:#374151;border-radius:8px}
 </style>
 </head>
 <body>
 <header><h1>📱 Escáner DAYH</h1><span id="estado">Conectando…</span></header>
 
+<div id="quien"><span>Este celular: <b id="nombre"></b></span><button class="link" id="btnNombre">✏️ Cambiar nombre</button></div>
 <div id="reader"></div>
 <button id="btnCam">📷 Activar cámara</button>
 <div id="res" hidden></div>
@@ -70,18 +74,63 @@ if (!token) {
   $("btnCam").disabled = true;
 }
 
+// ---- Presencia: el POS ve qué celulares están conectados y pueden escanear ----
+function idDispositivo() {
+  try {
+    let d = localStorage.getItem("escaner_dev");
+    if (!d) { d = Math.random().toString(36).slice(2, 10); localStorage.setItem("escaner_dev", d); }
+    return d;
+  } catch (e) { return Math.random().toString(36).slice(2, 10); }
+}
+function nombreInicial() {
+  try { const n = localStorage.getItem("escaner_nombre"); if (n) return n; } catch (e) {}
+  const ua = navigator.userAgent;
+  const base = /iPhone|iPad/.test(ua) ? "iPhone" : /Android/.test(ua) ? "Android" : "Celular";
+  const n = base + " " + (Math.floor(Math.random() * 90) + 10);
+  try { localStorage.setItem("escaner_nombre", n); } catch (e) {}
+  return n;
+}
+const devId = idDispositivo();
+let nombre = nombreInicial();
+let escaneos = 0, camaraOn = false, presRef = null;
+$("nombre").textContent = nombre;
+
+function actualizarPresencia(extra) {
+  if (!presRef) return;
+  presRef.update(Object.assign({ nombre: nombre, camara: camaraOn, escaneos: escaneos }, extra || {})).catch(() => {});
+}
+
 db.ref(".info/connected").on("value", s => {
   const e = $("estado");
   e.textContent = s.val() ? "Conectado" : "Sin conexión";
   e.className = s.val() ? "on" : "";
+  if (s.val() && token) {
+    presRef = db.ref("escaner_presencia/" + token + "/" + devId);
+    // Si se cierra la página o se pierde la señal, Firebase lo borra solo
+    presRef.onDisconnect().remove().then(() =>
+      presRef.set({ nombre: nombre, ts: firebase.database.ServerValue.TIMESTAMP, camara: camaraOn, escaneos: escaneos })
+    ).catch(() => {});
+  }
 });
+
+$("btnNombre").onclick = () => {
+  const n = (prompt("Nombre para este celular (lo verás en el punto de venta):", nombre) || "").trim().slice(0, 30);
+  if (!n) return;
+  nombre = n; $("nombre").textContent = n;
+  try { localStorage.setItem("escaner_nombre", n); } catch (e) {}
+  actualizarPresencia();
+};
 
 function enviar(codigo) {
   codigo = String(codigo || "").trim();
   if (!codigo || !token) return;
   db.ref("escaner/" + token)
     .push({ codigo: codigo, ts: firebase.database.ServerValue.TIMESTAMP })
-    .then(() => mostrar("✔ Enviado al POS", codigo, true))
+    .then(() => {
+      mostrar("✔ Enviado al POS", codigo, true);
+      escaneos++;
+      actualizarPresencia({ ultimo: firebase.database.ServerValue.TIMESTAMP });
+    })
     .catch(err => mostrar("✖ No se pudo enviar", err.message, false));
 }
 
@@ -112,6 +161,7 @@ $("btnCam").onclick = async () => {
   const btn = $("btnCam");
   if (scanner) {                       // ya estaba encendida: apagar
     await scanner.stop().catch(() => {}); scanner = null;
+    camaraOn = false; actualizarPresencia();
     btn.textContent = "📷 Activar cámara"; return;
   }
   try {
@@ -127,6 +177,7 @@ $("btnCam").onclick = async () => {
       alEscanear, () => {}
     );
     btn.textContent = "⏹ Apagar cámara";
+    camaraOn = true; actualizarPresencia();
   } catch (err) {
     scanner = null;
     mostrar("✖ No se pudo abrir la cámara", "Revisa el permiso de cámara del navegador", false);
