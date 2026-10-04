@@ -18,6 +18,12 @@ h1{font-size:18px;margin:0}
 #estado::before{content:"●";margin-right:6px;color:var(--bad)}
 #estado.on::before{color:var(--ok)}
 #reader{width:100%;border-radius:14px;overflow:hidden;background:#000;min-height:120px}
+#apagada{display:none;text-align:center;padding:34px 16px;border-radius:14px;background:var(--card);border:2px dashed #4b5563;color:var(--muted);font-size:15px;cursor:pointer}
+#apagada .ico{font-size:42px;display:block;margin-bottom:6px}
+#apagada b{color:var(--text)}
+#btnCam.on{background:var(--bad)}
+#btnCam.off{background:var(--ok)}
+#btnCam:disabled{opacity:.5}
 button{width:100%;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:600;color:#fff;background:var(--primary);margin-top:12px}
 #res{margin-top:14px;padding:14px;border-radius:12px;background:var(--card);text-align:center;font-size:15px}
 #res b{display:block;font-size:22px;margin-top:4px;word-break:break-all}
@@ -36,7 +42,9 @@ button.link{width:auto;margin:0;padding:6px 12px;font-size:13px;background:#3741
 
 <div id="quien"><span>Este celular: <b id="nombre"></b></span><button class="link" id="btnNombre">✏️ Cambiar nombre</button></div>
 <div id="reader"></div>
-<button id="btnCam">📷 Activar cámara</button>
+<div id="apagada"><span class="ico">📷</span><b>Cámara apagada</b><br><span id="motivoApagada">Toca aquí o el botón verde para escanear de nuevo.</span></div>
+<button id="btnCam" class="off">📷 Escanear</button>
+<p class="n" id="notaAuto" style="display:none;margin:8px 0 0"></p>
 <div id="res" hidden></div>
 
 <form id="manual">
@@ -93,6 +101,9 @@ function nombreInicial() {
 const devId = idDispositivo();
 let nombre = nombreInicial();
 let escaneos = 0, camaraOn = false, presRef = null;
+let permiso = null;       // null = verificando; {permitido, motivo}: lo decide el punto de venta
+let ctrlRef = null, avisoBloqueo = false;
+const permitido = () => !!(permiso && permiso.permitido === true);
 $("nombre").textContent = nombre;
 
 function actualizarPresencia(extra) {
@@ -124,8 +135,12 @@ $("btnNombre").onclick = () => {
 function enviar(codigo) {
   codigo = String(codigo || "").trim();
   if (!codigo || !token) return;
+  if (!permitido()) {
+    mostrar((permiso && permiso.motivo) || "Esperando permiso del punto de venta…", "🔒 No se envió", false);
+    return;
+  }
   db.ref("escaner/" + token)
-    .push({ codigo: codigo, ts: firebase.database.ServerValue.TIMESTAMP })
+    .push({ codigo: codigo, dev: devId, ts: firebase.database.ServerValue.TIMESTAMP })
     .then(() => {
       mostrar("✔ Enviado al POS", codigo, true);
       escaneos++;
@@ -150,39 +165,140 @@ function beep() {
 let ultimo = "", tUltimo = 0;
 function alEscanear(texto) {
   const ahora = Date.now();
+  ultimaActividad = ahora;                 // mantiene la cámara encendida (apagado automático)
   if (texto === ultimo && ahora - tUltimo < 2500) return;
   ultimo = texto; tUltimo = ahora;
   beep();
   enviar(texto);
 }
 
-let scanner;
-$("btnCam").onclick = async () => {
+// Apagado automático: si pasan estos segundos sin leer ningún código, la cámara se
+// apaga sola (ahorra batería). Cámbialo aquí si quieres más o menos tiempo.
+const AUTO_APAGADO_SEG = 60;
+let ultimaActividad = Date.now(), intervaloAuto = null;
+
+function detenerAutoApagado() {
+  if (intervaloAuto) { clearInterval(intervaloAuto); intervaloAuto = null; }
+  $("notaAuto").style.display = "none";
+}
+function iniciarAutoApagado() {
+  detenerAutoApagado();
+  ultimaActividad = Date.now();
+  const nota = $("notaAuto");
+  nota.style.display = "block";
+  const revisar = () => {
+    const restante = Math.ceil(AUTO_APAGADO_SEG - (Date.now() - ultimaActividad) / 1000);
+    if (restante <= 0) {
+      apagarCamara("Se apagó sola tras " + AUTO_APAGADO_SEG + " s sin escanear. Toca para escanear de nuevo.");
+    } else if (restante <= 10) {
+      nota.textContent = "⏱ Se apagará en " + restante + " s — escanea algo para mantenerla";
+    } else {
+      nota.textContent = "⏱ Se apaga sola tras " + AUTO_APAGADO_SEG + " s sin escanear";
+    }
+  };
+  revisar();
+  intervaloAuto = setInterval(revisar, 1000);
+}
+
+let scanner = null, ocupado = false;
+
+// El botón se bloquea si el punto de venta no permite escanear (salvo para poder quitar la cámara)
+function refrescarBoton() {
+  $("btnCam").disabled = !token || ocupado || (!scanner && !permitido());
+}
+
+// Muestra u oculta la cámara y deja el botón en el estado correcto
+function pintarCamara(encendida, motivo) {
   const btn = $("btnCam");
-  if (scanner) {                       // ya estaba encendida: apagar
-    await scanner.stop().catch(() => {}); scanner = null;
-    camaraOn = false; actualizarPresencia();
-    btn.textContent = "📷 Activar cámara"; return;
+  $("reader").style.display = encendida ? "block" : "none";
+  $("apagada").style.display = encendida ? "none" : "block";
+  btn.textContent = encendida ? "✖ Quitar cámara" : "📷 Escanear";
+  btn.className = encendida ? "on" : "off";
+  if (!encendida) $("motivoApagada").textContent = motivo ||
+    (permitido() ? "Toca aquí o el botón verde para escanear de nuevo." : "Esperando permiso del punto de venta…");
+  camaraOn = encendida;
+  refrescarBoton();
+  actualizarPresencia();
+}
+
+async function encenderCamara() {
+  if (scanner || ocupado || !token) return;
+  if (!permitido()) {
+    mostrar((permiso && permiso.motivo) || "Esperando permiso del punto de venta…", "🔒 No disponible", false);
+    return;
   }
+  ocupado = true; $("btnCam").disabled = true;
   try {
+    $("apagada").style.display = "none";
+    $("reader").style.display = "block";   // debe estar visible antes de arrancar
     const F = Html5QrcodeSupportedFormats;
-    scanner = new Html5Qrcode("reader", {
+    const s = new Html5Qrcode("reader", {
       formatsToSupport: [F.CODE_128, F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_39, F.ITF, F.QR_CODE],
       experimentalFeatures: { useBarCodeDetectorIfSupported: true },
       verbose: false
     });
-    await scanner.start(
+    await s.start(
       { facingMode: "environment" },
       { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * 0.9), height: Math.floor(Math.min(h * 0.6, 170)) }) },
       alEscanear, () => {}
     );
-    btn.textContent = "⏹ Apagar cámara";
-    camaraOn = true; actualizarPresencia();
+    scanner = s;
+    ultimo = ""; tUltimo = 0;               // el primer código al volver a escanear siempre se envía
+    pintarCamara(true);
+    iniciarAutoApagado();
   } catch (err) {
     scanner = null;
+    pintarCamara(false, "No se pudo abrir la cámara. Revisa el permiso del navegador y toca para reintentar.");
     mostrar("✖ No se pudo abrir la cámara", "Revisa el permiso de cámara del navegador", false);
+  } finally {
+    ocupado = false; refrescarBoton();
   }
-};
+}
+
+async function apagarCamara(motivo) {
+  if (!scanner || ocupado) return;
+  ocupado = true;
+  const s = scanner; scanner = null;
+  detenerAutoApagado();
+  try { await s.stop(); } catch (e) {}
+  try { s.clear(); } catch (e) {}           // libera el video para poder volver a encender
+  ocupado = false;
+  pintarCamara(false, motivo);
+}
+
+$("btnCam").onclick = () => scanner ? apagarCamara() : encenderCamara();
+$("apagada").onclick = () => encenderCamara();
+
+// Si el celular se bloquea o cambias de app, el sistema congela la cámara: se apaga
+// limpia y avisa; al regresar solo tocas "Escanear" y vuelve a funcionar.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && scanner) apagarCamara("Se apagó al salir de la página. Toca para escanear de nuevo.");
+});
+
+// ---- Permiso: el punto de venta decide si este celular puede escanear (interruptor
+// o bloqueo). Si no, la cámara se apaga sola y se muestra el motivo.
+function aplicarPermiso(p) {
+  permiso = (p && typeof p === "object") ? p : null;
+  if (permiso && permiso.permitido !== true) {
+    const m = permiso.motivo || "Este celular no tiene permiso para escanear.";
+    if (scanner) apagarCamara(m); else pintarCamara(false, m);
+    mostrar(m, "🔒 Escáner no disponible", false);
+    avisoBloqueo = true;
+  } else if (permiso) {
+    if (avisoBloqueo) { res.hidden = true; avisoBloqueo = false; }
+    if (!scanner) pintarCamara(false);
+  }
+  refrescarBoton();
+}
+function escucharControl() {
+  if (!token || ctrlRef) return;
+  ctrlRef = db.ref("escaner_control/" + token + "/dispositivos/" + devId);
+  ctrlRef.on("value", s => aplicarPermiso(s.val()),
+    () => aplicarPermiso({ permitido: false, motivo: "No se pudo verificar el permiso con el punto de venta." }));
+}
+
+pintarCamara(false);
+escucharControl();
 
 $("manual").onsubmit = e => { e.preventDefault(); enviar($("txt").value); $("txt").value = ""; };
 </script>
