@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Escáner DAYH</title>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#111827;--card:#1f2937;--text:#f9fafb;--muted:#9ca3af;--primary:#a855f7;--ok:#10b981;--bad:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);background:var(--bg);color:var(--text);font-family:system-ui,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 0}
+h1{font-size:18px;margin:0}
+#estado{font-size:13px;color:var(--muted)}
+#estado::before{content:"●";margin-right:6px;color:var(--bad)}
+#estado.on::before{color:var(--ok)}
+#reader{width:100%;border-radius:14px;overflow:hidden;background:#000;min-height:120px}
+button{width:100%;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:600;color:#fff;background:var(--primary);margin-top:12px}
+#res{margin-top:14px;padding:14px;border-radius:12px;background:var(--card);text-align:center;font-size:15px}
+#res b{display:block;font-size:22px;margin-top:4px;word-break:break-all}
+#res.ok{border:2px solid var(--ok)}#res.bad{border:2px solid var(--bad)}
+form{display:flex;gap:8px;margin-top:14px}
+input{flex:1;min-width:0;padding:12px;border-radius:12px;border:1px solid #374151;background:var(--card);color:var(--text);font-size:16px}
+form button{width:auto;margin:0;padding:12px 18px}
+p.n{color:var(--muted);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<header><h1>📱 Escáner DAYH</h1><span id="estado">Conectando…</span></header>
+
+<div id="reader"></div>
+<button id="btnCam">📷 Activar cámara</button>
+<div id="res" hidden></div>
+
+<form id="manual">
+  <input id="txt" placeholder="¿No lee? Escribe el código" autocomplete="off" enterkeyhint="send">
+  <button>Enviar</button>
+</form>
+<p class="n">Cada código escaneado se agrega al carrito del punto de venta.</p>
+
+<script>
+const CFG = {
+  apiKey: "AIzaSyBHrUnR49F-dY_kgyiw88SepoZ8-lSjxbM",
+  authDomain: "tiendadayh.firebaseapp.com",
+  databaseURL: "https://tiendadayh-default-rtdb.firebaseio.com",
+  projectId: "tiendadayh",
+  appId: "1:821695977091:web:3d7be4af127370ef9dadb6"
+};
+firebase.initializeApp(CFG);
+const db = firebase.database();
+
+// El token llega en el enlace del QR del POS y se recuerda en el celular
+let token = new URLSearchParams(location.search).get("t");
+try { token ? localStorage.setItem("escaner_t", token) : (token = localStorage.getItem("escaner_t")); } catch (e) {}
+
+const $ = id => document.getElementById(id);
+const res = $("res");
+function mostrar(titulo, codigo, ok) {
+  res.hidden = false;
+  res.className = ok ? "ok" : "bad";
+  res.innerHTML = titulo + "<b></b>";
+  res.querySelector("b").textContent = codigo;
+}
+
+if (!token) {
+  mostrar("✖ Falta el enlace del POS", "Abre esta página desde el QR de “ESCÁNER CELULAR”", false);
+  $("btnCam").disabled = true;
+}
+
+db.ref(".info/connected").on("value", s => {
+  const e = $("estado");
+  e.textContent = s.val() ? "Conectado" : "Sin conexión";
+  e.className = s.val() ? "on" : "";
+});
+
+function enviar(codigo) {
+  codigo = String(codigo || "").trim();
+  if (!codigo || !token) return;
+  db.ref("escaner/" + token)
+    .push({ codigo: codigo, ts: firebase.database.ServerValue.TIMESTAMP })
+    .then(() => mostrar("✔ Enviado al POS", codigo, true))
+    .catch(err => mostrar("✖ No se pudo enviar", err.message, false));
+}
+
+let audio;
+function beep() {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.frequency.value = 1300; g.gain.value = 0.15;
+    o.connect(g); g.connect(audio.destination);
+    o.start(); o.stop(audio.currentTime + 0.1);
+  } catch (e) {}
+  if (navigator.vibrate) navigator.vibrate(80);
+}
+
+// Evita enviar el mismo código muchas veces seguidas mientras sigue frente a la cámara
+let ultimo = "", tUltimo = 0;
+function alEscanear(texto) {
+  const ahora = Date.now();
+  if (texto === ultimo && ahora - tUltimo < 2500) return;
+  ultimo = texto; tUltimo = ahora;
+  beep();
+  enviar(texto);
+}
+
+let scanner;
+$("btnCam").onclick = async () => {
+  const btn = $("btnCam");
+  if (scanner) {                       // ya estaba encendida: apagar
+    await scanner.stop().catch(() => {}); scanner = null;
+    btn.textContent = "📷 Activar cámara"; return;
+  }
+  try {
+    const F = Html5QrcodeSupportedFormats;
+    scanner = new Html5Qrcode("reader", {
+      formatsToSupport: [F.CODE_128, F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_39, F.ITF, F.QR_CODE],
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false
+    });
+    await scanner.start(
+      { facingMode: "environment" },
+      { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * 0.9), height: Math.floor(Math.min(h * 0.6, 170)) }) },
+      alEscanear, () => {}
+    );
+    btn.textContent = "⏹ Apagar cámara";
+  } catch (err) {
+    scanner = null;
+    mostrar("✖ No se pudo abrir la cámara", "Revisa el permiso de cámara del navegador", false);
+  }
+};
+
+$("manual").onsubmit = e => { e.preventDefault(); enviar($("txt").value); $("txt").value = ""; };
+</script>
+</body>
+</html>
