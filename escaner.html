@@ -35,12 +35,31 @@ p.n{color:var(--muted);font-size:13px;text-align:center}
 #quien{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;color:var(--muted)}
 #quien b{color:var(--text)}
 button.link{width:auto;margin:0;padding:6px 12px;font-size:13px;background:#374151;border-radius:8px}
+#fotoCard{margin:0 0 12px;padding:14px;border-radius:14px;background:var(--card);border:2px solid var(--primary)}
+#fotoCard .ft{font-size:14px;color:var(--muted)}
+#fotoCard .ft b{display:block;color:var(--text);font-size:18px;margin-top:2px;word-break:break-word}
+#fotoImg{width:100%;max-height:300px;object-fit:contain;border-radius:10px;background:#000;margin-top:12px}
+#fotoPrev .fila{display:flex;gap:8px}
+#fotoPrev .fila button{margin-top:10px}
+#btnFotoOtra{background:#374151}
+#fotoEstado{min-height:18px;margin:10px 0 0}
+#fotoEstado.ok{color:var(--ok)}#fotoEstado.bad{color:var(--bad)}
 </style>
 </head>
 <body>
 <header><h1>📱 Escáner DAYH</h1><span id="estado">Conectando…</span></header>
 
 <div id="quien"><span>Este celular: <b id="nombre"></b></span><button class="link" id="btnNombre">✏️ Cambiar nombre</button></div>
+<div id="fotoCard" hidden>
+  <div class="ft">📸 La PC pide una foto para:<b id="fotoTitulo"></b></div>
+  <input id="fotoInput" type="file" accept="image/*" capture="environment" hidden>
+  <button id="btnFoto">📸 Tomar foto del producto</button>
+  <div id="fotoPrev" hidden>
+    <img id="fotoImg" alt="Vista previa de la foto">
+    <div class="fila"><button id="btnFotoEnviar">✔ Enviar al POS</button><button id="btnFotoOtra">↺ Repetir</button></div>
+  </div>
+  <p class="n" id="fotoEstado"></p>
+</div>
 <div id="reader"></div>
 <div id="apagada"><span class="ico">📷</span><b>Cámara apagada</b><br><span id="motivoApagada">Toca aquí o el botón verde para escanear de nuevo.</span></div>
 <button id="btnCam" class="off">📷 Escanear</button>
@@ -52,6 +71,7 @@ button.link{width:auto;margin:0;padding:6px 12px;font-size:13px;background:#3741
   <button>Enviar</button>
 </form>
 <p class="n">Cada código escaneado se agrega al carrito del punto de venta.</p>
+<p class="n">Para fotos de productos: en la PC abre Crear/Editar producto y pulsa “TOMAR FOTO CON EL CELULAR”; aquí aparecerá el botón de cámara.</p>
 
 <script>
 const CFG = {
@@ -289,6 +309,7 @@ function aplicarPermiso(p) {
     if (!scanner) pintarCamara(false);
   }
   refrescarBoton();
+  pintarFoto();
 }
 function escucharControl() {
   if (!token || ctrlRef) return;
@@ -297,8 +318,99 @@ function escucharControl() {
     () => aplicarPermiso({ permitido: false, motivo: "No se pudo verificar el permiso con el punto de venta." }));
 }
 
+// ---- Foto del producto: el POS la pide desde "Crear/Editar producto" ----
+// El POS publica 'escaner_foto_pedido/<token>' mientras espera una foto; aquí aparece
+// el botón de cámara. La foto se reduce a 1000 px y se manda a 'escaner_fotos/<token>'.
+let fotoPedido = null;     // {req, titulo, recibidas} mientras el POS espera una foto
+let fotoDataUrl = null;    // foto lista para enviar
+let fotoEsperaN = null;    // 'recibidas' al enviar; sirve para confirmar que la PC la recibió
+let fotoTimer = null;
+
+function fotoMensaje(txt, clase) {
+  const e = $("fotoEstado");
+  e.textContent = txt || "";
+  e.className = "n" + (clase ? " " + clase : "");
+}
+function pintarFoto() {
+  const activo = !!(fotoPedido && fotoPedido.req) && permitido();
+  $("fotoCard").hidden = !activo;
+  if (!activo) { fotoDataUrl = null; $("fotoPrev").hidden = true; fotoMensaje(""); return; }
+  $("fotoTitulo").textContent = fotoPedido.titulo || "producto";
+}
+async function reducirFoto(archivo, lado, calidad) {
+  let img;
+  try { img = await createImageBitmap(archivo, { imageOrientation: "from-image" }); }
+  catch (e) {
+    img = await new Promise((ok, mal) => {
+      const im = new Image();
+      im.onload = () => ok(im); im.onerror = mal;
+      im.src = URL.createObjectURL(archivo);
+    });
+  }
+  const k = Math.min(1, lado / Math.max(img.width, img.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  if (img.close) img.close();
+  return c.toDataURL("image/jpeg", calidad);
+}
+async function tomarFoto() {
+  if (scanner) await apagarCamara();         // la cámara del escáner y la de fotos no pueden ir juntas
+  $("fotoInput").click();
+}
+$("btnFoto").onclick = tomarFoto;
+$("btnFotoOtra").onclick = tomarFoto;
+$("fotoInput").onchange = async e => {
+  const archivo = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!archivo) return;
+  fotoMensaje("Procesando foto…");
+  try {
+    fotoDataUrl = await reducirFoto(archivo, 1000, 0.85);
+    $("fotoImg").src = fotoDataUrl;
+    $("fotoPrev").hidden = false;
+    fotoMensaje("Revisa la foto y envíala.");
+  } catch (err) {
+    fotoDataUrl = null;
+    fotoMensaje("✖ No se pudo leer la foto. Intenta de nuevo.", "bad");
+  }
+};
+$("btnFotoEnviar").onclick = () => {
+  if (!fotoDataUrl || !fotoPedido || !token) return;
+  if (!permitido()) { fotoMensaje((permiso && permiso.motivo) || "🔒 Este celular no tiene permiso.", "bad"); return; }
+  const btn = $("btnFotoEnviar"), foto = fotoDataUrl;
+  btn.disabled = true;
+  fotoEsperaN = fotoPedido.recibidas || 0;
+  fotoMensaje("⏳ Enviando…");
+  db.ref("escaner_fotos/" + token)
+    .push({ dev: devId, req: fotoPedido.req, foto: foto, ts: firebase.database.ServerValue.TIMESTAMP })
+    .then(() => {
+      fotoDataUrl = null; $("fotoPrev").hidden = true;
+      fotoMensaje("⏳ Enviada, esperando confirmación de la PC…");
+      clearTimeout(fotoTimer);
+      fotoTimer = setTimeout(() => {
+        if (fotoEsperaN !== null) { fotoEsperaN = null; fotoMensaje("⚠ La PC no confirmó. Revisa que la ventana de producto siga abierta.", "bad"); }
+      }, 15000);
+    })
+    .catch(err => { fotoEsperaN = null; fotoMensaje("✖ No se pudo enviar: " + err.message, "bad"); })
+    .finally(() => { btn.disabled = false; });
+};
+function escucharPedidoFoto() {
+  if (!token) return;
+  db.ref("escaner_foto_pedido/" + token).on("value", s => {
+    const v = s.val();
+    fotoPedido = (v && typeof v === "object" && v.req) ? v : null;
+    if (fotoPedido && fotoEsperaN !== null && (fotoPedido.recibidas || 0) > fotoEsperaN) {
+      fotoEsperaN = null; clearTimeout(fotoTimer);
+      fotoMensaje("✔ La PC recibió la foto. Puedes tomar otra si quieres.", "ok");
+    }
+    pintarFoto();
+  }, () => { fotoPedido = null; pintarFoto(); });
+}
+
 pintarCamara(false);
 escucharControl();
+escucharPedidoFoto();
 
 $("manual").onsubmit = e => { e.preventDefault(); enviar($("txt").value); $("txt").value = ""; };
 </script>
